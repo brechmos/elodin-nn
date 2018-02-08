@@ -71,7 +71,9 @@ class tSNE(Similarity):
         log.debug('Fingerprint list {}'.format(self._fingerprints))
 
         # Compute the tSNE of the data.
+        log.info('Calculating the tSNE...')
         self._Y = TSNE(n_components=2).fit_transform(X)
+        log.info('Done calculation')
 
     def displayY(self, axes):
         """
