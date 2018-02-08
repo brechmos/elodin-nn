@@ -104,7 +104,7 @@ class Fingerprint:
         if not os.path.isdir(directory):
             os.mkdir(directory)
 
-        filename = os.path.join(directory, 'filename_{}_{}.pck'.format(self._row_center, self._column_center))
+        filename = os.path.join(directory, 'filename_{:04}_{:04}.pck'.format(self._row_center, self._column_center))
 
         blah = {
             'filename': self._data.filename,
@@ -118,13 +118,20 @@ class Fingerprint:
         pickle.dump(blah, open(filename, 'wb'))
 
     def load(filename):
+        """
+        Static loader which will determine the type based on the contents of the file.
+
+        :return:
+        """
         with open(filename, 'rb') as fp:
             tt = pickle.load(fp)
             fptype = tt['fingerprint']
 
+        # Create the instance and load the data into the instance.
         log.debug('Going to load data into {}'.format(fptype))
         tt = fptype(None)
         tt._load(filename)
+
         return tt
 
     def _load(self, filename):
