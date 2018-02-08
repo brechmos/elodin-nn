@@ -47,25 +47,26 @@ class tSNE(Similarity):
 
     def calculate(self, fingerprint_files):
 
-        # Get the unique labels
+
         labels = []
-        for filename in fingerprint_files:
-            fp = Fingerprint.load(filename)
-            labels.append([x[1] for x in fp.predictions])
-        labels = list(set(chain.from_iterable(labels)))
-        log.debug('Unique labels: {}'.format(labels))
-
-        X = np.zeros((len(fingerprint_files), len(labels)))
-
+        values = {}
         for ii, filename in enumerate(fingerprint_files):
-
             fp = Fingerprint.load(filename)
 
-            for prediction in fp.predictions:
-                pred_value = prediction[2]
-                X[ii, labels.index(prediction[1])] = pred_value
+            # Add to unique label list
+            labels.extend([pred[1] for pred in fp.predictions if pred[1] not in labels])
+
+            # Store the predictions for next processing
+            values[ii] = fp.predictions
 
             self._fingerprints.append(fp)
+
+        log.info('Unique labels {}'.format(labels))
+
+        X = np.zeros((len(fingerprint_files), len(labels)))
+        for ii, filename in enumerate(fingerprint_files):
+            inds = [labels.index(prediction[1]) for prediction in values[ii]]
+            X[ii][inds] = [prediction[2] for prediction in values[ii]]
 
         log.debug('Fingerprint list {}'.format(self._fingerprints))
 
