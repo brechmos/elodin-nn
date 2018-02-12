@@ -1,15 +1,14 @@
-import uuid
-import glob
-import time
 import numpy as np
+from sklearn.manifold import TSNE
 
 import logging
 logging.basicConfig(format='%(levelname)-6s: %(name)-10s %(asctime)-15s  %(message)s')
 log = logging.getLogger("Similarity")
 log.setLevel(logging.INFO)
 
-from sklearn.manifold import TSNE
 # https://stackoverflow.com/questions/456672/class-factory-in-python
+
+
 class Similarity:
     _similarity_type = ''
 
@@ -30,6 +29,7 @@ class Similarity:
 
     def save(self):
         pass
+
 
 class tSNE(Similarity):
 
@@ -97,11 +97,8 @@ class tSNE(Similarity):
         log.debug('Closest indexes are {}'.format(inds[:n]))
         log.debug('Size of the fingerprint list {}'.format(len(self._fingerprints)))
 
-        #log.info('Most similar finger prints {}'.format([self._fingerprints[ind] for ind in inds[:n]]))
-
         toreturn = []
         for ind in inds[:n]:
             toreturn.append([distances[ind], self._fingerprints[ind]])
 
         return toreturn
-
