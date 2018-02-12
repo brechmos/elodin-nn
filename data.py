@@ -7,7 +7,7 @@ import progressbar
 import itertools
 import os
 
-from utils import gray2rgb
+import utils
 
 import logging
 logging.basicConfig(format='%(levelname)-6s: %(name)-10s %(asctime)-15s  %(message)s')
@@ -26,7 +26,6 @@ class Data:
 
         self._data_cache = {}
 
-
     def _load_image_data(self, filename):
         if filename.endswith('tiff'):
             log.debug('Loading TIFF file {}'.format(filename))
@@ -40,7 +39,7 @@ class Data:
 
         # Make RGB (3 channel) if only gray scale (single channel)
         if len(data.shape) == 2:
-            data = gray2rgb(data)
+            data = utils.gray2rgb(data)
 
         # Do the pre-processing of the data
         for dp in self._data_processing:
