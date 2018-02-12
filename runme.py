@@ -31,8 +31,7 @@ input_files = glob.glob(input_file_pattern)
 
 stepsize = 112
 
-calculate = True
-if calculate:
+if len(glob.glob(os.path.join(output_directory, '*pck'))) == 0:
     tl = TransferLearning()
 
     fingerprints = []
