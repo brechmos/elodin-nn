@@ -27,7 +27,7 @@ class Data:
         self._data_cache = {}
 
     def _load_image_data(self, filename):
-        if filename.endswith('tiff') or filename.endswith('.jpg'):
+        if any(filename.lower().endswith(s) for s in ['tiff', 'tif', 'jpg']):
             log.debug('Loading TIFF/JPG file {}'.format(filename))
             data = np.array(imageio.imread(filename))
         elif 'fits' in filename:
@@ -36,6 +36,9 @@ class Data:
             log.debug('FITS data is {}'.format(data))
 
             data[~np.isfinite(data)] = 0
+        else:
+            log.warning('Could not determine filetype for {}'.format(filename))
+            return []
 
         # Make RGB (3 channel) if only gray scale (single channel)
         if len(data.shape) == 2:
@@ -99,7 +102,7 @@ class Data:
                         }
                     )
 
-            return self._fingerprints
+        return self._fingerprints
 
     def save(self, output_directory):
         d = {
