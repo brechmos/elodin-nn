@@ -5,7 +5,7 @@ import numpy as np
 
 import logging
 logging.basicConfig(format='%(levelname)-6s: %(name)-10s %(asctime)-15s  %(message)s')
-log = logging.getLogger("TransferLearning")
+log = logging.getLogger("Runme")
 log.setLevel(logging.INFO)
 
 def rgb2plot(data):

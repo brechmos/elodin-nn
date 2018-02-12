@@ -5,7 +5,7 @@ import numpy as np
 
 import logging
 logging.basicConfig(format='%(levelname)-6s: %(name)-10s %(asctime)-15s  %(message)s')
-log = logging.getLogger("TransferLearning")
+log = logging.getLogger("Fingerprint")
 log.setLevel(logging.INFO)
 
 from keras.applications.resnet50 import ResNet50
