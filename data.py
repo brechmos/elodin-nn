@@ -27,8 +27,8 @@ class Data:
         self._data_cache = {}
 
     def _load_image_data(self, filename):
-        if filename.endswith('tiff'):
-            log.debug('Loading TIFF file {}'.format(filename))
+        if filename.endswith('tiff') or filename.endswith('.jpg'):
+            log.debug('Loading TIFF/JPG file {}'.format(filename))
             data = np.array(imageio.imread(filename))
         elif 'fits' in filename:
             log.debug('Loading FITS file {}'.format(filename))
