@@ -1,4 +1,7 @@
-def _gray2rgb(data):
+import numpy as np
+
+
+def gray2rgb(data):
     """
     Convert 2D data set to 3D gray scale
 
