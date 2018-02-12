@@ -1,7 +1,13 @@
 import uuid
 import glob
 import time
+import os
 import numpy as np
+
+from data import Data
+from data_processing import MedianFilterData, ZoomData
+from fingerprint import FingerprintResnet
+from similarity import tSNE
 
 import logging
 logging.basicConfig(format='%(levelname)-6s: %(name)-10s %(asctime)-15s  %(message)s')
