@@ -97,8 +97,4 @@ class tSNE(Similarity):
         log.debug('Closest indexes are {}'.format(inds[:n]))
         log.debug('Size of the fingerprint list {}'.format(len(self._fingerprints)))
 
-        toreturn = []
-        for ind in inds[:n]:
-            toreturn.append([distances[ind], self._fingerprints[ind]])
-
-        return toreturn
+        return [(distances[ind], self._fingerprints[ind]) for ind in inds[:n]]
