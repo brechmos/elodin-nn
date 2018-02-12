@@ -1,15 +1,14 @@
 import uuid
-import glob
 import time
 import numpy as np
+
+from keras.applications.resnet50 import ResNet50
+from keras.applications.resnet50 import preprocess_input, decode_predictions
 
 import logging
 logging.basicConfig(format='%(levelname)-6s: %(name)-10s %(asctime)-15s  %(message)s')
 log = logging.getLogger("Fingerprint")
 log.setLevel(logging.INFO)
-
-from keras.applications.resnet50 import ResNet50
-from keras.applications.resnet50 import preprocess_input, decode_predictions
 
 
 class Fingerprint:
