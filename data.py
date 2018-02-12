@@ -1,6 +1,4 @@
 import uuid
-import glob
-import time
 import numpy as np
 import pickle
 import imageio
@@ -9,10 +7,13 @@ import progressbar
 import itertools
 import os
 
+from utils import gray2rgb
+
 import logging
 logging.basicConfig(format='%(levelname)-6s: %(name)-10s %(asctime)-15s  %(message)s')
 log = logging.getLogger("Data")
 log.setLevel(logging.INFO)
+
 
 class Data:
     def __init__(self, fingerprint_calculator=None, data_processing=[]):
@@ -25,19 +26,6 @@ class Data:
 
         self._data_cache = {}
 
-    def _gray2rgb(self, data):
-        """
-        Convert 2D data set to 3D gray scale
-
-        :param data:
-        :return:
-        """
-        data_out = np.zeros((data.shape[0], data.shape[1], 3))
-        data_out[:, :, 0] = data
-        data_out[:, :, 1] = data
-        data_out[:, :, 2] = data
-
-        return data_out
 
     def _load_image_data(self, filename):
         if filename.endswith('tiff'):
@@ -52,7 +40,7 @@ class Data:
 
         # Make RGB (3 channel) if only gray scale (single channel)
         if len(data.shape) == 2:
-            data = self._gray2rgb(data)
+            data = gray2rgb(data)
 
         # Do the pre-processing of the data
         for dp in self._data_processing:
