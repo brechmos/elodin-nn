@@ -11,6 +11,30 @@ log.setLevel(logging.INFO)
 from keras.applications.resnet50 import ResNet50
 from keras.applications.resnet50 import preprocess_input, decode_predictions
 
+
+class Fingerprint:
+    def __init__(self):
+        self._uuid = str(uuid.uuid4())
+        self._predictions = []
+
+    def save(self, output_directory):
+        pass
+
+    def _gray2rgb(data):
+        """
+        Convert 2D data set to 3D gray scale
+
+        :param data:
+        :return:
+        """
+        data_out = np.zeros((224, 224, 3))
+        data_out[:, :, 0] = data
+        data_out[:, :, 1] = data
+        data_out[:, :, 2] = data
+
+        return data_out
+
+
 resnet50_model = ResNet50(weights='imagenet')
 
 
