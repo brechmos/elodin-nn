@@ -12,7 +12,7 @@ class DataProcessing:
     def __init__(self):
         pass
 
-    def _apply2dfunc(self, input_data, func, *args, **kwargs):
+    def apply2dfunc(self, input_data, func, *args, **kwargs):
         if len(input_data.shape) == 2:
             return func(input_data, *args, **kwargs)
         else:
