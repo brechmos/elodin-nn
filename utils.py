@@ -14,3 +14,14 @@ def gray2rgb(data):
     data_out[:, :, 2] = data
 
     return data_out
+
+def rgb2plot(data):
+    """
+    Convert the input data to RGB. This is basically clipping and cropping the intensity range for display
+
+    :param data:
+    :return:
+    """
+
+    mindata, maxdata = np.percentile(data[np.isfinite(data)], (0.01, 99.0))
+    return np.clip((data - mindata) / (maxdata-mindata) * 255, 0, 255).astype(np.uint8)
