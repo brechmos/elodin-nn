@@ -21,6 +21,7 @@ class DataProcessing:
                 output_data[:, :, ii] = func(input_data[:, :, ii], *args, **kwargs)
             return output_data
 
+
 class ZoomData(DataProcessing):
 
     def __init__(self, zoom_level=1):
