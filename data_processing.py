@@ -12,16 +12,13 @@ class DataProcessing:
     def __init__(self):
         pass
 
-    def _apply2dfunc(self, input_data, func, *args):
+    def _apply2dfunc(self, input_data, func, *args, **kwargs):
         if len(input_data.shape) == 2:
-            return func(input_data, *args)
+            return func(input_data, *args, **kwargs)
         else:
-            output_data = None
+            output_data = np.zeros(input_data.shape)
             for ii in range(input_data.shape[2]):
-                od = func(input_data[:, :, ii], *args)
-                if output_data is None:
-                    output_data = np.zeros((od.shape[0], od.shape[1], 3))
-                output_data[:, :, ii] = od
+                output_data[:, :, ii] = func(input_data[:, :, ii], *args, **kwargs)
             return output_data
 
 class ZoomData(DataProcessing):
@@ -55,4 +52,4 @@ class RotateData(DataProcessing):
         return 'RotateData (angle {})'.format(self._angle)
 
     def process(self, input_data):
-        return self._apply2dfunc(input_data, scipy.ndimage.rotate, self._angle)
+        return self._apply2dfunc(input_data, scipy.ndimage.rotate, self._angle, reshape=False)
