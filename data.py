@@ -7,6 +7,8 @@ import progressbar
 import itertools
 import os
 
+import matplotlib.pyplot as plt
+
 import utils
 
 import logging
@@ -67,18 +69,32 @@ class Data:
     def fingerprints(self):
         return self._fingerprints
 
-    def calculate(self, stepsize):
-        # calculate the fingerprints
+    def calculate(self, stepsize, display=False):
+        """
+        Calculate the fingerprints for each subsection of the image in each file.
+
+        :param stepsize:
+        :param display:
+        :return:
+        """
 
         self._fingerprints = []
+
+        if display:
+            plt.ion()
+            fig = plt.figure()
+            imaxis = None
+
+        log.debug('After the plot display')
+        # Run through each file.
         for filename in self._filenames:
             log.info('Processing filename {}'.format(filename))
 
+            # Load the data
             data = self._load_image_data(filename)
 
-            # Calculate predictions for each sub-area
+            # Determine the centers to use for the fingerprint calculation
             nrows, ncols = data.shape[:2]
-
             rows = range(112, nrows-112, stepsize)
             cols = range(112, ncols-112, stepsize)
 
@@ -89,6 +105,15 @@ class Data:
                 for ii, (row, col) in enumerate(itertools.product(rows, cols)):
 
                     td = data[row-112:row+112, col-112:col+112]
+
+                    if display:
+                        if imaxis is None:
+                            print('displaying via imshow')
+                            imaxis = plt.imshow(td)
+                        else:
+                            print('displaying via set_data')
+                            imaxis.set_data(td)
+                        plt.pause(0.0001)
 
                     predictions = self._fingerprint_calculator.calculate(td)
 
@@ -101,6 +126,9 @@ class Data:
                             'column_center': col
                         }
                     )
+
+        if display:
+            plt.close(fig)
 
         return self._fingerprints
 
