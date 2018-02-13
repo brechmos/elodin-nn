@@ -4,6 +4,31 @@ import numpy as np
 
 from utils import gray2rgb
 
+from keras.applications.resnet50 import preprocess_input as resnet50_preprocess_input
+from keras.applications.resnet50 import decode_predictions as resnet50_decode_predictions
+from keras.applications.resnet50 import ResNet50
+resnet50_model = ResNet50(weights='imagenet')
+
+from keras.applications.vgg16 import preprocess_input as vgg16_preprocess_input
+from keras.applications.vgg16 import decode_predictions as vgg16_decode_predictions
+from keras.applications.vgg16 import VGG16
+vgg16_model = VGG16(weights='imagenet')
+
+from keras.applications.vgg19 import preprocess_input as vgg19_preprocess_input
+from keras.applications.vgg19 import decode_predictions as vgg19_decode_predictions
+from keras.applications.vgg19 import VGG19
+vgg19_model = VGG19(weights='imagenet')
+
+from keras.applications.inception_v3 import preprocess_input as inception_v3_preprocess_input
+from keras.applications.inception_v3 import decode_predictions as inception_v3_decode_predictions
+from keras.applications.inception_v3 import InceptionV3
+inception_v3_model = InceptionV3(weights='imagenet')
+
+from keras.applications.inception_resnet_v2 import preprocess_input as inception_resnet_v2_preprocess_input
+from keras.applications.inception_resnet_v2 import decode_predictions as inception_resnet_v2_decode_predictions
+from keras.applications.inception_resnet_v2 import InceptionResNetV2
+inception_resnet_v2_model = InceptionResNetV2(weights='imagenet')
+
 import logging
 logging.basicConfig(format='%(levelname)-6s: %(name)-10s %(asctime)-15s  %(message)s')
 log = logging.getLogger("Fingerprint")
@@ -24,14 +49,10 @@ class FingerprintResnet(Fingerprint):
     def __init__(self):
         super(FingerprintResnet, self).__init__()
 
-        from keras.applications.resnet50 import ResNet50
-        self._resnet50_model = ResNet50(weights='imagenet')
-
     def __repr__(self):
         return 'Fingerprint (renet50, imagenet)'
 
     def calculate(self, data):
-        from keras.applications.resnet50 import preprocess_input, decode_predictions
 
         start_time = time.time()
 
@@ -45,16 +66,16 @@ class FingerprintResnet(Fingerprint):
         x = np.expand_dims(x, axis=0)
 
         # Do keras model image pre-processing
-        x = preprocess_input(x)
+        x = resnet50_preprocess_input(x)
 
         # There was an error at one point when the image was completely 0
         # In this case I just set a single prediction with low weight.
         # TODO:  Check to see if this is still an issue.
         if np.sum(np.abs(x)) > 0.0001:
-            preds = self._resnet50_model.predict(x)
+            preds = resnet50_model.predict(x)
             # decode the results into a list of tuples (class, description, probability)
             # (one such list for each sample in the batch)
-            self._predictions = decode_predictions(preds, top=200)[0]
+            self._predictions = resnet50_decode_predictions(preds, top=200)[0]
         else:
             self._predictions = [('test', 'beaver', 0.0000000000001), ]
 
@@ -70,15 +91,10 @@ class FingerprintVGG16(Fingerprint):
     def __init__(self):
         super(FingerprintVGG16, self).__init__()
 
-        from keras.applications.vgg16 import VGG16
-        self._vgg16_model = VGG16(weights='imagenet')
-
     def __repr__(self):
         return 'Fingerprint (vgg16, imagenet)'
 
     def calculate(self, data):
-        from keras.applications.vgg16 import preprocess_input, decode_predictions
-
         start_time = time.time()
 
         # Set the data into the expected format
@@ -91,16 +107,16 @@ class FingerprintVGG16(Fingerprint):
         x = np.expand_dims(x, axis=0)
 
         # Do keras model image pre-processing
-        x = preprocess_input(x)
+        x = vgg16_preprocess_input(x)
 
         # There was an error at one point when the image was completely 0
         # In this case I just set a single prediction with low weight.
         # TODO:  Check to see if this is still an issue.
         if np.sum(np.abs(x)) > 0.0001:
-            preds = self._vgg16_model.predict(x)
+            preds = vgg16_model.predict(x)
             # decode the results into a list of tuples (class, description, probability)
             # (one such list for each sample in the batch)
-            self._predictions = decode_predictions(preds, top=200)[0]
+            self._predictions = vgg16_decode_predictions(preds, top=200)[0]
         else:
             self._predictions = [('test', 'beaver', 0.0000000000001), ]
 
@@ -116,15 +132,10 @@ class FingerprintVGG19(Fingerprint):
     def __init__(self):
         super(FingerprintVGG19, self).__init__()
 
-        from keras.applications.vgg19 import VGG19
-        self._vgg19_model = VGG19(weights='imagenet')
-
     def __repr__(self):
         return 'Fingerprint (vgg19, imagenet)'
 
     def calculate(self, data):
-        from keras.applications.vgg19 import preprocess_input, decode_predictions
-
         start_time = time.time()
 
         # Set the data into the expected format
@@ -137,16 +148,16 @@ class FingerprintVGG19(Fingerprint):
         x = np.expand_dims(x, axis=0)
 
         # Do keras model image pre-processing
-        x = preprocess_input(x)
+        x = vgg19_preprocess_input(x)
 
         # There was an error at one point when the image was completely 0
         # In this case I just set a single prediction with low weight.
         # TODO:  Check to see if this is still an issue.
         if np.sum(np.abs(x)) > 0.0001:
-            preds = self._vgg19_model.predict(x)
+            preds = vgg19_model.predict(x)
             # decode the results into a list of tuples (class, description, probability)
             # (one such list for each sample in the batch)
-            self._predictions = decode_predictions(preds, top=200)[0]
+            self._predictions = vgg19_decode_predictions(preds, top=200)[0]
         else:
             self._predictions = [('test', 'beaver', 0.0000000000001), ]
 
@@ -162,15 +173,10 @@ class FingerprintInceptionV3(Fingerprint):
     def __init__(self):
         super(FingerprintInceptionV3, self).__init__()
 
-        from keras.applications.inception_v3 import InceptionV3
-        self._inception_v3_model = InceptionV3(weights='imagenet')
-
     def __repr__(self):
         return 'Fingerprint (inception_v3, imagenet)'
 
     def calculate(self, data):
-        from keras.applications.inception_v3 import preprocess_input, decode_predictions
-
         start_time = time.time()
 
         # Set the data into the expected format
@@ -183,16 +189,16 @@ class FingerprintInceptionV3(Fingerprint):
         x = np.expand_dims(x, axis=0)
 
         # Do keras model image pre-processing
-        x = preprocess_input(x)
+        x = inception_v3_preprocess_input(x)
 
         # There was an error at one point when the image was completely 0
         # In this case I just set a single prediction with low weight.
         # TODO:  Check to see if this is still an issue.
         if np.sum(np.abs(x)) > 0.0001:
-            preds = self._inception_v3_model.predict(x)
+            preds = inception_v3_model.predict(x)
             # decode the results into a list of tuples (class, description, probability)
             # (one such list for each sample in the batch)
-            self._predictions = decode_predictions(preds, top=200)[0]
+            self._predictions = inception_v3_decode_predictions(preds, top=200)[0]
         else:
             self._predictions = [('test', 'beaver', 0.0000000000001), ]
 
@@ -208,15 +214,10 @@ class FingerprintInceptionResNetV2(Fingerprint):
     def __init__(self):
         super(FingerprintInceptionResNetV2, self).__init__()
 
-        from keras.applications.inception_resnet_v2 import InceptionResNetV2
-        self._inception_resnet_v2_model = InceptionResNetV2(weights='imagenet')
-
     def __repr__(self):
         return 'Fingerprint (inception_resnet_v2, imagenet)'
 
     def calculate(self, data):
-        from keras.applications.inception_resnet_v2 import preprocess_input, decode_predictions
-
         start_time = time.time()
 
         # Set the data into the expected format
@@ -229,16 +230,16 @@ class FingerprintInceptionResNetV2(Fingerprint):
         x = np.expand_dims(x, axis=0)
 
         # Do keras model image pre-processing
-        x = preprocess_input(x)
+        x = inception_resnet_v2_preprocess_input(x)
 
         # There was an error at one point when the image was completely 0
         # In this case I just set a single prediction with low weight.
         # TODO:  Check to see if this is still an issue.
         if np.sum(np.abs(x)) > 0.0001:
-            preds = self._inception_resnet_v2_model.predict(x)
+            preds = inception_resnet_v2_model.predict(x)
             # decode the results into a list of tuples (class, description, probability)
             # (one such list for each sample in the batch)
-            self._predictions = decode_predictions(preds, top=200)[0]
+            self._predictions = inception_resnet_v2_decode_predictions(preds, top=200)[0]
         else:
             self._predictions = [('test', 'beaver', 0.0000000000001), ]
 
