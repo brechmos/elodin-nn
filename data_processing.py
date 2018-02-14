@@ -21,6 +21,9 @@ class DataProcessing:
                 output_data[:, :, ii] = func(input_data[:, :, ii], *args, **kwargs)
             return output_data
 
+    @abstractmethod:
+    def save(self):
+        pass
 
 class ZoomData(DataProcessing):
 
@@ -33,9 +36,12 @@ class ZoomData(DataProcessing):
     def process(self, input_data):
         return self._apply2dfunc(input_data, scipy.ndimage.zoom, self._zoom_level)
 
+    def save(self):
+        return {'data_processing': 'ZoomData', 'parameters': {'zoom': self._zoom_level}}
+
 
 class MedianFilterData(DataProcessing):
-    def __init__(self, kernel_size):
+    def __init__(self, kernel_size=(1,1,1)):
         self._kernel_size = kernel_size
 
     def __repr__(self):
@@ -44,9 +50,12 @@ class MedianFilterData(DataProcessing):
     def process(self, input_data):
         return scipy.ndimage.filters.median_filter(input_data, size=self._kernel_size)
 
+    def save(self):
+        return {'data_processing': 'MedianFilterData', 'parameters': {'kernel_size': self._kernel_size}}
+
 
 class RotateData(DataProcessing):
-    def __init__(self, angle):
+    def __init__(self, angle=0.0):
         self._angle = angle
 
     def __repr__(self):
@@ -54,6 +63,10 @@ class RotateData(DataProcessing):
 
     def process(self, input_data):
         return self._apply2dfunc(input_data, scipy.ndimage.rotate, self._angle, reshape=False)
+
+    def save(self):
+        return {'data_processing': 'RotateData', 'parameters': {'angle': self._angle}}
+
 
 class GrayScaleData(DataProcessing):
     def __init__(self):
@@ -64,3 +77,20 @@ class GrayScaleData(DataProcessing):
 
     def process(self, input_data):
         return np.dot(input_data[:,:,:3], [0.299, 0.587, 0.114])
+
+    def save(self):
+        return {'data_processing': 'GrayScaleData', 'parameters': {}}
+
+
+class FlipUDData(DataProcessing):
+    def __init__(self):
+        pass
+
+    def __repr__(self):
+        return 'FlipUDData'
+
+    def process(self, input_data):
+        return input_data[::-1]
+
+    def save(self):
+        return {'data_processing': 'FlipUDData', 'parameters': {}}
