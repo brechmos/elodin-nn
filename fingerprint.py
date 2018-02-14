@@ -43,13 +43,46 @@ class Fingerprint:
     def save(self, output_directory):
         pass
 
+    @staticmethod
+    def select_fingerprint():
+        """
+        The function will display all the fingerprinting methods and return a class
+        of the one of interest.  This can then be used to construct the class and
+        to use in further calculations.
+
+        :return:  selected class
+        """
+        subclasses = Fingerprint.__subclasses__()
+
+        selected = False
+        N = 0
+        while not selected:
+            # Show the fingerprints in order to allow for the person to select one
+            print('Select a pre-trained network to use (q to quit:')
+            for ii, x in enumerate(subclasses):
+                print('   {}) {}'.format(ii, x.__str__()))
+                N = ii
+
+            s = input('Select Number > ')
+
+            if s == 'q':
+                return
+
+            try:
+                s = int(s)
+                if s >= 0 and s < N:
+                    # create fingerprint
+                    return subclasses[s]
+            except:
+                pass
+
 
 class FingerprintResnet(Fingerprint):
 
     def __init__(self):
         super(FingerprintResnet, self).__init__()
 
-    def __repr__(self):
+    def __str__(self):
         return 'Fingerprint (renet50, imagenet)'
 
     def calculate(self, data):
@@ -91,7 +124,7 @@ class FingerprintVGG16(Fingerprint):
     def __init__(self):
         super(FingerprintVGG16, self).__init__()
 
-    def __repr__(self):
+    def __str__(self):
         return 'Fingerprint (vgg16, imagenet)'
 
     def calculate(self, data):
@@ -132,7 +165,7 @@ class FingerprintVGG19(Fingerprint):
     def __init__(self):
         super(FingerprintVGG19, self).__init__()
 
-    def __repr__(self):
+    def __str__(self):
         return 'Fingerprint (vgg19, imagenet)'
 
     def calculate(self, data):
@@ -173,7 +206,7 @@ class FingerprintInceptionV3(Fingerprint):
     def __init__(self):
         super(FingerprintInceptionV3, self).__init__()
 
-    def __repr__(self):
+    def __str__(self):
         return 'Fingerprint (inception_v3, imagenet)'
 
     def calculate(self, data):
@@ -214,7 +247,7 @@ class FingerprintInceptionResNetV2(Fingerprint):
     def __init__(self):
         super(FingerprintInceptionResNetV2, self).__init__()
 
-    def __repr__(self):
+    def __str__(self):
         return 'Fingerprint (inception_resnet_v2, imagenet)'
 
     def calculate(self, data):
