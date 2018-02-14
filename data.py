@@ -42,15 +42,15 @@ class Data:
             log.warning('Could not determine filetype for {}'.format(filename))
             return []
 
-        # Make RGB (3 channel) if only gray scale (single channel)
-        if len(data.shape) == 2:
-            data = utils.gray2rgb(data)
-
         # Do the pre-processing of the data
         for dp in self._data_processing:
             log.debug('Doing pre-processing {}, input data shape {}'.format(dp, data.shape))
             data = dp.process(data)
             log.debug('    Now input data shape {}'.format(data.shape))
+
+        # Make RGB (3 channel) if only gray scale (single channel)
+        if len(data.shape) == 2:
+            data = utils.gray2rgb(data)
 
         return data
 
@@ -107,12 +107,18 @@ class Data:
                     td = data[row-112:row+112, col-112:col+112]
 
                     if display:
+                        if len(td.shape) == 2:
+                            ttdd = utils.gray2rgb(td)
+                        else:
+                            ttdd = td
+                        ttdd = utils.rgb2plot(ttdd)
+
                         if imaxis is None:
                             print('displaying via imshow')
-                            imaxis = plt.imshow(td)
+                            imaxis = plt.imshow(ttdd)
                         else:
                             print('displaying via set_data')
-                            imaxis.set_data(td)
+                            imaxis.set_data(ttdd)
                         plt.pause(0.0001)
 
                     predictions = self._fingerprint_calculator.calculate(td)
