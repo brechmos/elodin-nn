@@ -54,3 +54,13 @@ class RotateData(DataProcessing):
 
     def process(self, input_data):
         return self._apply2dfunc(input_data, scipy.ndimage.rotate, self._angle, reshape=False)
+
+class GrayScaleData(DataProcessing):
+    def __init__(self):
+        pass
+
+    def __repr__(self):
+        return 'GrayScaleData'
+
+    def process(self, input_data):
+        return np.dot(input_data[:,:,:3], [0.299, 0.587, 0.114])
