@@ -12,13 +12,17 @@ class DataProcessingClass(object):
     frametype_class_dict = {}
 
     def __init__(self, *args, **kwargs):
+        print('in the __init__ with class {}'.format(args[0]))
         self.frame_id = str(args[0].__name__)
+        self.cls = args[0]
         DataProcessingClass.frametype_class_dict[self.frame_id] = args[0]
 
-    def __call__(self, cls):
-        if self.frame_id:
-            DataProcessingClass.frametype_class_dict[self.frame_id] = cls
-        return cls
+    def __call__(self, *args, **kwargs):
+        print('args is {}'.format(args))
+        print('kwargs is {}'.format(kwargs))
+        print('in __call__  with self {} and cls {}'.format(self, self.cls))
+        # return self.cls().__init__(*args, **kwargs)
+        return self.cls(*args, **kwargs)
 
     @staticmethod
     def get_class_from_frame_identifier(frame_identifier):
@@ -26,7 +30,7 @@ class DataProcessingClass(object):
 
 
 class DataProcessing:
-    def __init__(self):
+    def __init__(self, *args, **kwargs):
         pass
 
     def apply2dfunc(self, input_data, func, *args, **kwargs):
@@ -52,9 +56,10 @@ class DataProcessing:
         inst.load(parameters)
         return inst
 
-@DataProcessingClass
+#@DataProcessingClass
 class ZoomData(DataProcessing):
-    def __init__(self, zoom_level=1):
+    def __init__(self, zoom_level=1, *args, **kwargs):
+        super(ZoomData, self).__init__(*args, **kwargs)
         self._zoom_level = zoom_level
 
     def __repr__(self):
@@ -72,6 +77,9 @@ class ZoomData(DataProcessing):
 @DataProcessingClass
 class MedianFilterData(DataProcessing):
     def __init__(self, kernel_size=(1,1,1)):
+        print('here in medianfilterdata with self {} and kernel_size {}'.format(self, kernel_size))
+        super(MedianFilterData, self).__init__()
+
         self._kernel_size = kernel_size
 
     def __repr__(self):
