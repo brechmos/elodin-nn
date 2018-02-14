@@ -76,6 +76,21 @@ class Fingerprint:
             except:
                 pass
 
+    @staticmethod
+    def load(parameters):
+        if parameters['class_name'] == 'FingerprintResnet':
+            return FingerprintResnet(parameters)
+        elif parameters['class_name'] == 'FingerprintVGG16':
+            return FingerprintVGG16(parameters)
+        elif parameters['class_name'] == 'FingerprintVGG19':
+            return FingerprintVGG19(parameters)
+        elif parameters['class_name'] == 'FingerprintInceptionV3':
+            return FingerprintInceptionV3(parameters)
+        elif parameters['class_name'] == 'FingerprintInceptionResnetV2':
+            return FingerprintInceptionResNetV2(parameters)
+        else:
+            raise ValueError('Unknown class name {}'.format(parameters['class_name']))
+
 
 class FingerprintResnet(Fingerprint):
 
