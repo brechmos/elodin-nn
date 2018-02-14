@@ -43,6 +43,7 @@ class tSNE(Similarity):
         # Each line / element in these should correpsond
         self._Y = None
         self._fingerprints = []
+        self._filename_index = []
 
     @classmethod
     def is_similarity_for(cls, similarity_type):
@@ -52,6 +53,8 @@ class tSNE(Similarity):
         log.info('Going to calculate tSNE from {} fingerprints'.format(len(fingerprints)))
 
         # Calculate the unique labels
+        self._filename_index = np.array([fp['filename'] for fp in fingerprints])
+        print(self._filename_index)
         labels = []
         values = {}
         for ii, fp in enumerate(fingerprints):
@@ -88,7 +91,11 @@ class tSNE(Similarity):
         :param kwargs:
         :return:
         """
-        axes.plot(self._Y[:, 0], self._Y[:, 1], '.')
+
+        colors = ['b', 'g', 'r', 'c', 'm', 'y', 'k', 'w']
+        for ii, fi in enumerate(set(self._filename_index)):
+            inds = np.nonzero(self._filename_index == fi)[0]
+            axes.plot(self._Y[inds, 0], self._Y[inds, 1], '{}.'.format(colors[ii%len(colors)]))
 
     def find_similar(self, point, n=9):
 
