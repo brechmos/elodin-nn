@@ -8,27 +8,6 @@ log = logging.getLogger("DataProcessing")
 log.setLevel(logging.INFO)
 
 
-class DataProcessingClass(object):
-    frametype_class_dict = {}
-
-    def __init__(self, *args, **kwargs):
-        print('in the __init__ with class {}'.format(args[0]))
-        self.frame_id = str(args[0].__name__)
-        self.cls = args[0]
-        DataProcessingClass.frametype_class_dict[self.frame_id] = args[0]
-
-    def __call__(self, *args, **kwargs):
-        print('args is {}'.format(args))
-        print('kwargs is {}'.format(kwargs))
-        print('in __call__  with self {} and cls {}'.format(self, self.cls))
-        # return self.cls().__init__(*args, **kwargs)
-        return self.cls(*args, **kwargs)
-
-    @staticmethod
-    def get_class_from_frame_identifier(frame_identifier):
-        return DataProcessingClass.frametype_class_dict.get(frame_identifier)
-
-
 class DataProcessing:
     def __init__(self, *args, **kwargs):
         pass
@@ -50,13 +29,16 @@ class DataProcessing:
 
     @staticmethod
     def load(parameters):
-        class_name = parameters.get('data_processing')
-        cls = DataProcessingClass.get_class_from_frame_identifier(class_name)
-        inst = cls()
-        inst.load(parameters)
-        return inst
 
-#@DataProcessingClass
+        for class_ in DataProcessing.__subclasses__():
+            if class_.__name__ == parameters['data_processing']:
+
+                # If the class name matches, instantiate, pass in the parameters
+                # and return the newly created class.
+                tt = class_()
+                tt.load(parameters)
+                return tt
+
 class ZoomData(DataProcessing):
     def __init__(self, zoom_level=1, *args, **kwargs):
         super(ZoomData, self).__init__(*args, **kwargs)
@@ -74,7 +56,6 @@ class ZoomData(DataProcessing):
     def load(self, parameters):
         self._zoom_level = parameters.get('parameters').get('zoom')
 
-@DataProcessingClass
 class MedianFilterData(DataProcessing):
     def __init__(self, kernel_size=(1,1,1)):
         print('here in medianfilterdata with self {} and kernel_size {}'.format(self, kernel_size))
@@ -95,7 +76,6 @@ class MedianFilterData(DataProcessing):
         self._kernel_size = parameters.get('parameters').get('kernel_size')
 
 
-@DataProcessingClass
 class RotateData(DataProcessing):
     def __init__(self, angle=0.0):
         self._angle = angle
@@ -113,7 +93,6 @@ class RotateData(DataProcessing):
         self._angle = parameters.get('parameters').get('angle')
 
 
-@DataProcessingClass
 class GrayScaleData(DataProcessing):
     def __init__(self):
         pass
@@ -131,7 +110,6 @@ class GrayScaleData(DataProcessing):
         pass
 
 
-@DataProcessingClass
 class FlipUDData(DataProcessing):
     def __init__(self):
         pass
