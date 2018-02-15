@@ -2,7 +2,7 @@ import glob
 import os
 import numpy as np
 
-from data import Data
+from transfer_learning import TransferLearning
 from data_processing import MedianFilterData, ZoomData, RotateData, GrayScaleData
 from fingerprint import FingerprintResnet, FingerprintInceptionV3
 from similarity import tSNE
@@ -31,15 +31,15 @@ import matplotlib.pyplot as plt
 # input_file_pattern = '/Users/crjones/christmas/hubble/ACS_Halpha/data/*/*fits.gz'
 # output_directory = '/tmp/acs_halpha'
 
-#input_file_pattern = '/Users/crjones/christmas/hubble/HSTHeritage/data/*.???'
-#output_directory = '/tmp/hst_heritage_gray'
+# input_file_pattern = '/Users/crjones/christmas/hubble/HSTHeritage/data/*.???'
+# output_directory = '/tmp/hst_heritage_gray'
 
 input_file_pattern = '/Users/crjones/christmas/hubble/carina/data/carina.tiff'
 output_directory = '/tmp/resnet/'
 
 input_files = glob.glob(input_file_pattern)
 
-stepsize = 500
+stepsize = 400
 
 if len(glob.glob(os.path.join(output_directory, '*pck'))) == 0:
     #tl = TransferLearning()
@@ -52,10 +52,10 @@ if len(glob.glob(os.path.join(output_directory, '*pck'))) == 0:
     # # calculate fingerpirnts for median filtered
     log.info('Setting up median filter data')
     data_processing = [MedianFilterData((3,3,1)), GrayScaleData()]
-    data = Data(fingerprint_model, data_processing)
-    data.set_files(input_files)
-    fingerprints = data.calculate(stepsize=stepsize, display=True)
-    data.save(output_directory)
+    tl = TransferLearning(fingerprint_model, data_processing)
+    tl.set_files(input_files)
+    fingerprints = tl.calculate(stepsize=stepsize, display=True)
+    tl.save(output_directory)
 
 #    # calculate fingerprints for median filtered and sub-sampled
 #    log.info('Setting up median filter, zoom 2 data')
@@ -82,7 +82,7 @@ else:
     fingerprints = []
     for file in files:
 
-        data = Data.load(file)
+        data = TransferLearning.load(file)
         log.info('Loaded data {}'.format(data))
 
         temp_fingerprints = data.fingerprints
