@@ -55,6 +55,45 @@ class tSNE(Similarity):
     def is_similarity_for(cls, similarity_type):
         return cls._similarity_type == similarity_type
 
+    def select_distance_measure(self, distance_measure=None):
+        """
+        The function will display all the fingerprinting methods and return a class
+        of the one of interest.  This can then be used to construct the class and
+        to use in further calculations.
+
+        :return:  selected class
+        """
+
+        if not distance_measure:
+            dm_options = self._distance_measures.keys()
+
+            selected = False
+            N = 0
+            while not selected:
+                # Show the fingerprints in order to allow for the person to select one
+                print('Select distance measure to use (q to quit:')
+                for ii, x in enumerate(dm_options):
+                    print('   {}) {}'.format(ii, x))
+                    N = ii
+
+                s = input('Select Number > ')
+
+                if s == 'q':
+                    return
+
+                try:
+                    s = int(s)
+                    if s >= 0 and s < N:
+                        self._distance_measure = self._distance_measures[s]
+                except:
+                    pass
+        else:
+            if distance_measure in self._distance_measures:
+                self._distance_measure = distance_measure
+            else:
+                self._distance_measure = self._distance_measures.keys()[0]
+                print('ERROR: No definition for {} so using {} instead.'.format(distance_measure, self._distance_measure))
+
     def calculate(self, fingerprints):
         log.info('Going to calculate tSNE from {} fingerprints'.format(len(fingerprints)))
 
