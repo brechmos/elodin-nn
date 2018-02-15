@@ -44,6 +44,12 @@ class tSNE(Similarity):
         self._Y = None
         self._fingerprints = []
         self._filename_index = []
+        self._distance_measure = 'l2'
+
+        self._distance_measures = {
+            'l2': lambda Y, point:  np.sqrt(np.sum((Y - np.array(point))**2, axis=1)),
+            'l1': lambda Y, point: np.sum(np.abs((Y - np.array(point)), axis=1)),
+        }
 
     @classmethod
     def is_similarity_for(cls, similarity_type):
@@ -82,7 +88,7 @@ class tSNE(Similarity):
         log.debug('self._Y is {}'.format(self._Y))
         log.info('Done calculation')
 
-    def displayY(self, axes):
+    def displayY(self, tsne_axis):
         """
         Display the Y values in an axis element.
 
@@ -95,11 +101,13 @@ class tSNE(Similarity):
         colors = ['b', 'g', 'r', 'c', 'm', 'y', 'k', 'w']
         for ii, fi in enumerate(set(self._filename_index)):
             inds = np.nonzero(self._filename_index == fi)[0]
-            axes.plot(self._Y[inds, 0], self._Y[inds, 1], '{}.'.format(colors[ii%len(colors)]))
+            tsne_axis.plot(self._Y[inds, 0], self._Y[inds, 1], '{}.'.format(colors[ii%len(colors)]))
+        dir(tsne_axis)
+        tsne_axis.set_title('tSNE [{}]'.format(self._distance_measure))
 
     def find_similar(self, point, n=9):
 
-        distances = np.sqrt(np.sum((self._Y - np.array(point)) ** 2, axis=1))
+        distances = self._distance_measures[self._distance_measure](self._Y, point)
         inds = np.argsort(distances)
         log.debug('Closest indexes are {}'.format(inds[:n]))
         log.debug('Size of the fingerprint list {}'.format(len(self._fingerprints)))
