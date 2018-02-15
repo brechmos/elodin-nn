@@ -28,7 +28,7 @@ class DataProcessing:
         raise NotImplementedError("Please Implement this method")
 
     @staticmethod
-    def load(parameters):
+    def load_parameters(parameters):
 
         for class_ in DataProcessing.__subclasses__():
             if class_.__name__ == parameters['data_processing']:
@@ -38,6 +38,7 @@ class DataProcessing:
                 tt = class_()
                 tt.load(parameters)
                 return tt
+
 
 class ZoomData(DataProcessing):
     def __init__(self, zoom_level=1, *args, **kwargs):
@@ -56,9 +57,9 @@ class ZoomData(DataProcessing):
     def load(self, parameters):
         self._zoom_level = parameters.get('parameters').get('zoom')
 
+
 class MedianFilterData(DataProcessing):
     def __init__(self, kernel_size=(1,1,1)):
-        print('here in medianfilterdata with self {} and kernel_size {}'.format(self, kernel_size))
         super(MedianFilterData, self).__init__()
 
         self._kernel_size = kernel_size

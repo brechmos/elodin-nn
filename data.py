@@ -9,6 +9,8 @@ import os
 
 import matplotlib.pyplot as plt
 
+from data_processing import DataProcessing
+from fingerprint import Fingerprint
 import utils
 
 import logging
@@ -125,7 +127,6 @@ class Data:
 
                     self._fingerprints.append(
                         {
-                            'data': self,
                             'predictions': predictions,
                             'filename': filename,
                             'row_center': row,
@@ -140,8 +141,8 @@ class Data:
 
     def save(self, output_directory):
         d = {
-            'data_processing': self._data_processing,
-            'fingerprint_calculator': self._fingerprint_calculator,
+            'data_processing': [t.save() for t in self._data_processing],
+            'fingerprint_calculator': self._fingerprint_calculator.save(),
             'uuid': self._uuid,
             'filenames': self._filenames,
             'fingerprints': self._fingerprints
@@ -155,8 +156,10 @@ class Data:
         with open(input_filename, 'rb') as fp:
             tt = pickle.load(fp)
 
-            self._data_processing = tt['data_processing']
-            self._fingerprint_calculator = tt['fingerprint_calculator']
+            self._data_processing = []
+            for dp in tt['data_processing']:
+                self._data_processing.append(DataProcessing.load_parameters(dp))
+            self._fingerprint_calculator = Fingerprint.load_parameters(tt['fingerprint_calculator'])
             self._uuid = tt['uuid']
             self._filenames = tt['filenames']
             self._fingerprints = tt['fingerprints']
@@ -166,6 +169,7 @@ class Data:
         log.debug('    uuid is {}'.format(self._uuid))
         log.debug('    filenames is {}'.format(self._filenames))
 
+    @staticmethod
     def load(input_filename):
         d = Data()
         d._load(input_filename)
