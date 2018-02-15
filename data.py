@@ -81,6 +81,7 @@ class Data:
         """
 
         self._fingerprints = []
+        self._stepsize = stepsize
 
         if display:
             plt.ion()
@@ -143,6 +144,7 @@ class Data:
         d = {
             'data_processing': [t.save() for t in self._data_processing],
             'fingerprint_calculator': self._fingerprint_calculator.save(),
+            'stepsize': self._stepsize,
             'uuid': self._uuid,
             'filenames': self._filenames,
             'fingerprints': self._fingerprints
@@ -161,6 +163,7 @@ class Data:
                 self._data_processing.append(DataProcessing.load_parameters(dp))
             self._fingerprint_calculator = Fingerprint.load_parameters(tt['fingerprint_calculator'])
             self._uuid = tt['uuid']
+            self._stepsize = tt['stepsize']
             self._filenames = tt['filenames']
             self._fingerprints = tt['fingerprints']
 
