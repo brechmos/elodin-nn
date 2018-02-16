@@ -141,7 +141,7 @@ class tSNE(Similarity):
         for ii, fi in enumerate(set(self._filename_index)):
             inds = np.nonzero(self._filename_index == fi)[0]
             tsne_axis.plot(self._Y[inds, 0], self._Y[inds, 1], '{}.'.format(colors[ii%len(colors)]))
-        dir(tsne_axis)
+        tsne_axis.grid('on')
         tsne_axis.set_title('tSNE [{}]'.format(self._distance_measure))
 
     def find_similar(self, point, n=9):
