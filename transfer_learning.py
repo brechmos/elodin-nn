@@ -1,123 +1,5 @@
 from similarity import tSNE
-from matplotlib import pyplot as plt
-import os
-import utils
 import glob
-
-import logging
-logging.basicConfig(format='%(levelname)-6s: %(name)-10s %(asctime)-15s  %(message)s')
-log = logging.getLogger("TransferLearning")
-log.setLevel(logging.INFO)
-
-
-# class TransferLearningDisplay:
-#
-#     def __init__(self):
-#         self.tsne_similarity = None
-#         self.fig = None
-#         self.axis = None
-#         self.info_axis = None
-#         self.info_text = None
-#         self.sub_windows = None
-#
-#     def display(self, fingerprints):
-#         plt.show(block=False)
-#
-#         self.tsne_similarity = tSNE(fingerprints)
-#         self.tsne_similarity.calculate(fingerprints)
-#
-#         self.fig = plt.figure(1)
-#         plt.gcf()
-#         self.axis = plt.axes([0.05, 0.05, 0.45, 0.45])
-#
-#         self.axis_closest = plt.axes([0.5, 0.01, 0.2, 0.2])
-#         self.axis_closest.set_xticks([])
-#         self.axis_closest.set_yticks([])
-#         self.axis_closest.set_xlabel('')
-#         self.axis_closest.set_ylabel('')
-#
-#         self.tsne_similarity.displayY(self.axis)
-#
-#         self.info_axis = plt.axes([0.60, 0.02, 0.3, 0.05])
-#         self.info_axis.set_axis_off()
-#         self.info_axis.set_xticks([])
-#         self.info_axis.set_yticks([])
-#         self.info_axis.set_xlabel('')
-#         self.info_axis.set_ylabel('')
-#         self.info_text = self.info_axis.text(0, 0, '', fontsize=12)
-#
-#         self._cid = self.fig.canvas.mpl_connect('button_press_event', self._onclick)
-#         self.fig.canvas.mpl_connect('motion_notify_event', self._onmove)
-#
-#         self.sub_windows = []
-#         for row in range(3):
-#             for col in range(3):
-#                 # rect = [left, bottom, width, height]
-#                 tt = plt.axes([0.5 + 0.14 * col, 0.75 - 0.25 * row, 0.2, 0.2])
-#                 tt.set_xticks([])
-#                 tt.set_yticks([])
-#                 self.sub_windows.append(tt)
-#         plt.show(block=False)
-#
-#     def _update_text(self, thetext):
-#         self.info_text.set_text(thetext)
-#         plt.draw()
-#
-#     def _onmove(self, event):
-#         if event.inaxes == self.axis:
-#             point = event.ydata, event.xdata
-#             close_fingerprint = self.tsne_similarity.find_similar(point, n=1)[0][1]
-#
-#             self.axis_closest.imshow(utils.rgb2plot(
-#                 close_fingerprint['data'].display(close_fingerprint['filename'],
-#                                                   close_fingerprint['row_center'],
-#                                                   close_fingerprint['column_center'])
-#             ))
-#             plt.show(block=False)
-#             plt.pause(0.0001)
-#
-#     def _onclick(self, event):
-#         point = event.ydata, event.xdata
-#         self.axis.cla()
-#         self.tsne_similarity.displayY(self.axis)
-#
-#         self._update_text('Loading data...')
-#         close_fingerprints = self.tsne_similarity.find_similar(point)
-#
-#         self._update_text('Displaying result...')
-#         for ii, (distance, fingerprint) in enumerate(close_fingerprints):
-#             self.sub_windows[ii].imshow(utils.rgb2plot(
-#                 fingerprint['data'].display(fingerprint['filename'],
-#                                             fingerprint['row_center'],
-#                                             fingerprint['column_center'])
-#             ))
-#             self.sub_windows[ii].set_title('{:0.3f} {} ({}, {})'.format(
-#                 distance,
-#                 os.path.basename(fingerprint['filename']),
-#                 fingerprint['row_center'],
-#                 fingerprint['column_center']), fontsize=8)
-#
-#         self._update_text('Click in the tSNE plot...')
-#
-#         plt.show(block=False)
-#         plt.pause(0.001)
-#
-#
-# if __name__ == "__main__":
-#     #input_fingerprints = '/tmp/resnet/data_be633177-2923-423f-bc7e-846d7647cf4d.pck'
-#     input_fingerprints = '/tmp/hst_heritage_gray/*.pck'
-#
-#     filenames  = glob.glob(input_fingerprints)
-#
-#     fingerprints = []
-#     for filename in filenames:
-#         data = Data.load(filename)
-#         fingerprints.extend(data.fingerprints)
-#
-#     tl = TransferLearning()
-#     tl.display(fingerprints)
-
-
 import uuid
 import numpy as np
 import pickle
@@ -126,6 +8,7 @@ from astropy.io import fits
 import progressbar
 import itertools
 import os
+import sys
 
 import matplotlib.pyplot as plt
 
@@ -135,7 +18,7 @@ import utils
 
 import logging
 logging.basicConfig(format='%(levelname)-6s: %(name)-10s %(asctime)-15s  %(message)s')
-log = logging.getLogger("Data")
+log = logging.getLogger("TransferLearning")
 log.setLevel(logging.INFO)
 
 
@@ -147,6 +30,9 @@ class TransferLearning:
         self._filenames = []
         self._fingerprints = []
         self._uuid = str(uuid.uuid4())
+
+        # number of pixels around the image to include in the display
+        self._image_display_margin = 50
 
         self._data_cache = {}
 
@@ -184,8 +70,14 @@ class TransferLearning:
         if filename not in self._data_cache:
             self._data_cache[filename] = self._load_image_data(filename)
 
-        return self._data_cache[filename][row-112:row+112, col-112:col+112]
-        log.info('Display {} {} {} {}'.format(self, self._data_processing, row, col))
+        nrows, ncols = self._data_cache[filename].shape
+
+        start_row = max(0, row - 112 - self._image_display_margin)
+        end_row = min(nrows, row + 112 + self._image_display_margin)
+        start_col = max(0, col - 112 - self._image_display_margin)
+        end_col = min(ncols, col + 112 + self._image_display_margin)
+
+        return self._data_cache[filename][start_row:end_row, start_col:end_col]
 
     @property
     def fingerprints(self):
@@ -340,14 +232,16 @@ class TransferLearningDisplay:
         self.fig.canvas.mpl_connect('motion_notify_event', self._onmove)
 
         self.sub_windows = []
+        self.sub_data = []
         for row in range(3):
             for col in range(3):
                 # rect = [left, bottom, width, height]
                 tt = plt.axes([0.5 + 0.14 * col, 0.75 - 0.25 * row, 0.2, 0.2])
                 tt.set_xticks([])
                 tt.set_yticks([])
-                tt.imshow(np.zeros((224, 224)))
+                sd = tt.imshow(np.zeros((224, 224)))
                 self.sub_windows.append(tt)
+                self.sub_data.append(sd)
         plt.show(block=False)
 
     def _update_text(self, thetext):
@@ -356,9 +250,12 @@ class TransferLearningDisplay:
         plt.draw()
 
     def _onmove(self, event):
+        log.debug('Moving to {}'.format(event))
         if event.inaxes == self.axis:
             point = event.ydata, event.xdata
             close_fingerprint = self.tsne_similarity.find_similar(point, n=1)[0][1]
+
+            log.debug('Closest fingerprints {}'.format(close_fingerprint))
 
             self.axis_closest.imshow(utils.rgb2plot(
                 close_fingerprint['data'].display(close_fingerprint['filename'],
@@ -370,18 +267,29 @@ class TransferLearningDisplay:
             plt.pause(0.0001)
 
     def _onclick(self, event):
+        log.debug('Clicked {}'.format(event))
 
         if event.inaxes == self.axis:
             point = event.ydata, event.xdata
             self.axis.cla()
             self.tsne_similarity.displayY(self.axis)
 
+            log.debug('Loading data')
+
             self._update_text('Loading data...')
             close_fingerprints = self.tsne_similarity.find_similar(point)
 
             self._update_text('Displaying result...')
             for ii, (distance, fingerprint) in enumerate(close_fingerprints):
-                self.sub_windows[ii].imshow(utils.rgb2plot(
+
+                # Zero out and show we are loading -- should be fast.3
+                log.debug('Displaying fingerprint {}'.format(ii))
+                self.sub_windows[ii].set_title('Loading...', fontsize=8)
+                self.sub_data[ii].set_data(np.zeros((224, 224)))
+                plt.pause(0.001)
+
+                # Show new data and set title
+                self.sub_data[ii].set_data(utils.rgb2plot(
                     fingerprint['data'].display(fingerprint['filename'],
                                                 fingerprint['row_center'],
                                                 fingerprint['column_center'])
@@ -392,26 +300,74 @@ class TransferLearningDisplay:
                     fingerprint['row_center'],
                     fingerprint['column_center']), fontsize=8)
 
+                plt.pause(0.001)
+
             self._update_text('Click in the tSNE plot...')
 
-            plt.show(block=False)
+            log.debug('Done updating, going to refresh')
             plt.pause(0.001)
 
+            log.debug('Done the onlcick')
+
 if __name__ == "__main__":
-    #input_fingerprints = '/tmp/resnet/data_be633177-2923-423f-bc7e-846d7647cf4d.pck'
-    input_fingerprints = '/tmp/resnet/*.pck'
 
-    filenames  = glob.glob(input_fingerprints)
+#    input_file_pattern = '/Users/crjones/christmas/hubble/carina/data/carina.tiff'
+#    directory = '/tmp/resnet/'
 
-    fingerprints = []
-    for filename in filenames:
-        data = TransferLearning.load(filename)
+    # input_file_pattern = '/Users/crjones/christmas/hubble/HSTHeritage/data/*.???'
+    # directory = '/tmp/hst_heritage_gray'
 
-        temp_fingerprints = data.fingerprints
-        for item in temp_fingerprints:
-            item.update({'data': data})
+    # input_file_pattern = '/Users/crjones/christmas/hubble/HSTHeritage/data/*.???'
+    # directory = '/tmp/hst_heritage'
 
-        fingerprints.extend(data.fingerprints)
+    # input_file_pattern = '/Users/crjones/christmas/hubble/MAGPIS/G371D.tiff'
+    # directory = '/tmp/magpis'
 
-    tld = TransferLearningDisplay()
-    tld.show(fingerprints)
+    input_file_pattern = '/Users/crjones/christmas/hubble/MAGPIS/G371D.tiff'
+    directory = '/tmp/magpis_gray'
+
+    if not os.path.isdir(directory):
+        try:
+            os.mkdir(directory)
+        except:
+            log.error('Could not create output directory {}'.format(directory))
+            sys.exit(-1)
+
+    filenames = glob.glob(os.path.join(directory, '*pck'))
+
+    if len(filenames) == 0:
+        print('Processing data...')
+
+        from data_processing import MedianFilterData, ZoomData, RotateData, GrayScaleData
+        from fingerprint import FingerprintResnet, FingerprintInceptionV3
+
+        stepsize = 112
+
+        input_filenames = glob.glob(input_file_pattern)
+
+        # fingerprint_model = FingerprintInceptionV3()
+        fingerprint_model = FingerprintResnet()
+
+        # # calculate fingerpirnts for median filtered
+        log.info('Setting up median filter data')
+        #data_processing = [MedianFilterData((3, 3, 1)), GrayScaleData()]
+        data_processing = [GrayScaleData()]
+        tl = TransferLearning(fingerprint_model, data_processing)
+        tl.set_files(input_filenames)
+        fingerprints = tl.calculate(stepsize=stepsize, display=True)
+        tl.save(directory)
+
+    else:
+
+        fingerprints = []
+        for filename in filenames:
+            data = TransferLearning.load(filename)
+
+            temp_fingerprints = data.fingerprints
+            for item in temp_fingerprints:
+                item.update({'data': data})
+
+            fingerprints.extend(data.fingerprints)
+
+        tld = TransferLearningDisplay()
+        tld.show(fingerprints)
