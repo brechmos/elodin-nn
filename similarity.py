@@ -99,7 +99,6 @@ class tSNE(Similarity):
 
         # Calculate the unique labels
         self._filename_index = np.array([fp['filename'] for fp in fingerprints])
-        print(self._filename_index)
         labels = []
         values = {}
         for ii, fp in enumerate(fingerprints):
@@ -218,6 +217,7 @@ class Jaccard(Similarity):
 
     def jaccard_similarities(self, mat):
         # https://na-o-ys.github.io/others/2015-11-07-sparse-vector-similarities.html
+        log.debug('Going into jaccard_similarities')
 
         cols_sum = mat.getnnz(axis=0)
         ab = mat.T * mat
@@ -234,10 +234,12 @@ class Jaccard(Similarity):
         return similarities
 
     def find_similar(self, point, n=9):
+        log.debug('Going into find_similar')
 
         row, col = int(point[0]), int(point[1])
-
+        import time
         # find the Main fingerprint for this point in the image
+        start = time.time()
         distances = self._fingerprint_adjacency[row]
         inds = np.argsort(distances)[::-1]
         log.debug('Closest indexes are {}'.format(inds[:n]))
