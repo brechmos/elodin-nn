@@ -1,4 +1,4 @@
-from similarity import tSNE
+from similarity import tSNE, Jaccard
 import glob
 import uuid
 import numpy as np
@@ -68,16 +68,18 @@ class TransferLearning:
     def display(self, filename, row, col):
 
         if filename not in self._data_cache:
+            log.info('Caching image data {}...'.format(filename))
             self._data_cache[filename] = self._load_image_data(filename)
 
-        nrows, ncols = self._data_cache[filename].shape
+        # print(filename, self._data_cache[filename].shape)
+        # nrows, ncols = self._data_cache[filename].shape[:2]
+        #
+        # start_row = max(0, row - 112 - self._image_display_margin)
+        # end_row = min(nrows, row + 112 + self._image_display_margin)
+        # start_col = max(0, col - 112 - self._image_display_margin)
+        # end_col = min(ncols, col + 112 + self._image_display_margin)
 
-        start_row = max(0, row - 112 - self._image_display_margin)
-        end_row = min(nrows, row + 112 + self._image_display_margin)
-        start_col = max(0, col - 112 - self._image_display_margin)
-        end_col = min(ncols, col + 112 + self._image_display_margin)
-
-        return self._data_cache[filename][start_row:end_row, start_col:end_col]
+        return self._data_cache[filename][row-112:row+112, col-112:col+112]
 
     @property
     def fingerprints(self):
@@ -129,12 +131,10 @@ class TransferLearning:
                         ttdd = utils.rgb2plot(ttdd)
 
                         if imaxis is None:
-                            print('displaying via imshow')
                             imaxis = plt.imshow(ttdd)
                         else:
-                            print('displaying via set_data')
                             imaxis.set_data(ttdd)
-                        plt.pause(0.0001)
+                        plt.gca().redraw_in_frame()
 
                     predictions = self._fingerprint_calculator.calculate(td)
 
@@ -184,6 +184,13 @@ class TransferLearning:
         log.debug('    uuid is {}'.format(self._uuid))
         log.debug('    filenames is {}'.format(self._filenames))
 
+        # Pre cache the image data for faster response time
+        for fn in self._filenames:
+            if fn not in self._data_cache:
+                print('Caching image data {}...'.format(fn))
+                self._data_cache[fn] = self._load_image_data(fn)
+
+
     @staticmethod
     def load(input_filename):
         d = TransferLearning()
@@ -192,8 +199,8 @@ class TransferLearning:
 
 
 class TransferLearningDisplay:
-    def __init__(self):
-        self.tsne_similarity = None
+    def __init__(self, similarity_measure):
+        self.similarity = similarity_measure
         self.fig = None
         self.axis = None
         self.info_axis = None
@@ -204,8 +211,7 @@ class TransferLearningDisplay:
         plt.show(block=False)
         plt.ion()
 
-        self.tsne_similarity = tSNE(fingerprints)
-        self.tsne_similarity.calculate(fingerprints)
+        self.similarity.calculate(fingerprints)
 
         self.fig = plt.figure(1, figsize=[10, 6])
         plt.gcf()
@@ -216,9 +222,9 @@ class TransferLearningDisplay:
         self.axis_closest.set_yticks([])
         self.axis_closest.set_xlabel('')
         self.axis_closest.set_ylabel('')
-        self.axis_closest.imshow(np.zeros((224, 224)))
+        self._data_closest = self.axis_closest.imshow(np.zeros((224, 224)))
 
-        self.tsne_similarity.displayY(self.axis)
+        self.similarity.display(self.axis)
 
         self.info_axis = plt.axes([0.7, 0.11, 0.3, 0.05])
         self.info_axis.set_axis_off()
@@ -253,40 +259,40 @@ class TransferLearningDisplay:
         log.debug('Moving to {}'.format(event))
         if event.inaxes == self.axis:
             point = event.ydata, event.xdata
-            close_fingerprint = self.tsne_similarity.find_similar(point, n=1)[0][1]
+            close_fingerprint = self.similarity.find_similar(point, n=1)[0][1]
 
             log.debug('Closest fingerprints {}'.format(close_fingerprint))
 
-            self.axis_closest.imshow(utils.rgb2plot(
+            self._data_closest.set_data(utils.rgb2plot(
                 close_fingerprint['data'].display(close_fingerprint['filename'],
                                                   close_fingerprint['row_center'],
                                                   close_fingerprint['column_center'])
             ))
             self.axis_closest.set_title(close_fingerprint['filename'].split('/')[-1], fontsize=8)
-            plt.show(block=False)
-            plt.pause(0.0001)
+            self.fig.canvas.blit(self.axis_closest.bbox)
+            self.axis_closest.redraw_in_frame()
 
     def _onclick(self, event):
         log.debug('Clicked {}'.format(event))
-
+        import time
         if event.inaxes == self.axis:
             point = event.ydata, event.xdata
-            self.axis.cla()
-            self.tsne_similarity.displayY(self.axis)
+#            self.axis.cla()
+#            self.similarity.display(self.axis)
 
             log.debug('Loading data')
 
             self._update_text('Loading data...')
-            close_fingerprints = self.tsne_similarity.find_similar(point)
+            close_fingerprints = self.similarity.find_similar(point)
 
             self._update_text('Displaying result...')
+
             for ii, (distance, fingerprint) in enumerate(close_fingerprints):
 
                 # Zero out and show we are loading -- should be fast.3
-                log.debug('Displaying fingerprint {}'.format(ii))
                 self.sub_windows[ii].set_title('Loading...', fontsize=8)
                 self.sub_data[ii].set_data(np.zeros((224, 224)))
-                plt.pause(0.001)
+                self.sub_windows[ii].redraw_in_frame()
 
                 # Show new data and set title
                 self.sub_data[ii].set_data(utils.rgb2plot(
@@ -294,25 +300,47 @@ class TransferLearningDisplay:
                                                 fingerprint['row_center'],
                                                 fingerprint['column_center'])
                 ))
+
                 self.sub_windows[ii].set_title('{:0.3f} {} ({}, {})'.format(
                     distance,
                     os.path.basename(fingerprint['filename']),
                     fingerprint['row_center'],
                     fingerprint['column_center']), fontsize=8)
-
-                plt.pause(0.001)
+                self.sub_windows[ii].redraw_in_frame()
 
             self._update_text('Click in the tSNE plot...')
 
-            log.debug('Done updating, going to refresh')
-            plt.pause(0.001)
-
             log.debug('Done the onlcick')
+
+    def _display_for_subwindow(self, index, aa):
+        print('index is {} and aa is {}'.format(index, aa))
+        distance, fingerprint = aa
+
+        # Zero out and show we are loading -- should be fast.3
+        log.debug('Displaying fingerprint {}'.format(index))
+        self.sub_windows[index].set_title('Loading...', fontsize=8)
+        self.sub_data[index].set_data(np.zeros((224, 224)))
+        self.sub_windows[index].redraw_in_frame()
+
+        # Show new data and set title
+        self.sub_data[index].set_data(utils.rgb2plot(
+            fingerprint['data'].display(fingerprint['filename'],
+                                        fingerprint['row_center'],
+                                        fingerprint['column_center'])
+        ))
+        self.sub_windows[index].set_title('{:0.3f} {} ({}, {})'.format(
+            distance,
+            os.path.basename(fingerprint['filename']),
+            fingerprint['row_center'],
+            fingerprint['column_center']), fontsize=8)
+
+        self.sub_windows[index].redraw_in_frame()
+
 
 if __name__ == "__main__":
 
-#    input_file_pattern = '/Users/crjones/christmas/hubble/carina/data/carina.tiff'
-#    directory = '/tmp/resnet/'
+    # input_file_pattern = '/Users/crjones/christmas/hubble/carina/data/carina.tiff'
+    # directory = '/tmp/resnet/'
 
     # input_file_pattern = '/Users/crjones/christmas/hubble/HSTHeritage/data/*.???'
     # directory = '/tmp/hst_heritage_gray'
@@ -369,5 +397,7 @@ if __name__ == "__main__":
 
             fingerprints.extend(data.fingerprints)
 
-        tld = TransferLearningDisplay()
+        #similarity = Jaccard(fingerprints)
+        similarity = tSNE(fingerprints)
+        tld = TransferLearningDisplay(similarity)
         tld.show(fingerprints)
