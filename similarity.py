@@ -168,9 +168,6 @@ class Jaccard(Similarity):
         self._fingerprint_adjacency = None
         self._predictions = []
 
-        self._up = set()
-        self._sparse_adjacency = None
-
     @classmethod
     def is_similarity_for(cls, similarity_type):
         return cls._similarity_type == similarity_type
@@ -194,17 +191,15 @@ class Jaccard(Similarity):
         self._predictions = [set([tt[1] for tt in x['predictions']]) for x in fingerprints]
 
         # https://stackoverflow.com/questions/40579415/computing-jaccard-similarity-in-python
-        self._up = list(set(list(itertools.chain(*[list(x) for x in self._predictions]))))
+        up = list(set(list(itertools.chain(*[list(x) for x in self._predictions]))))
 
-        A = np.zeros((len(self._predictions), len(self._up)))
+        A = np.zeros((len(self._predictions), len(up)))
         for ii, prediction in enumerate(self._predictions):
-            indices = [self._up.index(x) for x in prediction]
+            indices = [up.index(x) for x in prediction]
             A[ii, indices] = 1.0
 
-        A = A.transpose()
-        self._sparse_adjacency = csc_matrix(A)
-        self._fingerprint_adjacency = self.jaccard_similarities(self._sparse_adjacency).toarray()
-        self._fingerprint_adjacency = self._fingerprint_adjacency.T
+        sparse_adjacency = csc_matrix(A.transpose())
+        self._fingerprint_adjacency = self.jaccard_similarities(sparse_adjacency).toarray().T
 
 
     def display(self, tsne_axis):
