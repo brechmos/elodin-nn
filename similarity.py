@@ -22,13 +22,13 @@ class Similarity:
         raise ValueError
 
     def calculate(self, files):
-        pass
+        raise NotImplementedError("Please Implement this method")
 
     def display(self):
-        pass
+        raise NotImplementedError("Please Implement this method")
 
     def save(self):
-        pass
+        raise NotImplementedError("Please Implement this method")
 
 
 class tSNE(Similarity):
@@ -127,7 +127,7 @@ class tSNE(Similarity):
         log.debug('self._Y is {}'.format(self._Y))
         log.info('Done calculation')
 
-    def displayY(self, tsne_axis):
+    def display(self, tsne_axis):
         """
         Display the Y values in an axis element.
 
@@ -148,6 +148,103 @@ class tSNE(Similarity):
 
         distances = self._distance_measures[self._distance_measure](self._Y, point)
         inds = np.argsort(distances)
+        log.debug('Closest indexes are {}'.format(inds[:n]))
+        log.debug('Size of the fingerprint list {}'.format(len(self._fingerprints)))
+
+        return [(distances[ind], self._fingerprints[ind]) for ind in inds[:n]]
+
+class Jaccard(Similarity):
+
+    _similarity_type = 'jaccard'
+
+    def __init__(self, *args, **kwargs):
+        super(Jaccard, self).__init__(*args, **kwargs)
+
+        log.info('Created {}'.format(__class__._similarity_type))
+
+        # Each line / element in these should correpsond
+        self._fingerprints = []
+        self._filename_index = []
+        self._fingerprint_adjacency = None
+        self._predictions = []
+
+        self._up = set()
+        self._sparse_adjacency = None
+
+    @classmethod
+    def is_similarity_for(cls, similarity_type):
+        return cls._similarity_type == similarity_type
+
+    def calculate(self, fingerprints):
+        """
+        Probably the best way to represent this is to calculate the Jaccard distance
+        between every pair of points and represent it as an NxN matrix which can then be
+        shown as an image.
+
+        :param fingerprints:
+        :return:
+        """
+        log.info('Going to calculate Jaccard from {} fingerprints'.format(len(fingerprints)))
+
+        from scipy.sparse import csc_matrix, csr_matrix
+        import itertools
+
+        self._fingerprints = fingerprints
+
+        self._predictions = [set([tt[1] for tt in x['predictions']]) for x in fingerprints]
+
+        # https://stackoverflow.com/questions/40579415/computing-jaccard-similarity-in-python
+        self._up = list(set(list(itertools.chain(*[list(x) for x in self._predictions]))))
+
+        A = np.zeros((len(self._predictions), len(self._up)))
+        for ii, prediction in enumerate(self._predictions):
+            indices = [self._up.index(x) for x in prediction]
+            A[ii, indices] = 1.0
+
+        A = A.transpose()
+        self._sparse_adjacency = csc_matrix(A)
+        self._fingerprint_adjacency = self.jaccard_similarities(self._sparse_adjacency).toarray()
+        self._fingerprint_adjacency = self._fingerprint_adjacency.T
+
+
+    def display(self, tsne_axis):
+        """
+        Display the Y values in an axis element.
+
+        :param axes:
+        :param args:
+        :param kwargs:
+        :return:
+        """
+
+        tsne_axis.imshow(self._fingerprint_adjacency, origin='upper')
+        tsne_axis.grid('on')
+        tsne_axis.set_title('Jaccard')
+
+    def jaccard_similarities(self, mat):
+        # https://na-o-ys.github.io/others/2015-11-07-sparse-vector-similarities.html
+
+        cols_sum = mat.getnnz(axis=0)
+        ab = mat.T * mat
+
+        # for rows
+        aa = np.repeat(cols_sum, ab.getnnz(axis=0))
+
+        # for columns
+        bb = cols_sum[ab.indices]
+
+        similarities = ab.copy()
+        similarities.data /= (aa + bb - ab.data)
+
+        return similarities
+
+    def find_similar(self, point, n=9):
+
+        row, col = int(point[0]), int(point[1])
+
+        # find the Main fingerprint for this point in the image
+        distances = self._fingerprint_adjacency[row]
+        inds = np.argsort(distances)[::-1]
         log.debug('Closest indexes are {}'.format(inds[:n]))
         log.debug('Size of the fingerprint list {}'.format(len(self._fingerprints)))
 
