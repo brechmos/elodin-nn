@@ -317,20 +317,24 @@ class TransferLearningDisplay:
             self.axis_closest.redraw_in_frame()
 
     def _onclick(self, event):
+        """
+        Mouse click event in the matplotlib window.
+
+        :param event:
+        :return:
+        """
         log.debug('Clicked {}'.format(event))
-        import time
+
+        # Click in the similarity axis
         if event.inaxes == self.axis:
             point = event.ydata, event.xdata
-#            self.axis.cla()
-#            self.similarity.display(self.axis)
 
-            log.debug('Loading data')
-
+            # Find all the similar data relative to the point that was clicked.
             self._update_text('Loading data...')
             close_fingerprints = self.similarity.find_similar(point)
 
+            # Run through all the close fingerprints and display them in the sub windows
             self._update_text('Displaying result...')
-
             for ii, (distance, fingerprint) in enumerate(close_fingerprints):
 
                 # Zero out and show we are loading -- should be fast.3
@@ -345,6 +349,7 @@ class TransferLearningDisplay:
                                                 fingerprint['column_center'])
                 ))
 
+                # Update the title on the window
                 self.sub_windows[ii].set_title('{:0.3f} {} ({}, {})'.format(
                     distance,
                     os.path.basename(fingerprint['filename']),
@@ -354,10 +359,15 @@ class TransferLearningDisplay:
 
             self._update_text('Click in the tSNE plot...')
 
-            log.debug('Done the onlcick')
-
     def _display_for_subwindow(self, index, aa):
-        print('index is {} and aa is {}'.format(index, aa))
+        """
+        Display the data in the subwindow
+
+        :param index:
+        :param aa:
+        :return:
+        """
+
         distance, fingerprint = aa
 
         # Zero out and show we are loading -- should be fast.3
