@@ -65,11 +65,13 @@ class Fingerprint:
 
 class FingerprintResnet(Fingerprint):
 
-    def __init__(self):
+    def __init__(self, max_fingerprints=200):
         super(FingerprintResnet, self).__init__()
 
         from keras.applications.resnet50 import ResNet50
         self._resnet50_model = ResNet50(weights='imagenet')
+
+        self._max_fingerprints = max_fingerprints
 
     def __str__(self):
         return 'Fingerprint (renet50, imagenet)'
@@ -99,7 +101,7 @@ class FingerprintResnet(Fingerprint):
             preds = self._resnet50_model.predict(x)
             # decode the results into a list of tuples (class, description, probability)
             # (one such list for each sample in the batch)
-            self._predictions = decode_predictions(preds, top=200)[0]
+            self._predictions = decode_predictions(preds, top=self._max_fingerprints)[0]
         else:
             self._predictions = [('test', 'beaver', 0.0000000000001), ]
 
@@ -120,11 +122,13 @@ class FingerprintResnet(Fingerprint):
 
 class FingerprintVGG16(Fingerprint):
 
-    def __init__(self):
+    def __init__(self, max_fingerprints=200):
         super(FingerprintVGG16, self).__init__()
 
         from keras.applications.vgg16 import VGG16
         self._vgg16_model = VGG16(weights='imagenet')
+
+        self._max_fingerprints = max_fingerprints
 
     def __str__(self):
         return 'Fingerprint (vgg16, imagenet)'
@@ -154,7 +158,7 @@ class FingerprintVGG16(Fingerprint):
             preds = model.predict(x)
             # decode the results into a list of tuples (class, description, probability)
             # (one such list for each sample in the batch)
-            self._predictions = decode_predictions(preds, top=200)[0]
+            self._predictions = decode_predictions(preds, top=self._max_fingerprints)[0]
         else:
             self._predictions = [('test', 'beaver', 0.0000000000001), ]
 
@@ -174,11 +178,13 @@ class FingerprintVGG16(Fingerprint):
 
 class FingerprintVGG19(Fingerprint):
 
-    def __init__(self):
+    def __init__(self, max_fingerprints=200):
         super(FingerprintVGG19, self).__init__()
 
         from keras.applications.vgg19 import VGG19
         self._vgg19_model = VGG19(weights='imagenet')
+
+        self._max_fingerprints = max_fingerprints
 
     def __str__(self):
         return 'Fingerprint (vgg19, imagenet)'
@@ -208,7 +214,7 @@ class FingerprintVGG19(Fingerprint):
             preds = model.predict(x)
             # decode the results into a list of tuples (class, description, probability)
             # (one such list for each sample in the batch)
-            self._predictions = decode_predictions(preds, top=200)[0]
+            self._predictions = decode_predictions(preds, top=self._max_fingerprints)[0]
         else:
             self._predictions = [('test', 'beaver', 0.0000000000001), ]
 
@@ -228,11 +234,13 @@ class FingerprintVGG19(Fingerprint):
 
 class FingerprintInceptionV3(Fingerprint):
 
-    def __init__(self):
+    def __init__(self, max_fingerprints=200):
         super(FingerprintInceptionV3, self).__init__()
 
         from keras.applications.inception_v3 import InceptionV3
         self._model = InceptionV3(weights='imagenet')
+
+        self._max_fingerprints = max_fingerprints
 
     def __str__(self):
         return 'Fingerprint (inception_v3, imagenet)'
@@ -262,7 +270,7 @@ class FingerprintInceptionV3(Fingerprint):
             preds = self._model.predict(x)
             # decode the results into a list of tuples (class, description, probability)
             # (one such list for each sample in the batch)
-            self._predictions = decode_predictions(preds, top=200)[0]
+            self._predictions = decode_predictions(preds, top=self._max_fingerprints)[0]
         else:
             self._predictions = [('test', 'beaver', 0.0000000000001), ]
 
@@ -283,11 +291,13 @@ class FingerprintInceptionV3(Fingerprint):
 
 class FingerprintInceptionResNetV2(Fingerprint):
 
-    def __init__(self):
+    def __init__(self, max_fingerprints):
         super(FingerprintInceptionResNetV2, self).__init__()
 
         from keras.applications.inception_resnet_v2 import InceptionResNetV2
         self._model = InceptionResNetV2(weights='imagenet')
+
+        self._max_fingerprints = max_fingerprints
 
     def __str__(self):
         return 'Fingerprint (inception_resnet_v2, imagenet)'
@@ -317,7 +327,7 @@ class FingerprintInceptionResNetV2(Fingerprint):
             preds = model.predict(x)
             # decode the results into a list of tuples (class, description, probability)
             # (one such list for each sample in the batch)
-            self._predictions = decode_predictions(preds, top=200)[0]
+            self._predictions = decode_predictions(preds, top=self._max_fingerprints)[0]
         else:
             self._predictions = [('test', 'beaver', 0.0000000000001), ]
 
