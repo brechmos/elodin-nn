@@ -69,7 +69,7 @@ class FingerprintResnet(Fingerprint):
         super(FingerprintResnet, self).__init__()
 
         from keras.applications.resnet50 import ResNet50
-        self._resnet50_model = ResNet50(weights='imagenet')
+        self._model = ResNet50(weights='imagenet')
 
         self._max_fingerprints = max_fingerprints
 
@@ -98,7 +98,7 @@ class FingerprintResnet(Fingerprint):
         # In this case I just set a single prediction with low weight.
         # TODO:  Check to see if this is still an issue.
         if np.sum(np.abs(x)) > 0.0001:
-            preds = self._resnet50_model.predict(x)
+            preds = self._model.predict(x)
             # decode the results into a list of tuples (class, description, probability)
             # (one such list for each sample in the batch)
             self._predictions = decode_predictions(preds, top=self._max_fingerprints)[0]
@@ -126,7 +126,7 @@ class FingerprintVGG16(Fingerprint):
         super(FingerprintVGG16, self).__init__()
 
         from keras.applications.vgg16 import VGG16
-        self._vgg16_model = VGG16(weights='imagenet')
+        self._model = VGG16(weights='imagenet')
 
         self._max_fingerprints = max_fingerprints
 
@@ -155,7 +155,7 @@ class FingerprintVGG16(Fingerprint):
         # In this case I just set a single prediction with low weight.
         # TODO:  Check to see if this is still an issue.
         if np.sum(np.abs(x)) > 0.0001:
-            preds = model.predict(x)
+            preds = self._model.predict(x)
             # decode the results into a list of tuples (class, description, probability)
             # (one such list for each sample in the batch)
             self._predictions = decode_predictions(preds, top=self._max_fingerprints)[0]
@@ -182,7 +182,7 @@ class FingerprintVGG19(Fingerprint):
         super(FingerprintVGG19, self).__init__()
 
         from keras.applications.vgg19 import VGG19
-        self._vgg19_model = VGG19(weights='imagenet')
+        self._model = VGG19(weights='imagenet')
 
         self._max_fingerprints = max_fingerprints
 
@@ -211,7 +211,7 @@ class FingerprintVGG19(Fingerprint):
         # In this case I just set a single prediction with low weight.
         # TODO:  Check to see if this is still an issue.
         if np.sum(np.abs(x)) > 0.0001:
-            preds = model.predict(x)
+            preds = self._model.predict(x)
             # decode the results into a list of tuples (class, description, probability)
             # (one such list for each sample in the batch)
             self._predictions = decode_predictions(preds, top=self._max_fingerprints)[0]
@@ -324,7 +324,7 @@ class FingerprintInceptionResNetV2(Fingerprint):
         # In this case I just set a single prediction with low weight.
         # TODO:  Check to see if this is still an issue.
         if np.sum(np.abs(x)) > 0.0001:
-            preds = model.predict(x)
+            preds = self._model.predict(x)
             # decode the results into a list of tuples (class, description, probability)
             # (one such list for each sample in the batch)
             self._predictions = decode_predictions(preds, top=self._max_fingerprints)[0]
