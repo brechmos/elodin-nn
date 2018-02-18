@@ -134,7 +134,7 @@ class TransferLearning:
                             imaxis = plt.imshow(ttdd)
                         else:
                             imaxis.set_data(ttdd)
-                        plt.gca().redraw_in_frame()
+                        plt.pause(0.001)
 
                     predictions = self._fingerprint_calculator.calculate(td)
 
@@ -351,8 +351,14 @@ if __name__ == "__main__":
     # input_file_pattern = '/Users/crjones/christmas/hubble/MAGPIS/G371D.tiff'
     # directory = '/tmp/magpis'
 
+    # input_file_pattern = '/Users/crjones/christmas/hubble/MAGPIS/G371D.tiff'
+    # directory = '/tmp/magpis_gray'
+
+    # input_file_pattern = '/Users/crjones/christmas/hubble/MAGPIS/G371D.tiff'
+    # directory = '/tmp/magpis_gray'
+
     input_file_pattern = '/Users/crjones/christmas/hubble/MAGPIS/G371D.tiff'
-    directory = '/tmp/magpis_gray'
+    directory = '/tmp/magpis_gray_zoom'
 
     if not os.path.isdir(directory):
         try:
@@ -379,7 +385,7 @@ if __name__ == "__main__":
         # # calculate fingerpirnts for median filtered
         log.info('Setting up median filter data')
         #data_processing = [MedianFilterData((3, 3, 1)), GrayScaleData()]
-        data_processing = [GrayScaleData()]
+        data_processing = [GrayScaleData(), ZoomData(3)]
         tl = TransferLearning(fingerprint_model, data_processing)
         tl.set_files(input_filenames)
         fingerprints = tl.calculate(stepsize=stepsize, display=True)
@@ -397,7 +403,7 @@ if __name__ == "__main__":
 
             fingerprints.extend(data.fingerprints)
 
-        #similarity = Jaccard(fingerprints)
-        similarity = tSNE(fingerprints)
+        similarity = Jaccard(fingerprints)
+        #similarity = tSNE(fingerprints)
         tld = TransferLearningDisplay(similarity)
         tld.show(fingerprints)
