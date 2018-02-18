@@ -140,6 +140,7 @@ class TransferLearning:
 
                     self._fingerprints.append(
                         {
+                            'data': self,
                             'predictions': predictions,
                             'filename': filename,
                             'row_center': row,
@@ -152,20 +153,50 @@ class TransferLearning:
 
         return self._fingerprints
 
-    def save(self, output_directory):
+    def save(self, output_location):
+        """
+        Save the information to the output location. If the output_location is a directory then
+        save as a standard name. If output_location is a filename then save as it.
+
+        :param output_location: Filename or directory of where to save
+        :return:
+        """
+
+        # Delete the reference to the TransferLearning instance. This will be
+        # added back in on load.
+        fingerprints =  []
+        for item in self._fingerprints:
+            tt = item.copy()
+            del tt['data']
+            fingerprints.append(tt)
+
+        # Create dictionary to save
         d = {
             'data_processing': [t.save() for t in self._data_processing],
             'fingerprint_calculator': self._fingerprint_calculator.save(),
             'stepsize': self._stepsize,
             'uuid': self._uuid,
             'filenames': self._filenames,
-            'fingerprints': self._fingerprints
+            'fingerprints': fingerprints
         }
 
-        with open(os.path.join(output_directory, 'data_{}.pck'.format(self._uuid)), 'wb') as fp:
+        if output_location.endswith('pck'):
+            output_filename = output_location
+        else:
+            output_filename = os.path.join(output_location, 'data_{}.pck'.format(self._uuid))
+
+        # Save to a pickle file.
+        with open(output_filename, 'wb') as fp:
             pickle.dump(d, fp)
 
     def _load(self, input_filename):
+        """
+        Load the dictionary of information from the pickle file listed as input_filename.
+
+        :param input_filename:
+        :return:
+        """
+
         log.info('Loading TL from {}'.format(input_filename))
         with open(input_filename, 'rb') as fp:
             tt = pickle.load(fp)
@@ -178,6 +209,11 @@ class TransferLearning:
             self._stepsize = tt['stepsize']
             self._filenames = tt['filenames']
             self._fingerprints = tt['fingerprints']
+
+            # Save the reference to this transfer learning instance as it is needed when
+            # we lookup data later.
+            for item in self._fingerprints:
+                item.update({'data': self})
 
         log.debug('    data_processing is {}'.format(self._data_processing))
         log.debug('    fingerprint_calcualtor is {}'.format(self._fingerprint_calculator))
@@ -193,8 +229,16 @@ class TransferLearning:
 
     @staticmethod
     def load(input_filename):
+        """
+        Static load method. Create an instance to TransferLearning and then load the information
+        from the input filename.
+
+        :param input_filename:
+        :return:
+        """
         d = TransferLearning()
         d._load(input_filename)
+
         return d
 
 
@@ -339,8 +383,8 @@ class TransferLearningDisplay:
 
 if __name__ == "__main__":
 
-    # input_file_pattern = '/Users/crjones/christmas/hubble/carina/data/carina.tiff'
-    # directory = '/tmp/resnet/'
+    input_file_pattern = '/Users/crjones/christmas/hubble/carina/data/carina.tiff'
+    directory = '/tmp/resnet/'
 
     # input_file_pattern = '/Users/crjones/christmas/hubble/HSTHeritage/data/*.???'
     # directory = '/tmp/hst_heritage_gray'
@@ -357,8 +401,8 @@ if __name__ == "__main__":
     # input_file_pattern = '/Users/crjones/christmas/hubble/MAGPIS/G371D.tiff'
     # directory = '/tmp/magpis_gray'
 
-    input_file_pattern = '/Users/crjones/christmas/hubble/MAGPIS/G371D.tiff'
-    directory = '/tmp/magpis_gray_zoom'
+    # input_file_pattern = '/Users/crjones/christmas/hubble/MAGPIS/G371D.tiff'
+    # directory = '/tmp/magpis_gray_zoom'
 
     if not os.path.isdir(directory):
         try:
@@ -375,17 +419,17 @@ if __name__ == "__main__":
         from data_processing import MedianFilterData, ZoomData, RotateData, GrayScaleData
         from fingerprint import FingerprintResnet, FingerprintInceptionV3
 
-        stepsize = 112
+        stepsize = 400
 
         input_filenames = glob.glob(input_file_pattern)
 
-        # fingerprint_model = FingerprintInceptionV3()
-        fingerprint_model = FingerprintResnet()
+        fingerprint_model = FingerprintInceptionV3()
+        # fingerprint_model = FingerprintResnet()
 
         # # calculate fingerpirnts for median filtered
         log.info('Setting up median filter data')
         #data_processing = [MedianFilterData((3, 3, 1)), GrayScaleData()]
-        data_processing = [GrayScaleData(), ZoomData(3)]
+        data_processing = [GrayScaleData()]
         tl = TransferLearning(fingerprint_model, data_processing)
         tl.set_files(input_filenames)
         fingerprints = tl.calculate(stepsize=stepsize, display=True)
@@ -396,11 +440,6 @@ if __name__ == "__main__":
         fingerprints = []
         for filename in filenames:
             data = TransferLearning.load(filename)
-
-            temp_fingerprints = data.fingerprints
-            for item in temp_fingerprints:
-                item.update({'data': data})
-
             fingerprints.extend(data.fingerprints)
 
         similarity = Jaccard(fingerprints)
