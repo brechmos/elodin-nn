@@ -4,17 +4,17 @@ from fingerprint import FingerprintResnet, FingerprintInceptionV3
 from transfer_learning import TransferLearning, TransferLearningDisplay
 import glob
 
-filename =
+filename = 'hstheritage_fingerprints.pck'
 
-tl = TransferLearning()
+tl = TransferLearning.load(filename)
 
-tl.load(filename)
-
-fingerprints = tl['fingerprints']
-
+# Calculate hte similarity
 #similarity = Jaccard(fingerprints)
-similarity = tSNE(fingerprints)
+similarity = tSNE(tl.fingerprints)
 
+# Create the display with the calculated similarity
 tld = TransferLearningDisplay(similarity)
-tld.show(fingerprints)
+
+# Display the figure
+tld.show(tl.fingerprints)
 
