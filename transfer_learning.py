@@ -14,6 +14,7 @@ import matplotlib.pyplot as plt
 
 from data_processing import DataProcessing
 from fingerprint import Fingerprint
+from cutouts import Cutouts
 import utils
 
 import logging
@@ -23,9 +24,10 @@ log.setLevel(logging.INFO)
 
 
 class TransferLearning:
-    def __init__(self, fingerprint_calculator=None, data_processing=[]):
+    def __init__(self, cutout_creator=None, data_processing=[], fingerprint_calculator=None):
         # list of data processing elements
         self._data_processing = data_processing
+        self._cutout_creator = cutout_creator
         self._fingerprint_calculator = fingerprint_calculator
         self._filenames = []
         self._fingerprints = []
@@ -85,7 +87,7 @@ class TransferLearning:
     def fingerprints(self):
         return self._fingerprints
 
-    def calculate(self, stepsize, display=False):
+    def calculate(self, display=False):
         """
         Calculate the fingerprints for each subsection of the image in each file.
 
@@ -95,7 +97,6 @@ class TransferLearning:
         """
 
         self._fingerprints = []
-        self._stepsize = stepsize
 
         if display:
             plt.ion()
@@ -110,46 +111,37 @@ class TransferLearning:
             # Load the data
             data = self._load_image_data(filename)
 
-            # Determine the centers to use for the fingerprint calculation
-            nrows, ncols = data.shape[:2]
-            rows = range(112, nrows-112, stepsize)
-            cols = range(112, ncols-112, stepsize)
+            for row, col, td in self._cutout_creator.create_cutouts(data):
 
-            # Run over all combinations of rows and columns
-            with progressbar.ProgressBar(widgets=[' [', progressbar.Timer(), '] ',
-                                                  progressbar.Bar(), ' (', progressbar.ETA(), ') ', ],
-                                         max_value=len(rows)*len(cols)) as bar:
-                for ii, (row, col) in enumerate(itertools.product(rows, cols)):
+                print(row, col, td.shape)
 
-                    td = data[row-112:row+112, col-112:col+112]
+                if display:
+                    if len(td.shape) == 2:
+                        ttdd = utils.gray2rgb(td)
+                    else:
+                        ttdd = td
+                    ttdd = utils.rgb2plot(ttdd)
 
-                    if display:
-                        if len(td.shape) == 2:
-                            ttdd = utils.gray2rgb(td)
-                        else:
-                            ttdd = td
-                        ttdd = utils.rgb2plot(ttdd)
+                    if imaxis is None:
+                        imaxis = plt.imshow(ttdd)
+                    else:
+                        imaxis.set_data(ttdd)
+                    plt.pause(0.001)
 
-                        if imaxis is None:
-                            imaxis = plt.imshow(ttdd)
-                        else:
-                            imaxis.set_data(ttdd)
-                        plt.pause(0.001)
+                predictions = self._fingerprint_calculator.calculate(td)
 
-                    predictions = self._fingerprint_calculator.calculate(td)
+                self._fingerprints.append(
+                    {
+                        'data': self,
+                        'predictions': predictions,
+                        'filename': filename,
+                        'row_center': row,
+                        'column_center': col
+                    }
+                )
 
-                    self._fingerprints.append(
-                        {
-                            'data': self,
-                            'predictions': predictions,
-                            'filename': filename,
-                            'row_center': row,
-                            'column_center': col
-                        }
-                    )
-
-        if display:
-            plt.close(fig)
+            if display:
+                plt.close(fig)
 
         return self._fingerprints
 
@@ -174,7 +166,7 @@ class TransferLearning:
         d = {
             'data_processing': [t.save() for t in self._data_processing],
             'fingerprint_calculator': self._fingerprint_calculator.save(),
-            'stepsize': self._stepsize,
+            'cutout_creator': self._cutout_creator.save(),
             'uuid': self._uuid,
             'filenames': self._filenames,
             'fingerprints': fingerprints
@@ -206,7 +198,7 @@ class TransferLearning:
                 self._data_processing.append(DataProcessing.load_parameters(dp))
             self._fingerprint_calculator = Fingerprint.load_parameters(tt['fingerprint_calculator'])
             self._uuid = tt['uuid']
-            self._stepsize = tt['stepsize']
+            self._cutout_creator = Cutouts.load(tt['cutout_creator'])
             self._filenames = tt['filenames']
             self._fingerprints = tt['fingerprints']
 
