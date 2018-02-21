@@ -86,20 +86,20 @@ class BlobCutouts:
         self._output_size = output_size
         self._uuid = str(uuid.uuid4())
 
-    def create_cutouts(self, data):
+    def create_cutouts(self, data, mean_threshold=2.0, gaussian_smoothing_sigma=10, label_padding=80):
         """
-        Calculate the fingerprints for each subsection of the image in each file.
 
-        :param data:
+        :param data: Input data
+        :param mean_threshold: Threshold applied to mean in order to clip background
+        :param gaussian_smoothing_sigma: How much smoothing should be applied to the image
+        :param label_padding: Padding around the labeled cutout.
         :return:
         """
 
-        import matplotlib.pyplot as plt
-
         # Find the blobs
         gray_image = np.dot(data[:, :, :3], [0.299, 0.587, 0.114])
-        im = filters.gaussian_filter(gray_image, sigma=10)
-        blobs = im > 2.0 * im.mean()
+        im = filters.gaussian_filter(gray_image, sigma=gaussian_smoothing_sigma)
+        blobs = im > mean_threshold * im.mean()
         blobs_labels = measure.label(blobs, background=0)
 
         # Loop over the blobs
@@ -114,10 +114,10 @@ class BlobCutouts:
             log.debug('label mins and maxs {} {}   {} {}'.format(min_row, max_row, min_col, max_col))
 
             # Pad the blob a bit
-            min_row = max(min_row - 80, 0)
-            max_row = min(max_row + 80, data.shape[0])
-            min_col = max(min_col - 80, 0)
-            max_col = min(max_col + 80, data.shape[1])
+            min_row = max(min_row - label_padding, 0)
+            max_row = min(max_row + label_padding, data.shape[0])
+            min_col = max(min_col - label_padding, 0)
+            max_col = min(max_col + label_padding, data.shape[1])
 
             log.debug('label mins and maxs with padding {} {}   {} {}'.format(min_row, max_row, min_col, max_col))
 
