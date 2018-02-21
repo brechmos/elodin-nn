@@ -63,7 +63,7 @@ class BasicCutouts:
 
         for ii, (row, col) in enumerate(itertools.product(rows, cols)):
             td = data[row-N:row+N, col-N:col+N]
-            yield row, col, td
+            yield row-N, row+N, col-N, col+N, td
 
     def save(self):
         return {
@@ -141,7 +141,7 @@ class BlobCutouts:
             td = skimage.transform.resize(data[min_row:max_row, min_col:max_col],
                                           [self._output_size, self._output_size])
 
-            yield (max_row-min_row)//2, (max_col-min_col)//2, td
+            yield min_row, max_row, min_col, max_col, td
 
     def save(self):
         return {
