@@ -67,21 +67,13 @@ class TransferLearning:
     def set_files(self, filenames):
         self._filenames = filenames
 
-    def display(self, filename, row, col):
+    def display(self, filename, row_minmax, col_minmax):
 
         if filename not in self._data_cache:
             log.info('Caching image data {}...'.format(filename))
             self._data_cache[filename] = self._load_image_data(filename)
 
-        # print(filename, self._data_cache[filename].shape)
-        # nrows, ncols = self._data_cache[filename].shape[:2]
-        #
-        # start_row = max(0, row - 112 - self._image_display_margin)
-        # end_row = min(nrows, row + 112 + self._image_display_margin)
-        # start_col = max(0, col - 112 - self._image_display_margin)
-        # end_col = min(ncols, col + 112 + self._image_display_margin)
-
-        return self._data_cache[filename][row-112:row+112, col-112:col+112]
+        return self._data_cache[filename][row_minmax[0]:row_minmax[1], col_minmax[0]:col_minmax[1]]
 
     @property
     def fingerprints(self):
@@ -111,9 +103,7 @@ class TransferLearning:
             # Load the data
             data = self._load_image_data(filename)
 
-            for row, col, td in self._cutout_creator.create_cutouts(data):
-
-                print(row, col, td.shape)
+            for row_min, row_max, col_min, col_max, td in self._cutout_creator.create_cutouts(data):
 
                 if display:
                     if len(td.shape) == 2:
@@ -135,13 +125,13 @@ class TransferLearning:
                         'data': self,
                         'predictions': predictions,
                         'filename': filename,
-                        'row_center': row,
-                        'column_center': col
+                        'row': [row_min, row_max],
+                        'col': [col_min, col_max]
                     }
                 )
 
-            if display:
-                plt.close(fig)
+        if display:
+            plt.close(fig)
 
         return self._fingerprints
 
@@ -301,8 +291,8 @@ class TransferLearningDisplay:
 
             self._data_closest.set_data(utils.rgb2plot(
                 close_fingerprint['data'].display(close_fingerprint['filename'],
-                                                  close_fingerprint['row_center'],
-                                                  close_fingerprint['column_center'])
+                                                  close_fingerprint['row'],
+                                                  close_fingerprint['col'])
             ))
             self.axis_closest.set_title(close_fingerprint['filename'].split('/')[-1], fontsize=8)
             self.fig.canvas.blit(self.axis_closest.bbox)
@@ -337,16 +327,14 @@ class TransferLearningDisplay:
                 # Show new data and set title
                 self.sub_data[ii].set_data(utils.rgb2plot(
                     fingerprint['data'].display(fingerprint['filename'],
-                                                fingerprint['row_center'],
-                                                fingerprint['column_center'])
+                                                fingerprint['row'],
+                                                fingerprint['col'])
                 ))
 
                 # Update the title on the window
-                self.sub_windows[ii].set_title('{:0.3f} {} ({}, {})'.format(
+                self.sub_windows[ii].set_title('{:0.3f} {}'.format(
                     distance,
-                    os.path.basename(fingerprint['filename']),
-                    fingerprint['row_center'],
-                    fingerprint['column_center']), fontsize=8)
+                    os.path.basename(fingerprint['filename'])), fontsize=8)
                 self.sub_windows[ii].redraw_in_frame()
 
             self._update_text('Click in the tSNE plot...')
@@ -371,14 +359,12 @@ class TransferLearningDisplay:
         # Show new data and set title
         self.sub_data[index].set_data(utils.rgb2plot(
             fingerprint['data'].display(fingerprint['filename'],
-                                        fingerprint['row_center'],
-                                        fingerprint['column_center'])
+                                        fingerprint['row'],
+                                        fingerprint['col'])
         ))
-        self.sub_windows[index].set_title('{:0.3f} {} ({}, {})'.format(
+        self.sub_windows[index].set_title('{:0.3f} {}'.format(
             distance,
-            os.path.basename(fingerprint['filename']),
-            fingerprint['row_center'],
-            fingerprint['column_center']), fontsize=8)
+            os.path.basename(fingerprint['filename'])), fontsize=8)
 
         self.sub_windows[index].redraw_in_frame()
 
