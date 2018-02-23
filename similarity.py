@@ -1,6 +1,5 @@
 import numpy as np
 from sklearn.manifold import TSNE
-import time
 
 import logging
 logging.basicConfig(format='%(levelname)-6s: %(name)-10s %(asctime)-15s  %(message)s')
@@ -37,6 +36,12 @@ class tSNE(Similarity):
     _similarity_type = 'tsne'
 
     def __init__(self, *args, **kwargs):
+        if 'display_type' in kwargs:
+            display_type = kwargs['display_type']
+            del kwargs['display_type']
+        else:
+            display_type = 'plot'
+
         super(tSNE, self).__init__(tSNE._similarity_type, *args, **kwargs)
 
         log.info('Created {}'.format(__class__._similarity_type))
@@ -47,6 +52,10 @@ class tSNE(Similarity):
         self._filename_index = []
         self._distance_measure = 'l2'
 
+        # Display types
+        self._display_types = ['plot', 'hexbin', 'mpl']
+        self._display_type = display_type
+
         self._distance_measures = {
             'l2': lambda Y, point:  np.sqrt(np.sum((Y - np.array(point))**2, axis=1)),
             'l1': lambda Y, point: np.sum(np.abs((Y - np.array(point)), axis=1)),
@@ -55,6 +64,18 @@ class tSNE(Similarity):
     @classmethod
     def is_similarity_for(cls, similarity_type):
         return cls._similarity_type == similarity_type
+
+    def set_display_type(self, display_type):
+        """
+        Set the display type. Currently 'plot', 'hexbin', and 'mpl' are defined.
+
+        :param display_type:
+        :return:
+        """
+        if display_type in self._display_types:
+            self._display_type = display_type
+        else:
+            raise ValueError('Display type {} not in {}'.format(display_type, self._display_types))
 
     def select_distance_measure(self, distance_measure=None):
         """
@@ -137,10 +158,25 @@ class tSNE(Similarity):
         :return:
         """
 
+        if self._display_type == 'plot':
+            self._display_plot(tsne_axis)
+        elif self._display_type == 'hexbin':
+            self._display_hexbin(tsne_axis)
+#        elif self._display_type == 'mpl':
+#            self._display_mpl(tsne_axis)
+        else:
+            raise ValueError('Plot type {} is not in the valid list {}'.format(self._display_type, self._display_types))
+
+    def _display_plot(self, tsne_axis):
         colors = ['b', 'g', 'r', 'c', 'm', 'y', 'k', 'w']
         for ii, fi in enumerate(set(self._filename_index)):
             inds = np.nonzero(self._filename_index == fi)[0]
             tsne_axis.plot(self._Y[inds, 0], self._Y[inds, 1], '{}.'.format(colors[ii%len(colors)]))
+        tsne_axis.grid('on')
+        tsne_axis.set_title('tSNE [{}]'.format(self._distance_measure))
+
+    def _display_hexbin(self, tsne_axis):
+        tsne_axis.hexbin(self._Y[:, 0], self._Y[:, 1])
         tsne_axis.grid('on')
         tsne_axis.set_title('tSNE [{}]'.format(self._distance_measure))
 
