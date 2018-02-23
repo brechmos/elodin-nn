@@ -80,13 +80,16 @@ class BasicCutouts:
 
 
 class BlobCutouts:
-    def __init__(self, output_size):
+    def __init__(self, output_size, mean_threshold=2.0, gaussian_smoothing_sigma=10, label_padding=80):
 
         # list of data processing elements
         self._output_size = output_size
+        self._mean_threshold = mean_threshold
+        self._gaussian_smoothing_sigma = gaussian_smoothing_sigma
+        self._label_padding = label_padding
         self._uuid = str(uuid.uuid4())
 
-    def create_cutouts(self, data, mean_threshold=2.0, gaussian_smoothing_sigma=10, label_padding=80):
+    def create_cutouts(self, data):
         """
 
         :param data: Input data
@@ -98,8 +101,8 @@ class BlobCutouts:
 
         # Find the blobs
         gray_image = np.dot(data[:, :, :3], [0.299, 0.587, 0.114])
-        im = filters.gaussian_filter(gray_image, sigma=gaussian_smoothing_sigma)
-        blobs = im > mean_threshold * im.mean()
+        im = filters.gaussian_filter(gray_image, sigma=self._gaussian_smoothing_sigma)
+        blobs = im > self._mean_threshold * im.mean()
         blobs_labels = measure.label(blobs, background=0)
 
         # Loop over the blobs
@@ -114,10 +117,10 @@ class BlobCutouts:
             log.debug('label mins and maxs {} {}   {} {}'.format(min_row, max_row, min_col, max_col))
 
             # Pad the blob a bit
-            min_row = max(min_row - label_padding, 0)
-            max_row = min(max_row + label_padding, data.shape[0])
-            min_col = max(min_col - label_padding, 0)
-            max_col = min(max_col + label_padding, data.shape[1])
+            min_row = max(min_row - self._label_padding, 0)
+            max_row = min(max_row + self._label_padding, data.shape[0])
+            min_col = max(min_col - self._label_padding, 0)
+            max_col = min(max_col + self._label_padding, data.shape[1])
 
             log.debug('label mins and maxs with padding {} {}   {} {}'.format(min_row, max_row, min_col, max_col))
 
@@ -147,9 +150,15 @@ class BlobCutouts:
         return {
             'cutout_type': self.__class__.__name__,
             'output_size': self._output_size,
+            'mean_threshold': self._mean_threshold,
+            'gaussian_smoothing_sigma': self._gaussian_smoothing_sigma,
+            'label_padding': self._label_padding,
             'uuid': self._uuid
         }
 
     def _load(self, parameters):
         self._output_size = parameters['output_size']
+        self._gaussian_smoothing_sigma = parameters['gaussian_smoothing_sigma']
+        self._label_padding = parameters['label_padding']
+        self._mean_threshold = parameters['mean_threshold']
         self._uuid = parameters['uuid']

@@ -1,5 +1,6 @@
 import numpy as np
 from sklearn.manifold import TSNE
+import time
 
 import logging
 logging.basicConfig(format='%(levelname)-6s: %(name)-10s %(asctime)-15s  %(message)s')
@@ -157,7 +158,7 @@ class Jaccard(Similarity):
     _similarity_type = 'jaccard'
 
     def __init__(self, *args, **kwargs):
-        super(Jaccard, self).__init__(*args, **kwargs)
+        super(Jaccard, self).__init__(Jaccard._similarity_type, *args, **kwargs)
 
         log.info('Created {}'.format(__class__._similarity_type))
 
@@ -242,6 +243,96 @@ class Jaccard(Similarity):
         start = time.time()
         distances = self._fingerprint_adjacency[row]
         inds = np.argsort(distances)[::-1]
+        log.debug('Closest indexes are {}'.format(inds[:n]))
+        log.debug('Size of the fingerprint list {}'.format(len(self._fingerprints)))
+
+        return [(distances[ind], self._fingerprints[ind]) for ind in inds[:n]]
+
+class Distance(Similarity):
+    """
+    Based on https://docs.scipy.org/doc/scipy/reference/generated/scipy.spatial.distance.pdist.html#scipy.spatial.distance.pdist
+    """
+
+    _similarity_type = 'distance'
+
+    def __init__(self, metric='euclidean', *args, **kwargs):
+
+        super(Distance, self).__init__(Distance._similarity_type, *args, **kwargs)
+
+        log.info('Created {}'.format(__class__._similarity_type))
+
+        # Each line / element in these should correpsond
+        self._fingerprints = []
+        self._filename_index = []
+        self._fingerprint_adjacency = None
+        self._predictions = []
+
+        self._metric = metric
+
+    @classmethod
+    def is_similarity_for(cls, similarity_type):
+        return cls._similarity_type == similarity_type
+
+    def calculate(self, fingerprints):
+        """
+        Probably the best way to represent this is to calculate the Jaccard distance
+        between every pair of points and represent it as an NxN matrix which can then be
+        shown as an image.
+
+        :param fingerprints:
+        :return:
+        """
+        log.info('Going to calculate {} distance from {} fingerprints'.format(self._metric, len(fingerprints)))
+
+        self._fingerprints = fingerprints
+
+        # Calculate the unique labels
+        self._filename_index = np.array([fp['filename'] for fp in fingerprints])
+        labels = []
+        values = {}
+        for ii, fp in enumerate(fingerprints):
+            # Add to unique label list
+            labels.extend([pred[1] for pred in fp['predictions'] if pred[1] not in labels])
+
+            # Store the predictions for next processing
+            values[ii] = fp['predictions']
+
+        unique_labels = list(set(labels))
+        log.info('Unique labels {}'.format(unique_labels))
+
+        self._X = np.zeros((len(fingerprints), len(unique_labels)))
+        for ii, fp in enumerate(fingerprints):
+            inds = [unique_labels.index(prediction[1]) for prediction in values[ii]]
+            self._X[ii][inds] = [prediction[2] for prediction in values[ii]]
+
+        log.debug('X is created and is size {}'.format(self._X.shape))
+
+        from scipy.spatial.distance import pdist, squareform
+        m, n = self._X.shape
+
+        self._fingerprint_adjacency = squareform(pdist(self._X, metric=self._metric))
+
+    def display(self, tsne_axis):
+        """
+        Display the Y values in an axis element.
+
+        :param axes:
+        :param args:
+        :param kwargs:
+        :return:
+        """
+
+        tsne_axis.imshow(self._fingerprint_adjacency, origin='upper')
+        tsne_axis.grid('on')
+        tsne_axis.set_title('Distance [{}]'.format(self._metric))
+
+    def find_similar(self, point, n=9):
+        log.debug('Going into find_similar')
+
+        row, col = int(point[0]), int(point[1])
+
+        distances = self._fingerprint_adjacency[row]
+        inds = np.argsort(distances)
         log.debug('Closest indexes are {}'.format(inds[:n]))
         log.debug('Size of the fingerprint list {}'.format(len(self._fingerprints)))
 
