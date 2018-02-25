@@ -6,7 +6,6 @@ import pickle
 import imageio
 from astropy.io import fits
 import progressbar
-import multiprocessing
 import os
 import sys
 
@@ -132,39 +131,6 @@ class TransferLearning:
 
         if display:
             plt.close(fig)
-
-        return self._fingerprints
-
-    def calculate_multiprocessing(self, display=False):
-        """
-        Calculate the fingerprints for each subsection of the image in each file.
-
-        :param stepsize:
-        :param display:
-        :return:
-        """
-
-        self._fingerprints = []
-
-        tasks = []
-
-        self._queue = multiprocessing.Queue()
-
-        log.debug('After the plot display')
-        # Run through each file.
-        count = 0
-        for filename in self._filenames:
-            log.info('Processing filename {}'.format(filename))
-
-            # Load the data
-            data = self._load_image_data(filename)
-
-            for row_min, row_max, col_min, col_max, td in self._cutout_creator.create_cutouts(data):
-                count += 1
-                self._queue.put((row_min, row_max, col_min, col_max, td.copy(), filename))
-
-        with multiprocessing.Pool(processes=8) as p:
-            p.map(self.calculate_fingerprint, range(count))
 
         return self._fingerprints
 
