@@ -6,7 +6,7 @@ import pickle
 import imageio
 from astropy.io import fits
 import progressbar
-import itertools
+import multiprocessing
 import os
 import sys
 
@@ -14,6 +14,7 @@ import matplotlib.pyplot as plt
 
 from data_processing import DataProcessing
 from fingerprint import Fingerprint
+from cutouts import Cutouts
 import utils
 
 import logging
@@ -23,9 +24,10 @@ log.setLevel(logging.INFO)
 
 
 class TransferLearning:
-    def __init__(self, fingerprint_calculator=None, data_processing=[]):
+    def __init__(self, cutout_creator=None, data_processing=[], fingerprint_calculator=None):
         # list of data processing elements
         self._data_processing = data_processing
+        self._cutout_creator = cutout_creator
         self._fingerprint_calculator = fingerprint_calculator
         self._filenames = []
         self._fingerprints = []
@@ -65,27 +67,19 @@ class TransferLearning:
     def set_files(self, filenames):
         self._filenames = filenames
 
-    def display(self, filename, row, col):
+    def display(self, filename, row_minmax, col_minmax):
 
         if filename not in self._data_cache:
             log.info('Caching image data {}...'.format(filename))
             self._data_cache[filename] = self._load_image_data(filename)
 
-        # print(filename, self._data_cache[filename].shape)
-        # nrows, ncols = self._data_cache[filename].shape[:2]
-        #
-        # start_row = max(0, row - 112 - self._image_display_margin)
-        # end_row = min(nrows, row + 112 + self._image_display_margin)
-        # start_col = max(0, col - 112 - self._image_display_margin)
-        # end_col = min(ncols, col + 112 + self._image_display_margin)
-
-        return self._data_cache[filename][row-112:row+112, col-112:col+112]
+        return self._data_cache[filename][row_minmax[0]:row_minmax[1], col_minmax[0]:col_minmax[1]]
 
     @property
     def fingerprints(self):
         return self._fingerprints
 
-    def calculate(self, stepsize, display=False):
+    def calculate(self, display=False):
         """
         Calculate the fingerprints for each subsection of the image in each file.
 
@@ -95,7 +89,6 @@ class TransferLearning:
         """
 
         self._fingerprints = []
-        self._stepsize = stepsize
 
         if display:
             plt.ion()
@@ -110,48 +103,85 @@ class TransferLearning:
             # Load the data
             data = self._load_image_data(filename)
 
-            # Determine the centers to use for the fingerprint calculation
-            nrows, ncols = data.shape[:2]
-            rows = range(112, nrows-112, stepsize)
-            cols = range(112, ncols-112, stepsize)
+            for row_min, row_max, col_min, col_max, td in self._cutout_creator.create_cutouts(data):
 
-            # Run over all combinations of rows and columns
-            with progressbar.ProgressBar(widgets=[' [', progressbar.Timer(), '] ',
-                                                  progressbar.Bar(), ' (', progressbar.ETA(), ') ', ],
-                                         max_value=len(rows)*len(cols)) as bar:
-                for ii, (row, col) in enumerate(itertools.product(rows, cols)):
+                if display:
+                    if len(td.shape) == 2:
+                        ttdd = utils.gray2rgb(td)
+                    else:
+                        ttdd = td
+                    ttdd = utils.rgb2plot(ttdd)
 
-                    td = data[row-112:row+112, col-112:col+112]
+                    if imaxis is None:
+                        imaxis = plt.imshow(ttdd)
+                    else:
+                        imaxis.set_data(ttdd)
+                    plt.pause(0.001)
 
-                    if display:
-                        if len(td.shape) == 2:
-                            ttdd = utils.gray2rgb(td)
-                        else:
-                            ttdd = td
-                        ttdd = utils.rgb2plot(ttdd)
+                predictions = self._fingerprint_calculator.calculate(td)
 
-                        if imaxis is None:
-                            imaxis = plt.imshow(ttdd)
-                        else:
-                            imaxis.set_data(ttdd)
-                        plt.pause(0.001)
-
-                    predictions = self._fingerprint_calculator.calculate(td)
-
-                    self._fingerprints.append(
-                        {
-                            'data': self,
-                            'predictions': predictions,
-                            'filename': filename,
-                            'row_center': row,
-                            'column_center': col
-                        }
-                    )
+                self._fingerprints.append(
+                    {
+                        'data': self,
+                        'predictions': predictions,
+                        'filename': filename,
+                        'row': [row_min, row_max],
+                        'col': [col_min, col_max]
+                    }
+                )
 
         if display:
             plt.close(fig)
 
         return self._fingerprints
+
+    def calculate_multiprocessing(self, display=False):
+        """
+        Calculate the fingerprints for each subsection of the image in each file.
+
+        :param stepsize:
+        :param display:
+        :return:
+        """
+
+        self._fingerprints = []
+
+        tasks = []
+
+        self._queue = multiprocessing.Queue()
+
+        log.debug('After the plot display')
+        # Run through each file.
+        count = 0
+        for filename in self._filenames:
+            log.info('Processing filename {}'.format(filename))
+
+            # Load the data
+            data = self._load_image_data(filename)
+
+            for row_min, row_max, col_min, col_max, td in self._cutout_creator.create_cutouts(data):
+                count += 1
+                self._queue.put((row_min, row_max, col_min, col_max, td.copy(), filename))
+
+        with multiprocessing.Pool(processes=8) as p:
+            p.map(self.calculate_fingerprint, range(count))
+
+        return self._fingerprints
+
+    def calculate_fingerprint(self, moo):
+        row_min, row_max, col_min, col_max, td, filename = self._queue.get()
+
+        predictions = self._fingerprint_calculator.calculate(td)
+
+        self._fingerprints.append(
+            {
+                'data': self,
+                'predictions': predictions,
+#                'filename': filename,
+                'row': [row_min, row_max],
+                'col': [col_min, col_max]
+            }
+        )
 
     def save(self, output_location):
         """
@@ -174,7 +204,7 @@ class TransferLearning:
         d = {
             'data_processing': [t.save() for t in self._data_processing],
             'fingerprint_calculator': self._fingerprint_calculator.save(),
-            'stepsize': self._stepsize,
+            'cutout_creator': self._cutout_creator.save(),
             'uuid': self._uuid,
             'filenames': self._filenames,
             'fingerprints': fingerprints
@@ -206,7 +236,7 @@ class TransferLearning:
                 self._data_processing.append(DataProcessing.load_parameters(dp))
             self._fingerprint_calculator = Fingerprint.load_parameters(tt['fingerprint_calculator'])
             self._uuid = tt['uuid']
-            self._stepsize = tt['stepsize']
+            self._cutout_creator = Cutouts.load(tt['cutout_creator'])
             self._filenames = tt['filenames']
             self._fingerprints = tt['fingerprints']
 
@@ -309,8 +339,8 @@ class TransferLearningDisplay:
 
             self._data_closest.set_data(utils.rgb2plot(
                 close_fingerprint['data'].display(close_fingerprint['filename'],
-                                                  close_fingerprint['row_center'],
-                                                  close_fingerprint['column_center'])
+                                                  close_fingerprint['row'],
+                                                  close_fingerprint['col'])
             ))
             self.axis_closest.set_title(close_fingerprint['filename'].split('/')[-1], fontsize=8)
             self.fig.canvas.blit(self.axis_closest.bbox)
@@ -345,16 +375,14 @@ class TransferLearningDisplay:
                 # Show new data and set title
                 self.sub_data[ii].set_data(utils.rgb2plot(
                     fingerprint['data'].display(fingerprint['filename'],
-                                                fingerprint['row_center'],
-                                                fingerprint['column_center'])
+                                                fingerprint['row'],
+                                                fingerprint['col'])
                 ))
 
                 # Update the title on the window
-                self.sub_windows[ii].set_title('{:0.3f} {} ({}, {})'.format(
+                self.sub_windows[ii].set_title('{:0.3f} {}'.format(
                     distance,
-                    os.path.basename(fingerprint['filename']),
-                    fingerprint['row_center'],
-                    fingerprint['column_center']), fontsize=8)
+                    os.path.basename(fingerprint['filename'])), fontsize=8)
                 self.sub_windows[ii].redraw_in_frame()
 
             self._update_text('Click in the tSNE plot...')
@@ -379,14 +407,12 @@ class TransferLearningDisplay:
         # Show new data and set title
         self.sub_data[index].set_data(utils.rgb2plot(
             fingerprint['data'].display(fingerprint['filename'],
-                                        fingerprint['row_center'],
-                                        fingerprint['column_center'])
+                                        fingerprint['row'],
+                                        fingerprint['col'])
         ))
-        self.sub_windows[index].set_title('{:0.3f} {} ({}, {})'.format(
+        self.sub_windows[index].set_title('{:0.3f} {}'.format(
             distance,
-            os.path.basename(fingerprint['filename']),
-            fingerprint['row_center'],
-            fingerprint['column_center']), fontsize=8)
+            os.path.basename(fingerprint['filename'])), fontsize=8)
 
         self.sub_windows[index].redraw_in_frame()
 
