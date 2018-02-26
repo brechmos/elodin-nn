@@ -27,4 +27,4 @@ tl.set_files(input_filenames)
 
 fingerprints = tl.calculate(display=True)
 
-tl.save('hstheritage_fingerprints.pck')
+tl.save('test.pck')

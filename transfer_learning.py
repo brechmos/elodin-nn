@@ -51,16 +51,6 @@ class TransferLearning:
             log.warning('Could not determine filetype for {}'.format(filename))
             return []
 
-        # Do the pre-processing of the data
-        for dp in self._data_processing:
-            log.debug('Doing pre-processing {}, input data shape {}'.format(dp, data.shape))
-            data = dp.process(data)
-            log.debug('    Now input data shape {}'.format(data.shape))
-
-        # Make RGB (3 channel) if only gray scale (single channel)
-        if len(data.shape) == 2:
-            data = utils.gray2rgb(data)
-
         return data
 
     def set_files(self, filenames):
@@ -97,44 +87,59 @@ class TransferLearning:
         log.debug('After the plot display')
         # Run through each file.
         for filename in self._filenames:
-            log.info('Processing filename {}'.format(filename))
 
             # Load the data
-            data = self._load_image_data(filename)
+            data_orig = self._load_image_data(filename)
 
-            for row_min, row_max, col_min, col_max, td in self._cutout_creator.create_cutouts(data):
+            for dp_set in self._data_processing:
+                log.info("Processing filename {} with {}".format(filename, dp_set))
 
-                if display:
-                    if len(td.shape) == 2:
-                        ttdd = utils.gray2rgb(td)
-                    else:
-                        ttdd = td
-                    ttdd = utils.rgb2plot(ttdd)
+                data = data_orig
 
-                    if imaxis is None:
-                        imaxis = plt.imshow(ttdd)
-                    else:
-                        imaxis.set_data(ttdd)
-                    plt.pause(0.001)
+                # Do the pre-processing of the data
+                for dp in dp_set:
+                    log.debug('Doing pre-processing {}, input data shape {}'.format(dp, data.shape))
+                    data = dp.process(data)
+                    log.debug('    Now input data shape {}'.format(data.shape))
 
-                predictions = self._fingerprint_calculator.calculate(td)
+                # Make RGB (3 channel) if only gray scale (single channel)
+                if len(data.shape) == 2:
+                    data = utils.gray2rgb(data)
 
-                self._fingerprints.append(
-                    {
-                        'data': self,
-                        'predictions': predictions,
-                        'filename': filename,
-                        'row': [row_min, row_max],
-                        'col': [col_min, col_max]
-                    }
-                )
+                for row_min, row_max, col_min, col_max, td in self._cutout_creator.create_cutouts(data):
+
+                    if display:
+                        if len(td.shape) == 2:
+                            ttdd = utils.gray2rgb(td)
+                        else:
+                            ttdd = td
+                        ttdd = utils.rgb2plot(ttdd)
+
+                        if imaxis is None:
+                            imaxis = plt.imshow(ttdd)
+                        else:
+                            imaxis.set_data(ttdd)
+                        plt.pause(0.001)
+
+                    predictions = self._fingerprint_calculator.calculate(td)
+
+                    self._fingerprints.append(
+                        {
+                            'data': self,
+                            'predictions': predictions,
+                            'filename': filename,
+                            'data_processing': [x.save() for x in dp_set],
+                            'row': [row_min, row_max],
+                            'col': [col_min, col_max]
+                        }
+                    )
 
         if display:
             plt.close(fig)
 
         return self._fingerprints
 
-    def calculate_fingerprint(self, moo):
+    def calculate_fingerprint(self):
         row_min, row_max, col_min, col_max, td, filename = self._queue.get()
 
         predictions = self._fingerprint_calculator.calculate(td)
@@ -143,7 +148,7 @@ class TransferLearning:
             {
                 'data': self,
                 'predictions': predictions,
-#                'filename': filename,
+                'filename': filename,
                 'row': [row_min, row_max],
                 'col': [col_min, col_max]
             }
@@ -168,7 +173,7 @@ class TransferLearning:
 
         # Create dictionary to save
         d = {
-            'data_processing': [t.save() for t in self._data_processing],
+            'data_processing': [[dp.save() for dp in dp_set] for dp_set in self._data_processing],
             'fingerprint_calculator': self._fingerprint_calculator.save(),
             'cutout_creator': self._cutout_creator.save(),
             'uuid': self._uuid,
@@ -198,8 +203,8 @@ class TransferLearning:
             tt = pickle.load(fp)
 
             self._data_processing = []
-            for dp in tt['data_processing']:
-                self._data_processing.append(DataProcessing.load_parameters(dp))
+            for dp_set in tt['data_processing']:
+                self._data_processing.append([DataProcessing.load_parameters(x) for x in dp_set])
             self._fingerprint_calculator = Fingerprint.load_parameters(tt['fingerprint_calculator'])
             self._uuid = tt['uuid']
             self._cutout_creator = Cutouts.load(tt['cutout_creator'])
@@ -308,7 +313,10 @@ class TransferLearningDisplay:
                                                   close_fingerprint['row'],
                                                   close_fingerprint['col'])
             ))
-            self.axis_closest.set_title(close_fingerprint['filename'].split('/')[-1], fontsize=8)
+
+            thetitle = close_fingerprint['filename'].split('/')[-1] + ' ' + ','.join([repr(DataProcessing.load_parameters(x)) for x in close_fingerprint['data_processing']])
+
+            self.axis_closest.set_title(thetitle, fontsize=8)
             self.fig.canvas.blit(self.axis_closest.bbox)
             self.axis_closest.redraw_in_frame()
 
@@ -345,10 +353,12 @@ class TransferLearningDisplay:
                                                 fingerprint['col'])
                 ))
 
+                thetitle = fingerprint['filename'].split('/')[-1] + ' ' + ','.join([repr(DataProcessing.load_parameters(x)) for x in
+                                                                                 fingerprint['data_processing']])
+
                 # Update the title on the window
                 self.sub_windows[ii].set_title('{:0.3f} {}'.format(
-                    distance,
-                    os.path.basename(fingerprint['filename'])), fontsize=8)
+                    distance, thetitle), fontsize=8)
                 self.sub_windows[ii].redraw_in_frame()
 
             self._update_text('Click in the tSNE plot...')

@@ -4,7 +4,7 @@ from fingerprint import FingerprintResnet, FingerprintInceptionV3
 from transfer_learning import TransferLearning, TransferLearningDisplay
 import glob
 
-filename = 'hstheritage_fingerprints.pck'
+filename = 'test.pck'
 
 tl = TransferLearning.load(filename)
 
