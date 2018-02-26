@@ -18,8 +18,7 @@ basic_cutout = BasicCutouts(output_size=224, step_size=step_size)
 # # calculate fingerpirnts for median filtered
 
 data_processing = [
-            [MedianFilterData((3, 3, 1))],
-            [MedianFilterData((7, 7, 1))],
+            [],
         ]
 
 tl = TransferLearning(basic_cutout, data_processing, fingerprint_model)
