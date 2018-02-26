@@ -49,7 +49,16 @@ class ZoomData(DataProcessing):
         return 'ZoomData (level {})'.format(self._zoom_level)
 
     def process(self, input_data):
-        return self._apply2dfunc(input_data, scipy.ndimage.zoom, self._zoom_level)
+        output_data = None
+
+        for ii in range(input_data.shape[2]):
+            out = scipy.ndimage.zoom(input_data[:,:,ii], self._zoom_level)
+            if output_data is None:
+                output_data = np.zeros((out.shape[0], out.shape[1], input_data.shape[2]))
+
+            output_data[:,:,ii] = out
+
+        return output_data
 
     def save(self):
         return {'data_processing': self.__class__.__name__, 'parameters': {'zoom': self._zoom_level}}

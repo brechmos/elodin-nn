@@ -19,7 +19,7 @@ import utils
 import logging
 logging.basicConfig(format='%(levelname)-6s: %(name)-10s %(asctime)-15s  %(message)s')
 log = logging.getLogger("TransferLearning")
-log.setLevel(logging.INFO)
+log.setLevel(logging.DEBUG)
 
 
 class TransferLearning:
@@ -296,7 +296,6 @@ class TransferLearningDisplay:
         plt.show(block=False)
 
     def _update_text(self, thetext):
-        print('updateing text to {}'.format(thetext))
         self.info_text.set_text(thetext)
         plt.draw()
 

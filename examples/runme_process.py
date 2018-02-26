@@ -19,6 +19,7 @@ basic_cutout = BasicCutouts(output_size=224, step_size=step_size)
 
 data_processing = [
             [],
+            [ZoomData(3)],
         ]
 
 tl = TransferLearning(basic_cutout, data_processing, fingerprint_model)
