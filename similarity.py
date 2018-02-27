@@ -120,7 +120,6 @@ class tSNE(Similarity):
         log.info('Going to calculate tSNE from {} fingerprints'.format(len(fingerprints)))
 
         # Calculate the unique labels
-        self._filename_index = np.array([fp['filename'] for fp in fingerprints])
         labels = []
         values = {}
         for ii, fp in enumerate(fingerprints):
@@ -168,10 +167,10 @@ class tSNE(Similarity):
             raise ValueError('Plot type {} is not in the valid list {}'.format(self._display_type, self._display_types))
 
     def _display_plot(self, tsne_axis):
-        colors = ['b', 'g', 'r', 'c', 'm', 'y', 'k', 'w']
-        for ii, fi in enumerate(set(self._filename_index)):
-            inds = np.nonzero(self._filename_index == fi)[0]
-            tsne_axis.plot(self._Y[inds, 0], self._Y[inds, 1], '{}.'.format(colors[ii%len(colors)]))
+#        colors = ['b', 'g', 'r', 'c', 'm', 'y', 'k', 'w']
+#        for ii, fi in enumerate(set(self._filename_index)):
+#            inds = np.nonzero(self._filename_index == fi)[0]
+        tsne_axis.plot(self._Y[:, 0], self._Y[:, 1], '.')#, '{}.'.format(colors[ii%len(colors)]))
         tsne_axis.grid('on')
         tsne_axis.set_title('tSNE [{}]'.format(self._distance_measure))
 

@@ -25,6 +25,6 @@ data_processing = [
 tl = TransferLearning(basic_cutout, data_processing, fingerprint_model)
 tl.set_files(input_filenames)
 
-fingerprints = tl.calculate(display=True)
+tl.calculate()
 
 tl.save('test.pck')
