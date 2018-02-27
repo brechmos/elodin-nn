@@ -46,6 +46,9 @@ class BasicCutouts:
         self._step_size = step_size
         self._uuid = str(uuid.uuid4())
 
+    def __str__(self):
+        return 'Basic Cutout (step_size={})'.format(self._step_size)
+
     def create_cutouts(self, data):
         """
         Calculate the fingerprints for each subsection of the image in each file.
@@ -88,6 +91,10 @@ class BlobCutouts:
         self._gaussian_smoothing_sigma = gaussian_smoothing_sigma
         self._label_padding = label_padding
         self._uuid = str(uuid.uuid4())
+
+    def __str__(self):
+        return 'Blob Cutout (mean_threshold={}, gaussian_smoothign_sigma={})'.format(self._mean_threshold,
+                                                                                     self._gaussian_smoothing_sigma)
 
     def create_cutouts(self, data):
         """
