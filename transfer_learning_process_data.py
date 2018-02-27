@@ -9,6 +9,8 @@ from data_processing import DataProcessing
 from fingerprint import Fingerprint
 from cutouts import Cutouts
 
+import progressbar
+
 import logging
 logging.basicConfig(format='%(levelname)-6s: %(name)-10s %(asctime)-15s  %(message)s')
 log = logging.getLogger("TransferLearningProcessData")
@@ -87,6 +89,11 @@ class TransferLearningProcessData:
         :param fingerprint_calculator:
         :return:
         """
+
+        log.info("Calculating fingerprints using {} and {}".format(cutout_creator, fingerprint_calculator))
+
+        self._fingerprints = []
+
         self._cutout_creator = cutout_creator
         self._fingerprint_calculator = fingerprint_calculator
 
