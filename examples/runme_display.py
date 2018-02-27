@@ -1,4 +1,4 @@
-from similarity import tSNE
+from similarity import tSNE, Jaccard, Distance
 from data_processing import MedianFilterData, ZoomData, RotateData, GrayScaleData
 from fingerprint import FingerprintResnet, FingerprintInceptionV3
 from transfer_learning import TransferLearning
@@ -9,8 +9,9 @@ filename = 'test.pck'
 tl = TransferLearning.load(filename)
 
 # Calculate hte similarity
-#similarity = Jaccard(fingerprints)
-similarity = tSNE(tl.fingerprints)
+#similarity = Jaccard()
+#similarity = tSNE()
+similarity = Distance(metric='cityblock')
 
 # Create the display with the calculated similarity
 tld = TransferLearningDisplay(similarity)
