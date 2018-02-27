@@ -13,6 +13,10 @@ log.setLevel(logging.INFO)
 
 
 class Cutouts:
+    """
+    Create cutouts of a set of input data.
+    """
+
     def __init__(self):
         # list of data processing elements
         self._uuid = str(uuid.uuid4())
@@ -28,6 +32,13 @@ class Cutouts:
 
     @staticmethod
     def load(parameters):
+        """
+        Create an instance of the Cutout class based on the dictionary of parameters passed in.  The parameter
+        parameter comes from the "save()" function of one of the implemented classes below.
+
+        :param parameters: dictionary of information from which an instance will be created
+        :return:
+        """
         for class_ in Cutouts.__subclasses__():
             if class_.__name__ == parameters['cutout_type']:
 
@@ -39,17 +50,39 @@ class Cutouts:
 
 
 class BasicCutouts:
-    def __init__(self, output_size, step_size):
+    """
+    The BasicCutouts class will create cutouts based on sliding window idea given a step_size.
+    """
 
-        # list of data processing elements
+    def __init__(self, output_size, step_size):
+        """
+        Initialize with the output_size (assumed square at this point and a step_size
+
+        :param output_size: cutout output size (assumed square)
+        :param step_size: step size from one cutout to the next
+        """
+
         self._output_size = output_size
         self._step_size = step_size
         self._uuid = str(uuid.uuid4())
 
     def __str__(self):
+        """
+        String representation for matplotlib title plots etc
+
+        :return: string representation
+        """
+
         return 'Basic Cutout (step_size={})'.format(self._step_size)
 
     def number_cutouts(self, data):
+        """
+        Number of cutouts given the data, this was implemented primarily for the progress bar.  If the create_cutouts
+        function changes then this one will have to as well.
+
+        :param data: image array of data.
+        :return: number of cutouts that will be created in `create_cutouts()` below
+        """
 
         N = self._output_size // 2
 
@@ -58,14 +91,14 @@ class BasicCutouts:
         rows = range(N, nrows-N, self._step_size)
         cols = range(N, ncols-N, self._step_size)
 
-        return len(itertools.product(rows, cols))
+        return len(list(itertools.product(rows, cols)))
 
     def create_cutouts(self, data):
         """
         Calculate the fingerprints for each subsection of the image in each file.
 
-        :param data:
-        :return:
+        :param data: Input data from which we will create the cutouts based on a sliding window.
+        :return: the row start and end, column start and end and the actual numpy array of data that is the cutout
         """
 
         N = self._output_size // 2
@@ -75,11 +108,18 @@ class BasicCutouts:
         rows = range(N, nrows-N, self._step_size)
         cols = range(N, ncols-N, self._step_size)
 
+        # Run over all the rows and columns and yield the result
         for ii, (row, col) in enumerate(itertools.product(rows, cols)):
             td = data[row-N:row+N, col-N:col+N]
             yield row-N, row+N, col-N, col+N, td
 
     def save(self):
+        """
+        This method is used to create a representation of this instance of a cutout which can be saved
+        in a pickle file and then later loaded.
+
+        :return:
+        """
         return {
             'cutout_type': self.__class__.__name__,
             'output_size': self._output_size,
@@ -88,13 +128,34 @@ class BasicCutouts:
         }
 
     def _load(self, parameters):
+        """
+        Load the instance internal variables from the parameters dictionary
+
+        :param parameters: dictonary of values that represent the class
+        :return: nothing....
+        """
+
         self._step_size = parameters['step_size']
         self._output_size = parameters['output_size']
         self._uuid = parameters['uuid']
 
 
 class BlobCutouts:
+    """
+    Blob cutouts is a little different way of creating cutouts. Rather than doing a sliding window we are going
+    to use some image processing and labeling.  The basic algorithm is to smooth the image, label the connected
+    components and then return 224x224 cutouts based on the center of each connected component.
+    """
+
     def __init__(self, output_size, mean_threshold=2.0, gaussian_smoothing_sigma=10, label_padding=80):
+        """
+        Initialize the labeled connected component cutout creator.
+
+        :param output_size: Output size, assumed square at this point
+        :param mean_threshold: Signal threshold passed in to the labeling in order to determine connectedness
+        :param gaussian_smoothing_sigma: Amount of smoothing to apply to the image before labeling
+        :param label_padding: How much do we want to padd around the output image.
+        """
 
         # list of data processing elements
         self._output_size = output_size
@@ -104,11 +165,18 @@ class BlobCutouts:
         self._uuid = str(uuid.uuid4())
 
     def __str__(self):
+        """
+        String representation for matplotlib titles etc.
+
+        :return:
+        """
         return 'Blob Cutout (mean_threshold={}, gaussian_smoothign_sigma={})'.format(self._mean_threshold,
                                                                                      self._gaussian_smoothing_sigma)
 
     def create_cutouts(self, data):
         """
+        This will create a number of cutouts. Each cutout is based on a connected component labeling of the image
+        after a little smoothing. This is a reasonably standard method of doing the connnected component labeling.
 
         :param data: Input data
         :param mean_threshold: Threshold applied to mean in order to clip background
@@ -117,7 +185,7 @@ class BlobCutouts:
         :return:
         """
 
-        # Find the blobs
+        # Find the blobs - make gray scale, smooth, find blobs, then label them
         gray_image = np.dot(data[:, :, :3], [0.299, 0.587, 0.114])
         im = filters.gaussian_filter(gray_image, sigma=self._gaussian_smoothing_sigma)
         blobs = im > self._mean_threshold * im.mean()
@@ -152,7 +220,8 @@ class BlobCutouts:
                 min_row = min_row - (cc - rr) // 2
                 max_row = max_row - (cc - rr) // 2
 
-            # Skip for now
+            # If the cutout extends outside the original image then we are going to drop it for now
+            # TODO: Need to create a way to shift the cutout if outside the original image.
             if min_row < 0 or min_col < 0 or max_row >= data.shape[0] or max_col >= data.shape[1]:
                 continue
 
@@ -162,9 +231,15 @@ class BlobCutouts:
             td = skimage.transform.resize(data[min_row:max_row, min_col:max_col],
                                           [self._output_size, self._output_size])
 
+            # This will need to match the standard return method for cutouts.
             yield min_row, max_row, min_col, max_col, td
 
     def save(self):
+        """
+        Save the variables in this instance to a dictionary so it can be saved for later importing and recreation.
+
+        :return: dictionary of parameters
+        """
         return {
             'cutout_type': self.__class__.__name__,
             'output_size': self._output_size,
@@ -175,6 +250,14 @@ class BlobCutouts:
         }
 
     def _load(self, parameters):
+        """
+        Load the dictionary of parameters in order to re-create this instance. The parameters will come from the
+        above save command.
+
+        :param parameters: dictionary of parameters
+        :return: nothing....
+        """
+
         self._output_size = parameters['output_size']
         self._gaussian_smoothing_sigma = parameters['gaussian_smoothing_sigma']
         self._label_padding = parameters['label_padding']
