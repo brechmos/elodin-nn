@@ -1,5 +1,8 @@
 import numpy as np
 from sklearn.manifold import TSNE
+from scipy.sparse import csc_matrix
+import itertools
+from scipy.spatial.distance import pdist, squareform
 
 import logging
 logging.basicConfig(format='%(levelname)-6s: %(name)-10s %(asctime)-15s  %(message)s')
@@ -189,10 +192,23 @@ class tSNE(Similarity):
         return [(distances[ind], self._fingerprints[ind]) for ind in inds[:n]]
 
 class Jaccard(Similarity):
+    """
+    Jaccard similarity implementation.  The Jaccard similarity is a set based method, which, implemented here,
+    is computes the similiarity of two cutouts based on only the names of the imagenet images in the fingerprint for
+    each.  So, given two cutouts C1 and C2 and their corresponding finger print imagenet sets S1 and S2.  The
+    Jaccard similarity between the two is computed as len( S1 & S2 ) / len( S1 | S2 ).  The higher the number, the
+    more similar the two cutouts.
+    """
 
     _similarity_type = 'jaccard'
 
     def __init__(self, *args, **kwargs):
+        """
+        Create the empty instance of the similarity measure.
+
+        :param args:
+        :param kwargs:
+        """
         super(Jaccard, self).__init__(Jaccard._similarity_type, *args, **kwargs)
 
         log.info('Created {}'.format(__class__._similarity_type))
@@ -213,19 +229,18 @@ class Jaccard(Similarity):
         between every pair of points and represent it as an NxN matrix which can then be
         shown as an image.
 
+        The algorithm to compute the Jaccard matrix here is from:
+            https://stackoverflow.com/questions/40579415/computing-jaccard-similarity-in-python
+
         :param fingerprints:
         :return:
         """
         log.info('Going to calculate Jaccard from {} fingerprints'.format(len(fingerprints)))
 
-        from scipy.sparse import csc_matrix, csr_matrix
-        import itertools
-
         self._fingerprints = fingerprints
 
         self._predictions = [set([tt[1] for tt in x['predictions']]) for x in fingerprints]
 
-        # https://stackoverflow.com/questions/40579415/computing-jaccard-similarity-in-python
         up = list(set(list(itertools.chain(*[list(x) for x in self._predictions]))))
 
         A = np.zeros((len(self._predictions), len(up)))
@@ -239,7 +254,7 @@ class Jaccard(Similarity):
 
     def display(self, tsne_axis):
         """
-        Display the Y values in an axis element.
+        Display the fingerprint adjacency mastrix in the axis element.
 
         :param axes:
         :param args:
@@ -252,8 +267,14 @@ class Jaccard(Similarity):
         tsne_axis.set_title('Jaccard')
 
     def jaccard_similarities(self, mat):
+        """
+        Compute the jaccard similarities from the set matrix representation.
+
+        :param mat:  Input matrix that defines set inclusion for all unique labels.
+        :return: Jaccard similarity for each pair of rows and columns.
+        """
         # https://na-o-ys.github.io/others/2015-11-07-sparse-vector-similarities.html
-        log.debug('Going into jaccard_similarities')
+        log.debug('Calculate the Jaccard_similarities')
 
         cols_sum = mat.getnnz(axis=0)
         ab = mat.T * mat
@@ -270,14 +291,22 @@ class Jaccard(Similarity):
         return similarities
 
     def find_similar(self, point, n=9):
-        log.debug('Going into find_similar')
+        """
+        Find the n similar fingerprints based on the input point.
+
+        :param point:
+        :param n:
+        :return:
+        """
 
         row, col = int(point[0]), int(point[1])
-        import time
+
         # find the Main fingerprint for this point in the image
-        start = time.time()
         distances = self._fingerprint_adjacency[row]
+
+        # Sort from highest to lowest.
         inds = np.argsort(distances)[::-1]
+
         log.debug('Closest indexes are {}'.format(inds[:n]))
         log.debug('Size of the fingerprint list {}'.format(len(self._fingerprints)))
 
@@ -297,10 +326,12 @@ class Distance(Similarity):
         log.info('Created {}'.format(__class__._similarity_type))
 
         # Each line / element in these should correpsond
-        self._fingerprints = []
         self._filename_index = []
         self._fingerprint_adjacency = None
         self._predictions = []
+
+        if not isinstance(metric, (str)):
+            raise TypeError('Metric needs to be a string')
 
         self._metric = metric
 
@@ -319,10 +350,10 @@ class Distance(Similarity):
         """
         log.info('Going to calculate {} distance from {} fingerprints'.format(self._metric, len(fingerprints)))
 
+        # Store as we need it for the find_nearest...
         self._fingerprints = fingerprints
 
         # Calculate the unique labels
-        self._filename_index = np.array([fp['filename'] for fp in fingerprints])
         labels = []
         values = {}
         for ii, fp in enumerate(fingerprints):
@@ -333,17 +364,12 @@ class Distance(Similarity):
             values[ii] = fp['predictions']
 
         unique_labels = list(set(labels))
-        log.info('Unique labels {}'.format(unique_labels))
+        log.debug('Unique labels {}'.format(unique_labels))
 
         self._X = np.zeros((len(fingerprints), len(unique_labels)))
         for ii, fp in enumerate(fingerprints):
             inds = [unique_labels.index(prediction[1]) for prediction in values[ii]]
             self._X[ii][inds] = [prediction[2] for prediction in values[ii]]
-
-        log.debug('X is created and is size {}'.format(self._X.shape))
-
-        from scipy.spatial.distance import pdist, squareform
-        m, n = self._X.shape
 
         self._fingerprint_adjacency = squareform(pdist(self._X, metric=self._metric))
 
@@ -362,13 +388,19 @@ class Distance(Similarity):
         tsne_axis.set_title('Distance [{}]'.format(self._metric))
 
     def find_similar(self, point, n=9):
-        log.debug('Going into find_similar')
+        """
+        Find similar given the input point.
+
+        :param point:
+        :param n:
+        :return:
+        """
+        log.debug('Calling find_similar')
 
         row, col = int(point[0]), int(point[1])
-
         distances = self._fingerprint_adjacency[row]
+
+        # TOOD: At this point this is assuming smallest distance is the best.
         inds = np.argsort(distances)
-        log.debug('Closest indexes are {}'.format(inds[:n]))
-        log.debug('Size of the fingerprint list {}'.format(len(self._fingerprints)))
 
         return [(distances[ind], self._fingerprints[ind]) for ind in inds[:n]]

@@ -25,6 +25,8 @@ class TransferLearningProcessData:
 
     def __init__(self, filename, data_processing):
 
+        log.info('Creating TransferLearningProcessData instance with {} and {}'.format(filename, data_processing))
+
         self._uuid = str(uuid.uuid4())
         self._filename = filename
         self._data_processing = [DataProcessing.load_parameters(x) for x in data_processing]
@@ -54,6 +56,9 @@ class TransferLearningProcessData:
         :param filename:
         :return:
         """
+
+        print('JUST GOT INTO _load_iamge_data with filename {}'.format(filename))
+
         if any(filename.lower().endswith(s) for s in ['tiff', 'tif', 'jpg']):
             log.debug('Loading TIFF/JPG file {}'.format(filename))
             data = np.array(imageio.imread(filename))
@@ -74,7 +79,6 @@ class TransferLearningProcessData:
             data = dp.process(data)
             log.debug('    Now input data shape {}'.format(data.shape))
 
-
         # Make RGB (3 channel) if only gray scale (single channel)
         if len(data.shape) == 2:
             data = utils.gray2rgb(data)
@@ -89,15 +93,18 @@ class TransferLearningProcessData:
         :param fingerprint_calculator:
         :return:
         """
-
         log.info("Calculating fingerprints using {} and {}".format(cutout_creator, fingerprint_calculator))
 
         self._fingerprints = []
-
         self._cutout_creator = cutout_creator
         self._fingerprint_calculator = fingerprint_calculator
 
-        for row_min, row_max, col_min, col_max, td in self._cutout_creator.create_cutouts(self._processed_data):
+        # Create the progressbar
+        N = self._cutout_creator.number_cutouts(self._processed_data)
+        pbar = progressbar.ProgressBar(max_value=N)
+
+        # Loop over each cutout, calculate the predictions based on imagenet and then store into a dictionary
+        for ii, (row_min, row_max, col_min, col_max, td) in enumerate(self._cutout_creator.create_cutouts(self._processed_data)):
 
             predictions = self._fingerprint_calculator.calculate(td)
 
@@ -108,6 +115,8 @@ class TransferLearningProcessData:
                 'col_max': col_max,
                 'predictions': predictions
             })
+
+            pbar.update(ii)
 
     def display(self, row_minmax, col_minmax):
         """
@@ -123,7 +132,7 @@ class TransferLearningProcessData:
         """
         Save is to a dictionary as it is used higher up the food chain.
 
-        :return:
+        :return: dictionary of all the relevant information for this instance of the class
         """
         return {
             'uuid': self._uuid,
@@ -134,19 +143,14 @@ class TransferLearningProcessData:
             'fingerprints': self._fingerprints
         }
 
-    @staticmethod
-    def load(parameters):
-        tldp = TransferLearningProcessData(parameters['filename'], parameters['data_processing'])
-        tldp._load(parameters)
-        return tldp
-
     def _load(self, parameters):
         """
         Load the parameters back into the instance.  Will need to create the instances as we load them in.
 
-        :param parameters:
+        :param parameters: Dictionary of parametesr that comes from the above `save()` command
         :return:
         """
+
         self._uuid = parameters['uuid']
         self._filename = parameters['filename']
         self._data_processing = [DataProcessing.load_parameters(x) for x in parameters['data_processing']]
@@ -154,4 +158,17 @@ class TransferLearningProcessData:
         self._fingerprint_calculator = Fingerprint.load_parameters(parameters['fingerprint_calculator'])
         self._fingerprints = parameters['fingerprints']
 
-        self._load_image_data(self._filename)
+    @staticmethod
+    def load(parameters):
+        """
+        Static class method that will create an instance of the Transfer LearningProcessData class with the
+        data loaded in based on the saved parameters.
+
+        :param parameters:
+        :return: instance of TLPD loaded with all the appropriate goodness
+        """
+
+        tldp = TransferLearningProcessData(parameters['filename'], parameters['data_processing'])
+        tldp._load(parameters)
+
+        return tldp
