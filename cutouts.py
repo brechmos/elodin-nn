@@ -172,6 +172,21 @@ class BlobCutouts:
         """
         return 'Blob Cutout (mean_threshold={}, gaussian_smoothign_sigma={})'.format(self._mean_threshold,
                                                                                      self._gaussian_smoothing_sigma)
+    def number_cutouts(self, data):
+        """
+        Number of cutouts given the data, this was implemented primarily for the progress bar.  If the create_cutouts
+        function changes then this one will have to as well.
+
+        :param data: image array of data.
+        :return: number of cutouts that will be created in `create_cutouts()` below
+        """
+
+        gray_image = np.dot(data[:, :, :3], [0.299, 0.587, 0.114])
+        im = filters.gaussian_filter(gray_image, sigma=self._gaussian_smoothing_sigma)
+        blobs = im > self._mean_threshold * im.mean()
+        blobs_labels = measure.label(blobs, background=0)
+
+        return blobs_labels.max()
 
     def create_cutouts(self, data):
         """

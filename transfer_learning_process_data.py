@@ -1,6 +1,7 @@
 import imageio
 import numpy as np
 import uuid
+import multiprocessing
 
 from astropy.io import fits
 
@@ -29,7 +30,13 @@ class TransferLearningProcessData:
 
         self._uuid = str(uuid.uuid4())
         self._filename = filename
-        self._data_processing = [DataProcessing.load_parameters(x) for x in data_processing]
+
+        # We need to check to see if the input to this is a dictionary or not
+        if isinstance(data_processing[0], dict):
+            self._data_processing = [DataProcessing.load_parameters(x) for x in data_processing]
+        else:
+            self._data_processing = data_processing
+
         self._processed_data = self._load_image_data(filename)
 
         # Set in the calculate function
