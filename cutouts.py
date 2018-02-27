@@ -49,6 +49,17 @@ class BasicCutouts:
     def __str__(self):
         return 'Basic Cutout (step_size={})'.format(self._step_size)
 
+    def number_cutouts(self, data):
+
+        N = self._output_size // 2
+
+        # Determine the centers to use for the fingerprint calculation
+        nrows, ncols = data.shape[:2]
+        rows = range(N, nrows-N, self._step_size)
+        cols = range(N, ncols-N, self._step_size)
+
+        return len(itertools.product(rows, cols))
+
     def create_cutouts(self, data):
         """
         Calculate the fingerprints for each subsection of the image in each file.
