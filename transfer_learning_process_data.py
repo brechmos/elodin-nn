@@ -157,13 +157,19 @@ class TransferLearningProcessData:
         :param parameters: Dictionary of parametesr that comes from the above `save()` command
         :return:
         """
+        log.debug('TransferLearningProcessData loading {}'.format(parameters['filename']))
 
         self._uuid = parameters['uuid']
         self._filename = parameters['filename']
+        log.debug('TransferLearningProcessData loading data pocessing')
         self._data_processing = [DataProcessing.load_parameters(x) for x in parameters['data_processing']]
+        log.debug('TransferLearningProcessData loading ciutouts')
         self._cutout_creator = Cutouts.load(parameters['cutout_creator'])
+        log.debug('TransferLearningProcessData loading fingerprints')
         self._fingerprint_calculator = Fingerprint.load_parameters(parameters['fingerprint_calculator'])
         self._fingerprints = parameters['fingerprints']
+
+        log.debug('TransferLearningProcessData ... done')
 
     @staticmethod
     def load(parameters):

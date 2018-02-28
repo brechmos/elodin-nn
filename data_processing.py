@@ -40,6 +40,27 @@ class DataProcessing:
                 return tt
 
 
+class CropData(DataProcessing):
+    def __init__(self, output_size=224, *args, **kwargs):
+        super(CropData, self).__init__(*args, **kwargs)
+        self._output_size = output_size
+
+    def __repr__(self):
+        return 'CropData (output_size {})'.format(self._output_size)
+
+    def process(self, input_data):
+        nrows, ncols = input_data.shape[:2]
+        row_center, col_center = nrows//2, ncols//2
+
+        return input_data[row_center-112:row_center+112, col_center-112:col_center+112]
+
+    def save(self):
+        return {'data_processing': self.__class__.__name__, 'parameters': {'output_size': self._output_size}}
+
+    def load(self, parameters):
+        self._output_size = parameters.get('parameters').get('output_size')
+
+
 class ZoomData(DataProcessing):
     def __init__(self, zoom_level=1, *args, **kwargs):
         super(ZoomData, self).__init__(*args, **kwargs)

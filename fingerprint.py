@@ -63,13 +63,17 @@ class Fingerprint:
         # nothing to do for now
         pass
 
+from keras.applications.resnet50 import preprocess_input as preprocess_input
+from keras.applications.resnet50 import decode_predictions as decode_predictions
+from keras.applications.resnet50 import ResNet50
+
+
 class FingerprintResnet(Fingerprint):
 
     def __init__(self, max_fingerprints=200):
         super(FingerprintResnet, self).__init__()
 
-        from keras.applications.resnet50 import ResNet50
-        self._model = ResNet50(weights='imagenet')
+#        self._model = ResNet50(weights='imagenet')
 
         self._max_fingerprints = max_fingerprints
 
@@ -77,9 +81,6 @@ class FingerprintResnet(Fingerprint):
         return 'Fingerprint (renet50, imagenet)'
 
     def calculate(self, data):
-        from keras.applications.resnet50 import preprocess_input as preprocess_input
-        from keras.applications.resnet50 import decode_predictions as decode_predictions
-
         start_time = time.time()
 
         # Set the data into the expected format
