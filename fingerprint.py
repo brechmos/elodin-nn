@@ -1,19 +1,49 @@
 import uuid
 import time
 import numpy as np
+import weakref
+
+from keras.applications.resnet50 import preprocess_input as preprocess_input
+from keras.applications.resnet50 import decode_predictions as decode_predictions
+from keras.applications.resnet50 import ResNet50
 
 from utils import gray2rgb
 
 import logging
 logging.basicConfig(format='%(levelname)-6s: %(name)-10s %(asctime)-15s  %(message)s')
 log = logging.getLogger("Fingerprint")
-log.setLevel(logging.WARNING)
+log.setLevel(logging.DEBUG)
 
 
 class Fingerprint:
+
+    # What is currently happening is the Fingerprint calculator gets created for each TransferLearningProcessData
+    # instance which is not good. What we want to do is create an instance if one does not exist with the
+    # specified uuid. So the "load" for Fingerprint needs to be a little smarter to check to see if an instance
+    # already exists for that uuid, and if it does, return it, otherwise create a new one.
+    _instances = set()
+
+    @classmethod
+    def getinstances(cls, search_uuid=None):
+        dead = set()
+        for ref in cls._instances:
+            obj = ref()
+            if obj is not None and (search_uuid is None or (search_uuid is not None and search_uuid == obj.uuid)):
+                return obj
+            elif obj is None:
+                dead.add(ref)
+        cls._instances -= dead
+        return None
+
     def __init__(self):
         self._uuid = str(uuid.uuid4())
         self._predictions = []
+
+        self._instances.add(weakref.ref(self))
+
+    @property
+    def uuid(self):
+        return self._uuid
 
     def save(self, output_directory):
         raise NotImplementedError("Please Implement this method")
@@ -53,19 +83,28 @@ class Fingerprint:
 
     @staticmethod
     def load_parameters(parameters):
-        for class_ in Fingerprint.__subclasses__():
-            if class_.__name__ == parameters['class_name']:
-                tt = class_()
-                tt.load(parameters)
-                return tt
+        # First let's see if we have an instance with this UUID already created
+        newinstance = Fingerprint.getinstances(parameters['uuid'])
+
+        if newinstance is None:
+            # If there is not an instance with that uuid, THEN we will create a new instance of that subclass
+            for class_ in Fingerprint.__subclasses__():
+                if class_.__name__ == parameters['class_name']:
+                    tt = class_()
+                    tt.load(parameters)
+                    return tt
+        else:
+            return newinstance
 
     def load(self, parameters):
-        # nothing to do for now
-        pass
+        """
+        Load the instance information from the parameters
 
-from keras.applications.resnet50 import preprocess_input as preprocess_input
-from keras.applications.resnet50 import decode_predictions as decode_predictions
-from keras.applications.resnet50 import ResNet50
+        :param parameters: dictionary that is of the format in the instances save() function
+        :return: nothing...
+        """
+
+        self._uuid = parameters['uuid']
 
 
 class FingerprintResnet(Fingerprint):
@@ -73,7 +112,8 @@ class FingerprintResnet(Fingerprint):
     def __init__(self, max_fingerprints=200):
         super(FingerprintResnet, self).__init__()
 
-#        self._model = ResNet50(weights='imagenet')
+        # Load it when needed in calculate()
+        self._model = None
 
         self._max_fingerprints = max_fingerprints
 
@@ -81,6 +121,11 @@ class FingerprintResnet(Fingerprint):
         return 'Fingerprint (renet50, imagenet)'
 
     def calculate(self, data):
+
+        if self._model is None:
+            self._model = ResNet50(weights='imagenet')
+
+
         start_time = time.time()
 
         # Set the data into the expected format
@@ -115,8 +160,7 @@ class FingerprintResnet(Fingerprint):
     def save(self):
         return {
             'class_name': self.__class__.__name__,
-            'parameters': {
-            }
+            'uuid': self._uuid
         }
 
 
@@ -172,8 +216,7 @@ class FingerprintVGG16(Fingerprint):
     def save(self):
         return {
             'class_name': self.__class__.__name__,
-            'parameters': {
-            }
+            'uuid': self._uuid
         }
 
 
@@ -228,8 +271,7 @@ class FingerprintVGG19(Fingerprint):
     def save(self):
         return {
             'class_name': self.__class__.__name__,
-            'parameters': {
-            }
+            'uuid': self._uuid
         }
 
 
@@ -284,8 +326,7 @@ class FingerprintInceptionV3(Fingerprint):
     def save(self):
         return {
             'class_name': self.__class__.__name__,
-            'parameters': {
-            }
+            'uuid': self._uuid
         }
 
 
@@ -341,6 +382,5 @@ class FingerprintInceptionResNetV2(Fingerprint):
     def save(self):
         return {
             'class_name': self.__class__.__name__,
-            'parameters': {
-            }
+            'uuid': self._uuid
         }

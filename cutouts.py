@@ -1,4 +1,5 @@
 import uuid
+import weakref
 import itertools
 import numpy as np
 
@@ -11,11 +12,29 @@ logging.basicConfig(format='%(levelname)-6s: %(name)-10s %(asctime)-15s  %(messa
 log = logging.getLogger("Cutouts")
 log.setLevel(logging.INFO)
 
-
 class Cutouts:
     """
     Create cutouts of a set of input data.
     """
+
+    # What is currently happening is the Cutout calculator gets created for each TransferLearningProcessData
+    # instance which is not good. What we want to do is create an instance if one does not exist with the
+    # specified uuid. So the "load" for Fingerprint needs to be a little smarter to check to see if an instance
+    # already exists for that uuid, and if it does, return it, otherwise create a new one.
+    _instances = set()
+
+    @classmethod
+    def getinstances(cls, search_uuid=None):
+        dead = set()
+        for ref in cls._instances:
+            obj = ref()
+            if obj is not None and (search_uuid is None or (search_uuid is not None and search_uuid == obj.uuid)):
+                print('FOUND CUTOUT INSTANCE NOT CREATING A NEW ONE!!')
+                return obj
+            elif obj is None:
+                dead.add(ref)
+        cls._instances -= dead
+        return None
 
     def __init__(self):
         # list of data processing elements
@@ -24,6 +43,8 @@ class Cutouts:
         # number of pixels around the image to include in the display
         self._image_display_margin = 50
 
+        self._instances.add(weakref.ref(self))
+
     def create_cutouts(self, data):
         raise NotImplemented('Must create cutouts function')
 
@@ -31,7 +52,7 @@ class Cutouts:
         raise NotImplemented('Must create cutouts function')
 
     @staticmethod
-    def load(parameters):
+    def load_parameters(parameters):
         """
         Create an instance of the Cutout class based on the dictionary of parameters passed in.  The parameter
         parameter comes from the "save()" function of one of the implemented classes below.
@@ -39,15 +60,20 @@ class Cutouts:
         :param parameters: dictionary of information from which an instance will be created
         :return:
         """
-        for class_ in Cutouts.__subclasses__():
-            if class_.__name__ == parameters['cutout_type']:
+        # First let's see if we have an instance with this UUID already created
+        newinstance = Cutouts.getinstances(parameters['uuid'])
 
-                # If the class name matches, instantiate, pass in the parameters
-                # and return the newly created class.
-                tt = class_()
-                tt.load(parameters)
-                return tt
+        if newinstance is None:
+            for class_ in Cutouts.__subclasses__():
+                if class_.__name__ == parameters['cutout_type']:
 
+                    # If the class name matches, instantiate, pass in the parameters
+                    # and return the newly created class.
+                    tt = class_()
+                    tt.load(parameters)
+                    return tt
+        else:
+            return newinstance
 
 class BasicCutouts:
     """
@@ -136,6 +162,78 @@ class BasicCutouts:
         """
 
         self._step_size = parameters['step_size']
+        self._output_size = parameters['output_size']
+        self._uuid = parameters['uuid']
+
+
+class FullImageCutout:
+    """
+    The FullImageCutout class will create a single cutout based on resizing the input image to the output size.
+    """
+
+    def __init__(self, output_size):
+        """
+        Initialize with the output_size (assumed square at this point and a step_size
+
+        :param output_size: cutout output size (assumed square)
+        :param step_size: step size from one cutout to the next
+        """
+
+        self._output_size = output_size
+        self._uuid = str(uuid.uuid4())
+
+    def __str__(self):
+        """
+        String representation for matplotlib title plots etc
+
+        :return: string representation
+        """
+
+        return 'Full Image Cutout'
+
+    def number_cutouts(self, data):
+        """
+        Number of cutouts given the data, this was implemented primarily for the progress bar.  If the create_cutouts
+        function changes then this one will have to as well.
+
+        :param data: image array of data.
+        :return: number of cutouts that will be created in `create_cutouts()` below
+        """
+
+        return 1
+
+    def create_cutouts(self, data):
+        """
+        Calculate the fingerprints for the image in each file.
+
+        :param data: Input data from which we will create the cutouts based on a sliding window.
+        :return: the row start and end, column start and end and the actual numpy array of data that is the cutout
+        """
+
+        td = skimage.transform.resize(data, [self._output_size, self._output_size])
+        yield 0, self._output_size, 0, self._output_size, td
+
+    def save(self):
+        """
+        This method is used to create a representation of this instance of a cutout which can be saved
+        in a pickle file and then later loaded.
+
+        :return:
+        """
+        return {
+            'cutout_type': self.__class__.__name__,
+            'output_size': self._output_size,
+            'uuid': self._uuid
+        }
+
+    def _load(self, parameters):
+        """
+        Load the instance internal variables from the parameters dictionary
+
+        :param parameters: dictonary of values that represent the class
+        :return: nothing....
+        """
+
         self._output_size = parameters['output_size']
         self._uuid = parameters['uuid']
 

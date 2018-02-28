@@ -22,6 +22,16 @@ class TransferLearningProcessData:
     """
     This contains data processed on a file using one type of data_processing and once calculate is called
     will contain the fingerprints for each cutout.
+
+    The two differences this module needs to encapsulate from other related processing:
+
+        1. Input files
+        2. Data Processing method
+
+    For example, we might have 8-10 files that need to be processed and each one we want to process
+    with two different pre-processing methods (maybe for zooming or something).
+
+    So, we really only need to encapsulate the file/data and data pre-processing methods.
     """
 
     def __init__(self, filename, data_processing):
