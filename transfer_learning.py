@@ -57,6 +57,7 @@ class TransferLearning:
         for filename in self._filenames:
 
             for dp_set in self._data_processing:
+
                 log.info("Processing filename {} with {}".format(filename, dp_set))
 
                 tldp_temp = TransferLearningProcessData(filename, dp_set)
@@ -116,7 +117,7 @@ class TransferLearning:
         with open(input_filename, 'rb') as fp:
             parameters = pickle.load(fp)
 
-            self._cutout_creator = Cutouts.load(parameters['cutout_creator'])
+            self._cutout_creator = Cutouts.load_parameters(parameters['cutout_creator'])
             self._fingerprint_calculator = Fingerprint.load_parameters(parameters['fingerprint_calculator'])
             self._uuid = parameters['uuid']
             self._filenames = parameters['filenames']

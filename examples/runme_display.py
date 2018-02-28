@@ -4,7 +4,7 @@ from fingerprint import FingerprintResnet, FingerprintInceptionV3
 from transfer_learning import TransferLearning
 from transfer_learning_display import TransferLearningDisplay
 
-filename = 'test.pck'
+filename = 'acs.pck'
 
 tl = TransferLearning.load(filename)
 

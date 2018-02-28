@@ -42,7 +42,7 @@ class TransferLearningProcessData:
         self._filename = filename
 
         # We need to check to see if the input to this is a dictionary or not
-        if isinstance(data_processing[0], dict):
+        if len(data_processing) > 0 and isinstance(data_processing[0], dict):
             self._data_processing = [DataProcessing.load_parameters(x) for x in data_processing]
         else:
             self._data_processing = data_processing
@@ -174,7 +174,7 @@ class TransferLearningProcessData:
         log.debug('TransferLearningProcessData loading data pocessing')
         self._data_processing = [DataProcessing.load_parameters(x) for x in parameters['data_processing']]
         log.debug('TransferLearningProcessData loading ciutouts')
-        self._cutout_creator = Cutouts.load(parameters['cutout_creator'])
+        self._cutout_creator = Cutouts.load_parameters(parameters['cutout_creator'])
         log.debug('TransferLearningProcessData loading fingerprints')
         self._fingerprint_calculator = Fingerprint.load_parameters(parameters['fingerprint_calculator'])
         self._fingerprints = parameters['fingerprints']
