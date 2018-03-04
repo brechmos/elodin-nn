@@ -3,7 +3,6 @@ import matplotlib.pyplot as plt
 import numpy as np
 import os
 
-from data_processing import DataProcessing
 import utils
 
 import logging
@@ -36,7 +35,7 @@ class TransferLearningDisplay:
         self.axis_closest.set_yticks([])
         self.axis_closest.set_xlabel('')
         self.axis_closest.set_ylabel('')
-        self._data_closest = self.axis_closest.imshow(np.zeros((224, 224)))
+        self._data_closest = self.axis_closest.imshow(np.zeros((224, 224)), cmap=plt.gray())
         self._text_closest = self.axis_closest.text(0.68, 0.4, ' ',
                                                     fontsize=6, verticalalignment='top',
                                                     transform=self.axis_closest.transAxes,
@@ -63,7 +62,7 @@ class TransferLearningDisplay:
                 tt = plt.axes([0.5 + 0.14 * col, 0.75 - 0.25 * row, 0.2, 0.2])
                 tt.set_xticks([])
                 tt.set_yticks([])
-                sd = tt.imshow(np.zeros((224, 224)))
+                sd = tt.imshow(np.zeros((224, 224)), cmap=plt.gray())
                 self.sub_windows.append(tt)
                 self.sub_data.append(sd)
         plt.show(block=False)
@@ -88,10 +87,10 @@ class TransferLearningDisplay:
             ))
 
             # Display image info
-            self._text_closest.set_text('\n'.join(['{} {:.4} '.format(*x[1:]) for x in close_fingerprint['predictions'][:5]]))
+            #self._text_closest.set_text('\n'.join(['{} {:.4} '.format(*x[1:]) for x in close_fingerprint['predictions'][:5]]))
 
             thetitle = close_fingerprint['tldp'].filename.split('/')[-1]
-            thetitle += ' ' + ','.join([repr(x) for x in close_fingerprint['tldp'].data_processing])
+            #thetitle += ' ' + ','.join([repr(x) for x in close_fingerprint['tldp'].data_processing])
 
             self.axis_closest.set_title(thetitle, fontsize=8)
             self.fig.canvas.blit(self.axis_closest.bbox)

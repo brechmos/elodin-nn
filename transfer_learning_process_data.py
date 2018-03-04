@@ -47,6 +47,7 @@ class TransferLearningProcessData:
         else:
             self._data_processing = data_processing
 
+        self._original_data = None
         self._processed_data = self._load_image_data(filename)
 
         # Set in the calculate function
@@ -89,6 +90,8 @@ class TransferLearningProcessData:
         else:
             log.warning('Could not determine filetype for {}'.format(filename))
             return []
+
+        self._data_original = data
 
         # Apply the data processing to the loaded dataset
         for dp in self._data_processing:
@@ -144,6 +147,16 @@ class TransferLearningProcessData:
         :return:
         """
         return self._processed_data[row_minmax[0]:row_minmax[1], col_minmax[0]:col_minmax[1]]
+
+    def display_original(self, row_minmax, col_minmax):
+        """
+        Send the data back to the calling routine to display the data.
+
+        :param row_minmax:
+        :param col_minmax:
+        :return:
+        """
+        return self._original_data[row_minmax[0]:row_minmax[1], col_minmax[0]:col_minmax[1]]
 
     def save(self):
         """
