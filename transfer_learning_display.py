@@ -37,16 +37,20 @@ class TransferLearningDisplay:
         self.axis_closest.set_xlabel('')
         self.axis_closest.set_ylabel('')
         self._data_closest = self.axis_closest.imshow(np.zeros((224, 224)))
+        self._text_closest = self.axis_closest.text(0.68, 0.4, ' ',
+                                                    fontsize=6, verticalalignment='top',
+                                                    transform=self.axis_closest.transAxes,
+                                                    color='w')
 
         self.similarity.display(self.axis)
 
-        self.info_axis = plt.axes([0.7, 0.11, 0.3, 0.05])
+        self.info_axis = plt.axes([0.75, 0.11, 0.3, 0.05])
         self.info_axis.set_axis_off()
         self.info_axis.set_xticks([])
         self.info_axis.set_yticks([])
         self.info_axis.set_xlabel('')
         self.info_axis.set_ylabel('')
-        self.info_text = self.info_axis.text(0, 0, 'Loading...', fontsize=12)
+        self.info_text = self.info_axis.text(0, 0, 'Loading...', fontsize=8)
 
         self._cid = self.fig.canvas.mpl_connect('button_press_event', self._onclick)
         self.fig.canvas.mpl_connect('motion_notify_event', self._onmove)
@@ -82,6 +86,9 @@ class TransferLearningDisplay:
             self._data_closest.set_data(utils.rgb2plot(
                 close_fingerprint['tldp'].display(row, col)
             ))
+
+            # Display image info
+            self._text_closest.set_text('\n'.join(['{} {:.4} '.format(*x[1:]) for x in close_fingerprint['predictions'][:5]]))
 
             thetitle = close_fingerprint['tldp'].filename.split('/')[-1]
             thetitle += ' ' + ','.join([repr(x) for x in close_fingerprint['tldp'].data_processing])
@@ -124,8 +131,7 @@ class TransferLearningDisplay:
                     fingerprint['tldp'].display(row, col)
                 ))
 
-                thetitle = fingerprint['tldp'].filename.split('/')[-1] + ' ' + ','.join(
-                    [repr(x) for x in fingerprint['tldp'].data_processing])
+                thetitle = fingerprint['tldp'].filename.split('/')[-1]
 
                 # Update the title on the window
                 self.sub_windows[ii].set_title('{:0.3f} {}'.format(

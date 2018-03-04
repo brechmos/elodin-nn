@@ -3,10 +3,6 @@ import time
 import numpy as np
 import weakref
 
-from keras.applications.resnet50 import preprocess_input as preprocess_input
-from keras.applications.resnet50 import decode_predictions as decode_predictions
-from keras.applications.resnet50 import ResNet50
-
 from utils import gray2rgb
 
 import logging
@@ -112,8 +108,11 @@ class FingerprintResnet(Fingerprint):
     def __init__(self, max_fingerprints=200):
         super(FingerprintResnet, self).__init__()
 
+        from keras.applications.resnet50 import ResNet50
+
         # Load it when needed in calculate()
-        self._model = None
+        log.debug('FingerprintResnet __init__')
+        self._model = ResNet50(weights='imagenet')
 
         self._max_fingerprints = max_fingerprints
 
@@ -121,10 +120,13 @@ class FingerprintResnet(Fingerprint):
         return 'Fingerprint (renet50, imagenet)'
 
     def calculate(self, data):
+        from keras.applications.resnet50 import preprocess_input as preprocess_input
+        from keras.applications.resnet50 import decode_predictions as decode_predictions
 
-        if self._model is None:
-            self._model = ResNet50(weights='imagenet')
+        log.debug('FingerprintResnet: calculate')
 
+        # if self._model is None:
+        #     self._model = ResNet50(weights='imagenet')
 
         start_time = time.time()
 
@@ -134,7 +136,7 @@ class FingerprintResnet(Fingerprint):
         else:
             x = data.astype(np.float64)
 
-        # Set the data into the expected format
+        # Set the data into th expected format
         x = np.expand_dims(x, axis=0)
 
         # Do keras model image pre-processing
