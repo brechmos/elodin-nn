@@ -40,6 +40,24 @@ class DataProcessing:
                 return tt
 
 
+class GaussianSmoothData(DataProcessing):
+    def __init__(self, kernel_size=224, *args, **kwargs):
+        super(GaussianSmoothData, self).__init__(*args, **kwargs)
+        self._kernel_size = kernel_size
+
+    def __repr__(self):
+        return 'GaussianSmoothData (kernel_size {})'.format(self._kernel_size)
+
+    def process(self, input_data):
+        return scipy.ndimage.filters.gaussian_filter(input_data, self._kernel_size)
+
+    def save(self):
+        return {'data_processing': self.__class__.__name__, 'parameters': {'kernel_size': self._kernel_size}}
+
+    def load(self, parameters):
+        self._kernel_size = parameters.get('parameters').get('kernel_size')
+
+
 class CropData(DataProcessing):
     def __init__(self, output_size=224, *args, **kwargs):
         super(CropData, self).__init__(*args, **kwargs)
@@ -132,7 +150,10 @@ class GrayScaleData(DataProcessing):
         return 'GrayScaleData'
 
     def process(self, input_data):
-        return np.dot(input_data[:,:,:3], [0.299, 0.587, 0.114])
+        if len(input_data.shape) == 3:
+            return np.dot(input_data[:,:,:3], [0.299, 0.587, 0.114])
+        else:
+            return input_data
 
     def save(self):
         return {'data_processing': self.__class__.__name__, 'parameters': {}}
