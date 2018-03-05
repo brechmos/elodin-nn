@@ -75,8 +75,6 @@ class TransferLearningProcessData:
         :return:
         """
 
-        print('JUST GOT INTO _load_iamge_data with filename {}'.format(filename))
-
         if any(filename.lower().endswith(s) for s in ['tiff', 'tif', 'jpg']):
             log.debug('Loading TIFF/JPG file {}'.format(filename))
             data = np.array(imageio.imread(filename))
