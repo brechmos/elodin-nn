@@ -7,7 +7,7 @@ from scipy.spatial.distance import pdist, squareform
 import logging
 logging.basicConfig(format='%(levelname)-6s: %(name)-10s %(asctime)-15s  %(message)s')
 log = logging.getLogger("Similarity")
-log.setLevel(logging.INFO)
+log.setLevel(logging.WARNING)
 
 # https://stackoverflow.com/questions/456672/class-factory-in-python
 

@@ -15,7 +15,7 @@ import progressbar
 import logging
 logging.basicConfig(format='%(levelname)-6s: %(name)-10s %(asctime)-15s  %(message)s')
 log = logging.getLogger("TransferLearningProcessData")
-log.setLevel(logging.DEBUG)
+log.setLevel(logging.WARNING)
 
 
 class TransferLearningProcessData:

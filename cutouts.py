@@ -10,7 +10,7 @@ import skimage.transform
 import logging
 logging.basicConfig(format='%(levelname)-6s: %(name)-10s %(asctime)-15s  %(message)s')
 log = logging.getLogger("Cutouts")
-log.setLevel(logging.INFO)
+log.setLevel(logging.WARNING)
 
 class Cutouts:
     """

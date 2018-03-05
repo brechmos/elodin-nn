@@ -5,7 +5,7 @@ import scipy.ndimage
 import logging
 logging.basicConfig(format='%(levelname)-6s: %(name)-10s %(asctime)-15s  %(message)s')
 log = logging.getLogger("DataProcessing")
-log.setLevel(logging.INFO)
+log.setLevel(logging.WARNING)
 
 
 class DataProcessing:

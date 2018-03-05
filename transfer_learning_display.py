@@ -8,7 +8,7 @@ import utils
 import logging
 logging.basicConfig(format='%(levelname)-6s: %(name)-10s %(asctime)-15s  %(message)s')
 log = logging.getLogger("TransferLearningDisplay")
-log.setLevel(logging.INFO)
+log.setLevel(logging.WARNING)
 
 
 class TransferLearningDisplay:

@@ -13,7 +13,7 @@ from cutouts import Cutouts
 import logging
 logging.basicConfig(format='%(levelname)-6s: %(name)-10s %(asctime)-15s  %(message)s')
 log = logging.getLogger("TransferLearning")
-log.setLevel(logging.DEBUG)
+log.setLevel(logging.WARNING)
 
 
 class TransferLearning:
