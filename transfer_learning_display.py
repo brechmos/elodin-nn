@@ -1,7 +1,9 @@
-
 import matplotlib.pyplot as plt
 import numpy as np
 import os
+
+from astropy import units
+from astropy.coordinates import SkyCoord
 
 import utils
 
@@ -12,13 +14,18 @@ log.setLevel(logging.WARNING)
 
 
 class TransferLearningDisplay:
-    def __init__(self, similarity_measure):
+    def __init__(self, similarity_measure, ra_dec={}):
         self.similarity = similarity_measure
         self.fig = None
         self.axis = None
         self.info_axis = None
         self.info_text = None
         self.sub_windows = None
+
+        # Dictionary of RA DEC information 
+        # The dictionary should be keyed by filename and will have an 'ra' and 'dec'
+        # as sub-keys
+        self.ra_dec = ra_dec 
 
     def show(self, fingerprints):
         """
@@ -35,6 +42,14 @@ class TransferLearningDisplay:
         self.fig = plt.figure(1, figsize=[10, 6])
         plt.gcf()
         self.axis = plt.axes([0.05, 0.05, 0.45, 0.45])
+
+        # If we have ra_dec then let's display the Aitoff projection axis
+        self.axis_aitoff = plt.axes([0.05, 0.55, 0.45, 0.45], projection="aitoff")
+        self.axis_aitoff.grid('on')
+        self.axis_aitoff.set_xlabel('RA')
+        self.axis_aitoff.set_ylabel('DEC')
+        self._onmove_point = None
+        self._onclick_points = {} 
 
         # Sub window for on move closest fingerprint
         self.axis_closest = plt.axes([0.5, 0.01, 0.2, 0.2])
@@ -89,6 +104,14 @@ class TransferLearningDisplay:
         self.info_text.set_text(thetext)
         plt.draw()
 
+    def get_ra_dec(self, fingerprint):
+        f = fingerprint['tldp'].filename.split('/')[-1]
+        coords = SkyCoord(ra=self.ra_dec[f]['ra'], dec=self.ra_dec[f]['dec'], unit='degree')
+        ra = coords.ra.wrap_at(180 * units.deg).radian
+        dec = coords.dec.radian
+        return ra, dec
+
+
     def _onmove(self, event):
         """
         What to do when the mouse moves
@@ -114,11 +137,23 @@ class TransferLearningDisplay:
             #self._text_closest.set_text('\n'.join(['{} {:.4} '.format(*x[1:]) for x in close_fingerprint['predictions'][:5]]))
 
             thetitle = close_fingerprint['tldp'].filename.split('/')[-1]
-            #thetitle += ' ' + ','.join([repr(x) for x in close_fingerprint['tldp'].data_processing])
 
             self.axis_closest.set_title(thetitle, fontsize=8)
             self.fig.canvas.blit(self.axis_closest.bbox)
             self.axis_closest.redraw_in_frame()
+
+            # Update the aitoff figure as well
+            # TODO: Update not working properly
+            ra, dec = self.get_ra_dec(close_fingerprint)
+            if self._onmove_point:
+                self._onmove_point[0].set_data(ra, dec)
+                print('updated location {} {} {}'.format(ra, dec, self._onmove_point[0]))
+            else:
+                self._onmove_point = self.axis_aitoff.plot(ra, dec, 'g.')
+                print('added piont at {} {} {}'.format(ra, dec, self._onmove_point[0]))
+            self.axis_aitoff.draw_artist(self._onmove_point[0])
+            self.fig.canvas.blit(self.axis_aitoff.bbox)
+
 
     def _onclick(self, event):
         """
@@ -161,6 +196,13 @@ class TransferLearningDisplay:
                 self.sub_windows[ii].set_title('{:0.3f} {}'.format(
                     distance, thetitle), fontsize=8)
                 self.sub_windows[ii].redraw_in_frame()
+
+                # Add point to Aitoff plot
+                ra, dec = self.get_ra_dec(fingerprint)
+                if self._onclick_points and ii in self._onclick_points:
+                    self._onclick_points[ii][0].set_data(ra, dec)
+                else:
+                    self._onclick_points[ii] = self.axis_aitoff.plot(ra, dec, 'b.')
 
             self._update_text('Click in the tSNE plot...')
 
