@@ -2,7 +2,8 @@ from similarity import tSNE, Jaccard, Distance
 from transfer_learning import TransferLearning
 from transfer_learning_display import TransferLearningDisplay
 
-filename = 'test.pck'
+#filename = 'acs_5000.pck'
+filename = 'hst_heritage_sparse.pck'
 
 tl = TransferLearning.load(filename)
 

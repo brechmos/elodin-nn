@@ -28,4 +28,4 @@ tl.set_files(input_filenames)
 
 tl.calculate()
 
-tl.save('test.pck')
+tl.save('hst_heritage_sparse.pck')
