@@ -1,4 +1,5 @@
 import matplotlib.pyplot as plt
+from matplotlib.backend_bases import MouseEvent
 import numpy as np
 import os
 
@@ -78,6 +79,7 @@ class TransferLearningDisplay:
         # Display the 9 sub-windows
         self.sub_windows = []
         self.sub_data = []
+        self.fingerprint_points = []
         for row in range(3):
             for col in range(3):
                 # rect = [left, bottom, width, height]
@@ -87,6 +89,7 @@ class TransferLearningDisplay:
                 sd = tt.imshow(np.zeros((224, 224)), cmap=plt.gray())
                 self.sub_windows.append(tt)
                 self.sub_data.append(sd)
+                self.fingerprint_points.append((None,None))
         plt.show(block=False)
 
         # Attach the call backs
@@ -124,7 +127,7 @@ class TransferLearningDisplay:
         # Do something if in the similarity axis
         if event.inaxes == self.axis:
             point = event.ydata, event.xdata
-            close_fingerprint = self.similarity.find_similar(point, n=1)[0][1]
+            close_fingerprint = self.similarity.find_similar(point, n=1)[0][2]
 
             row = close_fingerprint['row_min'], close_fingerprint['row_max']
             col = close_fingerprint['col_min'], close_fingerprint['col_max']
@@ -174,7 +177,9 @@ class TransferLearningDisplay:
 
             # Run through all the close fingerprints and display them in the sub windows
             self._update_text('Displaying result...')
-            for ii, (distance, fingerprint) in enumerate(close_fingerprints):
+            for ii, (fpoint, distance, fingerprint) in enumerate(close_fingerprints):
+
+                self.fingerprint_points[ii] = fpoint
 
                 # Zero out and show we are loading -- should be fast.3
                 self.sub_windows[ii].set_title('Loading...', fontsize=8)
@@ -205,6 +210,20 @@ class TransferLearningDisplay:
                     self._onclick_points[ii] = self.axis_aitoff.plot(ra, dec, 'b.')
 
             self._update_text('Click in the tSNE plot...')
+
+        # Check to see if one of the 9 was clicked
+        elif event.inaxes in self.sub_windows:
+
+            # Get the index number of the image clicked on
+            index = self.sub_windows.index(event.inaxes)
+
+            # Create fake event as if we clicked this point
+            new_ev = MouseEvent('faked', self.fig.canvas, 
+                    self.fingerprint_points[index][0], self.fingerprint_points[index][1])
+            new_ev.ydata = self.fingerprint_points[index][0]
+            new_ev.xdata = self.fingerprint_points[index][1]
+            new_ev.inaxes = self.axis
+            self._onclick(new_ev)
 
     def _display_for_subwindow(self, index, aa):
         """

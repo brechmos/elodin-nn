@@ -189,7 +189,7 @@ class tSNE(Similarity):
         log.debug('Closest indexes are {}'.format(inds[:n]))
         log.debug('Size of the fingerprint list {}'.format(len(self._fingerprints)))
 
-        return [(distances[ind], self._fingerprints[ind]) for ind in inds[:n]]
+        return [(self._Y[ind], distances[ind], self._fingerprints[ind]) for ind in inds[:n]]
 
 class Jaccard(Similarity):
     """
@@ -310,7 +310,7 @@ class Jaccard(Similarity):
         log.debug('Closest indexes are {}'.format(inds[:n]))
         log.debug('Size of the fingerprint list {}'.format(len(self._fingerprints)))
 
-        return [(distances[ind], self._fingerprints[ind]) for ind in inds[:n]]
+        return [((row, ind), distances[ind], self._fingerprints[ind]) for ind in inds[:n]]
 
 class Distance(Similarity):
     """
@@ -403,4 +403,4 @@ class Distance(Similarity):
         # TOOD: At this point this is assuming smallest distance is the best.
         inds = np.argsort(distances)
 
-        return [(distances[ind], self._fingerprints[ind]) for ind in inds[:n]]
+        return [((row, ind), distances[ind], self._fingerprints[ind]) for ind in inds[:n]]
