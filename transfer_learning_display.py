@@ -51,6 +51,8 @@ class TransferLearningDisplay:
         self.axis_aitoff.set_ylabel('DEC')
         self._onmove_point = None
         self._onclick_points = {} 
+        self.fig.canvas.draw()
+        self.axis_aitoff_background = self.fig.canvas.copy_from_bbox(self.axis_aitoff.bbox)
 
         # Sub window for on move closest fingerprint
         self.axis_closest = plt.axes([0.5, 0.01, 0.2, 0.2])
@@ -109,9 +111,12 @@ class TransferLearningDisplay:
 
     def get_ra_dec(self, fingerprint):
         f = fingerprint['tldp'].filename.split('/')[-1]
-        coords = SkyCoord(ra=self.ra_dec[f]['ra'], dec=self.ra_dec[f]['dec'], unit='degree')
-        ra = coords.ra.wrap_at(180 * units.deg).radian
-        dec = coords.dec.radian
+        if f in self.ra_dec:
+            coords = SkyCoord(ra=self.ra_dec[f]['ra'], dec=self.ra_dec[f]['dec'], unit='degree')
+            ra = coords.ra.wrap_at(180 * units.deg).radian
+            dec = coords.dec.radian
+        else:
+            ra,dec = None, None
         return ra, dec
 
 
@@ -146,14 +151,13 @@ class TransferLearningDisplay:
             self.axis_closest.redraw_in_frame()
 
             # Update the aitoff figure as well
-            # TODO: Update not working properly
+            self.fig.canvas.restore_region(self.axis_aitoff_background)
             ra, dec = self.get_ra_dec(close_fingerprint)
-            if self._onmove_point:
-                self._onmove_point[0].set_data(ra, dec)
-                print('updated location {} {} {}'.format(ra, dec, self._onmove_point[0]))
-            else:
-                self._onmove_point = self.axis_aitoff.plot(ra, dec, 'g.')
-                print('added piont at {} {} {}'.format(ra, dec, self._onmove_point[0]))
+            if ra is not None and dec is not None:
+                if self._onmove_point:
+                    self._onmove_point[0].set_data(ra, dec)
+                else:
+                    self._onmove_point = self.axis_aitoff.plot(ra, dec, 'g.')
             self.axis_aitoff.draw_artist(self._onmove_point[0])
             self.fig.canvas.blit(self.axis_aitoff.bbox)
 
@@ -207,7 +211,7 @@ class TransferLearningDisplay:
                 if self._onclick_points and ii in self._onclick_points:
                     self._onclick_points[ii][0].set_data(ra, dec)
                 else:
-                    self._onclick_points[ii] = self.axis_aitoff.plot(ra, dec, 'b.')
+                    self._onclick_points[ii] = self.axis_aitoff.plot(ra, dec, 'b.', label=str(ii))
 
             self._update_text('Click in the tSNE plot...')
 
