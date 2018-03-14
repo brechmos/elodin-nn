@@ -51,23 +51,24 @@ class TransferLearning:
         :param display:
         :return:
         """
+        log.debug('Calculate the fingerprints for each file and data processing step')
 
-        log.debug('After the plot display')
         # Run through each file.
         for filename in self._filenames:
 
             for dp_set in self._data_processing:
-
                 log.info("Processing filename {} with {}".format(filename, dp_set))
-
                 tldp_temp = TransferLearningProcessData(filename, dp_set)
-
                 tldp_temp.calculate(self._cutout_creator, self._fingerprint_calculator)
-
                 self._tldp.append(tldp_temp)
 
     @property
     def fingerprints(self):
+        """
+        Retrieve the fingerprints from all the processed values. 
+
+        :return: List of fingerprints
+        """
 
         return_fingerprints = []
         for tldp in self._tldp:
