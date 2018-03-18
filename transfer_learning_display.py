@@ -2,6 +2,7 @@ import matplotlib.pyplot as plt
 from matplotlib.backend_bases import MouseEvent
 import numpy as np
 import os
+from scipy.spatial import distance_matrix
 
 from astropy import units
 from astropy.coordinates import SkyCoord
@@ -28,6 +29,8 @@ class TransferLearningDisplay:
         # as sub-keys
         self.ra_dec = ra_dec 
 
+        self._onmove_color = (0.1, 0.6, 0.1)
+
     def show(self, fingerprints):
         """
         Overall display layout.
@@ -40,7 +43,7 @@ class TransferLearningDisplay:
 
         self.similarity.calculate(fingerprints)
 
-        self.fig = plt.figure(1, figsize=[10, 6])
+        self.fig = plt.figure(1, figsize=[16, 10])
         plt.gcf()
         self.axis = plt.axes([0.05, 0.05, 0.45, 0.45])
 
@@ -53,6 +56,7 @@ class TransferLearningDisplay:
         self._onclick_points = {} 
         self.fig.canvas.draw()
         self.axis_aitoff_background = self.fig.canvas.copy_from_bbox(self.axis_aitoff.bbox)
+        self._axis_aitoff_text_labels = []
 
         # Sub window for on move closest fingerprint
         self.axis_closest = plt.axes([0.5, 0.01, 0.2, 0.2])
@@ -67,7 +71,7 @@ class TransferLearningDisplay:
                                                     color='w')
 
         # Display the similarity plot (e.g., tSNE, jaccard etc)
-        self.similarity.display(self.axis)
+        self._hexbin = self.similarity.display(self.axis)
 
         # Display the information text area
         self.info_axis = plt.axes([0.75, 0.11, 0.3, 0.05])
@@ -152,12 +156,20 @@ class TransferLearningDisplay:
 
             # Update the aitoff figure as well
             self.fig.canvas.restore_region(self.axis_aitoff_background)
+
+            # Draw the blue dots and numbers
+            for tt in self._axis_aitoff_text_labels:
+                self.axis_aitoff.draw_artist(tt)
+
             ra, dec = self.get_ra_dec(close_fingerprint)
             if ra is not None and dec is not None:
                 if self._onmove_point:
                     self._onmove_point[0].set_data(ra, dec)
                 else:
-                    self._onmove_point = self.axis_aitoff.plot(ra, dec, 'g.')
+                    self._onmove_point = self.axis_aitoff.plot(ra, dec, 
+                            'o', color=self._onmove_color)
+            self.axis_closest.text(0.02, 1.0, r'$\bullet$', fontsize=24, 
+                    color=self._onmove_color, transform=self.axis_closest.transAxes)
             self.axis_aitoff.draw_artist(self._onmove_point[0])
             self.fig.canvas.blit(self.axis_aitoff.bbox)
 
@@ -179,7 +191,13 @@ class TransferLearningDisplay:
             self._update_text('Loading data...')
             close_fingerprints = self.similarity.find_similar(point)
 
+            # Delete the artists
+            for x in self._axis_aitoff_text_labels:
+                x.remove()
+            self._axis_aitoff_text_labels = []
+
             # Run through all the close fingerprints and display them in the sub windows
+            points = []
             self._update_text('Displaying result...')
             for ii, (fpoint, distance, fingerprint) in enumerate(close_fingerprints):
 
@@ -202,8 +220,8 @@ class TransferLearningDisplay:
                 thetitle = fingerprint['tldp'].filename.split('/')[-1]
 
                 # Update the title on the window
-                self.sub_windows[ii].set_title('{:0.3f} {}'.format(
-                    distance, thetitle), fontsize=8)
+                self.sub_windows[ii].set_title('{}) {:0.3f} {}'.format(
+                    (ii+1), distance, thetitle), fontsize=8)
                 self.sub_windows[ii].redraw_in_frame()
 
                 # Add point to Aitoff plot
@@ -211,9 +229,32 @@ class TransferLearningDisplay:
                 if self._onclick_points and ii in self._onclick_points:
                     self._onclick_points[ii][0].set_data(ra, dec)
                 else:
-                    self._onclick_points[ii] = self.axis_aitoff.plot(ra, dec, 'b.', label=str(ii))
+                    self._onclick_points[ii] = self.axis_aitoff.plot(ra, dec, 'bo', label=str(ii))
+                points.append([ra,dec])
 
-            self._update_text('Click in the tSNE plot...')
+            self.fig.canvas.restore_region(self.axis_aitoff_background)
+
+            # annotate the points in the aitoff plot
+            points = np.array(points)
+            d = distance_matrix(points, points)
+
+            rows = set(range(points.shape[0]))
+            groups = {}
+
+            while len(rows) > 0:
+                row = rows.pop()
+                close = np.nonzero(d[row] < 0.01)[0]
+                rows = rows - set(list(close))
+                groups[row] = close
+
+            for k,v in groups.items():
+                tt = self.axis_aitoff.text(points[k][0]+0.05, points[k][1]+0.05, 
+                        ','.join([str(x+1) for x in v]))
+                self._axis_aitoff_text_labels.append(tt)
+                self.axis_aitoff.draw_artist(tt)
+
+            self.fig.canvas.blit(self.axis_aitoff.bbox)
+
 
         # Check to see if one of the 9 was clicked
         elif event.inaxes in self.sub_windows:
