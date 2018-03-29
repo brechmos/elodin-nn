@@ -2,7 +2,12 @@ from astroquery.mast import Observations
 import pickle
 import os
 
-basedir = '/ifs/operations/hst/public'
+# Basedir if we are on the public system
+# basedir = '/ifs/operations/hst/public'
+# filename = os.path.join(basedir, obsid[:4], obsid, obsid+'_drz_small.jpg')
+
+# Basedir on my mac
+basedir = '/Users/crjones/christmas/hubble/ACSimages/data'
 
 obs = Observations.query_criteria(dataproduct_type=["image"], calib_level=3, 
         obs_collection='HST', instrument_name='ACS/WFC')
@@ -13,10 +18,10 @@ for o in obs[:20000]:
 
         # Create the filename
         obsid = o['obs_id'].lower()
-        filename = os.path.join(basedir, obsid[:4], obsid, obsid+'_drz_small.jpg')
+        filename = os.path.join(basedir, obsid+'_drz_small.jpg')
 
         # Only add if the file exists
-        if True or os.path.exists(filename):
+        if os.path.exists(filename):
             datadict.append(
                 {
                     'filename': filename,
@@ -26,4 +31,5 @@ for o in obs[:20000]:
             )
 
 # Write it out.
+print('Writing out {} data elements'.format(len(datadict)))
 pickle.dump(datadict, open('hubble_acs.pck', 'wb'))
