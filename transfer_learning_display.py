@@ -31,6 +31,9 @@ class TransferLearningDisplay:
 
         self._onmove_color = (0.1, 0.6, 0.1)
 
+    def add_axes(self, ax):
+        pass 
+
     def show(self, fingerprints):
         """
         Overall display layout.
@@ -47,16 +50,9 @@ class TransferLearningDisplay:
         plt.gcf()
         self.axis = plt.axes([0.05, 0.05, 0.45, 0.45])
 
-        # If we have ra_dec then let's display the Aitoff projection axis
-        self.axis_aitoff = plt.axes([0.05, 0.55, 0.45, 0.45], projection="aitoff")
-        self.axis_aitoff.grid('on')
-        self.axis_aitoff.set_xlabel('RA')
-        self.axis_aitoff.set_ylabel('DEC')
-        self._onmove_point = None
-        self._onclick_points = {} 
-        self.fig.canvas.draw()
-        self.axis_aitoff_background = self.fig.canvas.copy_from_bbox(self.axis_aitoff.bbox)
-        self._axis_aitoff_text_labels = []
+        self._aitoff = Aitoff([0.05, 0.55, 0.45, 0.45], parent=self)
+        self.add_axes(self._aitoff.get_axes())
+        self._aitoff.onmove_color = self._onmove_color
 
         # Sub window for on move closest fingerprint
         self.axis_closest = plt.axes([0.5, 0.01, 0.2, 0.2])
@@ -101,7 +97,6 @@ class TransferLearningDisplay:
         # Attach the call backs
         self._cid = self.fig.canvas.mpl_connect('button_press_event', self._onclick)
         self.fig.canvas.mpl_connect('motion_notify_event', self._onmove)
-
 
     def _update_text(self, thetext):
         """
@@ -154,24 +149,10 @@ class TransferLearningDisplay:
             self.fig.canvas.blit(self.axis_closest.bbox)
             self.axis_closest.redraw_in_frame()
 
-            # Update the aitoff figure as well
-            self.fig.canvas.restore_region(self.axis_aitoff_background)
-
-            # Draw the blue dots and numbers
-            for tt in self._axis_aitoff_text_labels:
-                self.axis_aitoff.draw_artist(tt)
-
-            ra, dec = self.get_ra_dec(close_fingerprint)
-            if ra is not None and dec is not None:
-                if self._onmove_point:
-                    self._onmove_point[0].set_data(ra, dec)
-                else:
-                    self._onmove_point = self.axis_aitoff.plot(ra, dec, 
-                            'o', color=self._onmove_color)
             self.axis_closest.text(0.02, 1.0, r'$\bullet$', fontsize=24, 
                     color=self._onmove_color, transform=self.axis_closest.transAxes)
-            self.axis_aitoff.draw_artist(self._onmove_point[0])
-            self.fig.canvas.blit(self.axis_aitoff.bbox)
+
+            self._aitoff.onmove(event, close_fingerprint)
 
 
     def _onclick(self, event):
@@ -190,11 +171,6 @@ class TransferLearningDisplay:
             # Find all the similar data relative to the point that was clicked.
             self._update_text('Loading data...')
             close_fingerprints = self.similarity.find_similar(point)
-
-            # Delete the artists
-            for x in self._axis_aitoff_text_labels:
-                x.remove()
-            self._axis_aitoff_text_labels = []
 
             # Run through all the close fingerprints and display them in the sub windows
             points = []
@@ -224,37 +200,8 @@ class TransferLearningDisplay:
                     (ii+1), distance, thetitle), fontsize=8)
                 self.sub_windows[ii].redraw_in_frame()
 
-                # Add point to Aitoff plot
-                ra, dec = self.get_ra_dec(fingerprint)
-                if self._onclick_points and ii in self._onclick_points:
-                    self._onclick_points[ii][0].set_data(ra, dec)
-                else:
-                    self._onclick_points[ii] = self.axis_aitoff.plot(ra, dec, 'bo', label=str(ii))
-                points.append([ra,dec])
 
-            self.fig.canvas.restore_region(self.axis_aitoff_background)
-
-            # annotate the points in the aitoff plot
-            points = np.array(points)
-            d = distance_matrix(points, points)
-
-            rows = set(range(points.shape[0]))
-            groups = {}
-
-            while len(rows) > 0:
-                row = rows.pop()
-                close = np.nonzero(d[row] < 0.01)[0]
-                rows = rows - set(list(close))
-                groups[row] = close
-
-            for k,v in groups.items():
-                tt = self.axis_aitoff.text(points[k][0]+0.05, points[k][1]+0.05, 
-                        ','.join([str(x+1) for x in v]))
-                self._axis_aitoff_text_labels.append(tt)
-                self.axis_aitoff.draw_artist(tt)
-
-            self.fig.canvas.blit(self.axis_aitoff.bbox)
-
+            self._aitoff.onclick(event, close_fingerprints) 
 
         # Check to see if one of the 9 was clicked
         elif event.inaxes in self.sub_windows:
@@ -299,3 +246,96 @@ class TransferLearningDisplay:
 
         self.sub_windows[index].redraw_in_frame()
 
+
+class AxExtra:
+    def __init__(self):
+        self._axes_limits = None
+
+    def get_axes(self):
+        return self._axes_limits
+
+class Aitoff(AxExtra):
+
+    def __init__(self, axes_limits, parent):
+        self._parent = parent
+        self._axes_limits = axes_limits
+
+        # If we have ra_dec then let's display the Aitoff projection axis
+        self.axis_aitoff = plt.axes(self._axes_limits, projection="aitoff")
+        self.axis_aitoff.grid('on')
+        self.axis_aitoff.set_xlabel('RA')
+        self.axis_aitoff.set_ylabel('DEC')
+        self._onmove_point = None
+        self._onclick_points = {} 
+        self._parent.fig.canvas.draw()
+        self.axis_aitoff_background = self._parent.fig.canvas.copy_from_bbox(self.axis_aitoff.bbox)
+        self._axis_aitoff_text_labels = []
+
+        self._onmove_color = (0.1, 0.6, 0.1)
+
+    @property
+    def onmove_color(self):
+        return self._onmove_color
+
+    @onmove_color.setter
+    def onmove_color(self, value):
+        self._onmove_color = value
+
+    def onmove(self, event, close_fingerprint):
+        # Update the mbitoff figure as well
+        self._parent.fig.canvas.restore_region(self.axis_aitoff_background)
+
+        # Draw the blue dots and numbers
+        for tt in self._axis_aitoff_text_labels:
+            self.axis_aitoff.draw_artist(tt)
+
+        ra, dec = self._parent.get_ra_dec(close_fingerprint)
+        if ra is not None and dec is not None:
+            if self._onmove_point:
+                self._onmove_point[0].set_data(ra, dec)
+            else:
+                self._onmove_point = self.axis_aitoff.plot(ra, dec, 
+                        'o', color=self._onmove_color)
+        self.axis_aitoff.draw_artist(self._onmove_point[0])
+        self._parent.fig.canvas.blit(self.axis_aitoff.bbox)
+
+    def onclick(self, event, close_fingerprints):
+
+        # Delete the artists
+        for x in self._axis_aitoff_text_labels:
+            x.remove()
+        self._axis_aitoff_text_labels = []
+
+        points = []
+        for ii, (fpoint, distance, fingerprint) in enumerate(close_fingerprints):
+        
+            # Add point to Aitoff plot
+            ra, dec = self._parent.get_ra_dec(fingerprint)
+            if self._onclick_points and ii in self._onclick_points:
+                self._onclick_points[ii][0].set_data(ra, dec)
+            else:
+                self._onclick_points[ii] = self.axis_aitoff.plot(ra, dec, 'bo', label=str(ii))
+            points.append([ra,dec])
+
+        self._parent.fig.canvas.restore_region(self.axis_aitoff_background)
+
+        # annotate the points in the aitoff plot
+        points = np.array(points)
+        d = distance_matrix(points, points)
+
+        rows = set(range(points.shape[0]))
+        groups = {}
+
+        while len(rows) > 0:
+            row = rows.pop()
+            close = np.nonzero(d[row] < 0.01)[0]
+            rows = rows - set(list(close))
+            groups[row] = close
+
+        for k,v in groups.items():
+            tt = self.axis_aitoff.text(points[k][0]+0.05, points[k][1]+0.05, 
+                    ','.join([str(x+1) for x in v]))
+            self._axis_aitoff_text_labels.append(tt)
+            self.axis_aitoff.draw_artist(tt)
+
+        self._parent.fig.canvas.blit(self.axis_aitoff.bbox)

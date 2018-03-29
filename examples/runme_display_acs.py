@@ -5,7 +5,8 @@ import pickle
 
 # Load the Pickle file of data results
 #filename = 'acs_19152.pck'
-filename = 'acs_10000.pck'
+#filename = 'acs_10000.pck'
+filename = 'acs_100.pck'
 tl = TransferLearning.load(filename)
 
 # Load the dictionary of RA/DEC information
