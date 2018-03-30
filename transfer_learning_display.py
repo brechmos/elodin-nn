@@ -50,7 +50,7 @@ class TransferLearningDisplay:
         plt.gcf()
         self.axis = plt.axes([0.05, 0.05, 0.3, 0.3])
 
-        self._aitoff = Aitoff([0.05, 0.55, 0.45, 0.45], parent=self)
+        self._aitoff = Aitoff([0.05, 0.55, 0.3, 0.3], parent=self)
         self.add_axes(self._aitoff.get_axes())
         self._aitoff.onmove_color = self._onmove_color
 
@@ -112,9 +112,9 @@ class TransferLearningDisplay:
         plt.draw()
 
     def get_ra_dec(self, fingerprint):
-        f = fingerprint['tldp'].filename.split('/')[-1]
-        if f in self.ra_dec:
-            coords = SkyCoord(ra=self.ra_dec[f]['ra'], dec=self.ra_dec[f]['dec'], unit='degree')
+        ra, dec = fingerprint['tldp'].radec
+        if ra is not None and dec is not None:
+            coords = SkyCoord(ra=ra, dec=dec, unit='degree')
             ra = coords.ra.wrap_at(180 * units.deg).radian
             dec = coords.dec.radian
         else:
@@ -326,8 +326,9 @@ class Aitoff(AxExtra):
             self.axis_aitoff.draw_artist(tt)
 
         ra, dec = self._parent.get_ra_dec(close_fingerprint)
+        print(ra, dec)
         if ra is not None and dec is not None:
-            if self._onmove_point:
+            if self._onmove_point is not None:
                 self._onmove_point[0].set_data(ra, dec)
             else:
                 self._onmove_point = self.axis_aitoff.plot(ra, dec, 
