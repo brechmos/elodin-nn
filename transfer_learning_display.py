@@ -162,28 +162,8 @@ class TransferLearningDisplay:
 
         # Do something based on being in one of the 9 sub windows
         elif event.inaxes in self.sub_windows:
-
             subwindow_index = self.sub_windows.index(event.inaxes)
-
-            if self.sub_windows[0] is not None and not subwindow_index == self.sub_window_current:
-                self.sub_window_current = subwindow_index
-
-                to_disp = ''
-                # Add the meta information
-                for k, v in self.sub_windows_fingerprint[subwindow_index]['tldp']._file_meta['meta'].items():
-                    to_disp += '{}: {}\n'.format(k, v)
-
-                # Add the fingerprint similarity
-                to_disp += '\nFingerprints\n------------\n'
-                for p in self.sub_windows_fingerprint[subwindow_index]['predictions'][:8]:
-                    to_disp += '{:-22s} {:4.4f}\n'.format(p[1], p[2])
-
-                self._update_text(to_disp)
-
-                # Add outline to hovered subwindow
-                self._add_subwindow_outline(subwindow_index)
-                for index in set(range(9)) - set([subwindow_index]):
-                    self._remove_subwindow_outline(index)
+            self._display_subwindow_meta_fingerprint(subwindow_index)
 
     def _add_subwindow_outline(self, index):
         for side in ['top', 'bottom', 'left', 'right']:
@@ -194,6 +174,28 @@ class TransferLearningDisplay:
     def _remove_subwindow_outline(self, index):
         for side in ['top', 'bottom', 'left', 'right']:
             self.sub_windows[index].spines[side].set_visible(False);
+
+    def _display_subwindow_meta_fingerprint(self, index):
+
+        if self.sub_windows[0] is not None and not index == self.sub_window_current:
+            self.sub_window_current = index
+
+            to_disp = ''
+            # Add the meta information
+            for k, v in self.sub_windows_fingerprint[index]['tldp']._file_meta['meta'].items():
+                to_disp += '{}: {}\n'.format(k, v)
+
+            # Add the fingerprint similarity
+            to_disp += '\nFingerprints\n------------\n'
+            for p in self.sub_windows_fingerprint[index]['predictions'][:8]:
+                to_disp += '{:18s} {:4.4f}\n'.format(p[1], p[2])
+
+            self._update_text(to_disp)
+
+            # Add outline to hovered subwindow
+            self._add_subwindow_outline(index)
+            for index in set(range(9)) - set([index]):
+                self._remove_subwindow_outline(index)
 
     def _onclick(self, event):
         """
@@ -245,7 +247,11 @@ class TransferLearningDisplay:
                 self.sub_windows[ii].redraw_in_frame()
 
 
-            self._aitoff.onclick(event, close_fingerprints) 
+            self._aitoff.onclick(event, close_fingerprints)
+
+            self.sub_window_current = 1
+            self._display_subwindow_meta_fingerprint(0)
+
 
         # Check to see if one of the 9 was clicked
         elif event.inaxes in self.sub_windows:
