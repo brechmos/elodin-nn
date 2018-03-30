@@ -13,7 +13,7 @@ obs = Observations.query_criteria(dataproduct_type=["image"], calib_level=3,
         obs_collection='HST', instrument_name='ACS/WFC')
 
 datadict = []
-for o in obs[:20000]:
+for o in obs[:40000]:
     if o['obs_id'][-1] == '0':
 
         # Create the filename
