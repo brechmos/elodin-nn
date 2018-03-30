@@ -48,14 +48,14 @@ class TransferLearningDisplay:
 
         self.fig = plt.figure(1, figsize=[16, 10])
         plt.gcf()
-        self.axis = plt.axes([0.05, 0.05, 0.45, 0.45])
+        self.axis = plt.axes([0.05, 0.05, 0.3, 0.3])
 
         self._aitoff = Aitoff([0.05, 0.55, 0.45, 0.45], parent=self)
         self.add_axes(self._aitoff.get_axes())
         self._aitoff.onmove_color = self._onmove_color
 
         # Sub window for on move closest fingerprint
-        self.axis_closest = plt.axes([0.5, 0.01, 0.2, 0.2])
+        self.axis_closest = plt.axes([0.35, 0.01, 0.15, 0.15])
         self.axis_closest.set_xticks([])
         self.axis_closest.set_yticks([])
         self.axis_closest.set_xlabel('')
@@ -70,22 +70,25 @@ class TransferLearningDisplay:
         self._hexbin = self.similarity.display(self.axis)
 
         # Display the information text area
-        self.info_axis = plt.axes([0.75, 0.11, 0.3, 0.05])
+        self.info_axis = plt.axes([0.75, 0.05, 0.2, 0.85])
         self.info_axis.set_axis_off()
         self.info_axis.set_xticks([])
         self.info_axis.set_yticks([])
         self.info_axis.set_xlabel('')
         self.info_axis.set_ylabel('')
-        self.info_text = self.info_axis.text(0, 0, 'Loading...', fontsize=8)
+        self.info_axis.set_ylim(self.info_axis.get_ylim()[::-1])  # invert the axis
+        self.info_text = self.info_axis.text(0, 0.83, 'Loading...', fontsize=8, va='bottom')
 
         # Display the 9 sub-windows
         self.sub_windows = []
+        self.sub_windows_fingerprint = [None]*9
+        self.sub_window_current = None
         self.sub_data = []
         self.fingerprint_points = []
         for row in range(3):
             for col in range(3):
                 # rect = [left, bottom, width, height]
-                tt = plt.axes([0.5 + 0.14 * col, 0.75 - 0.25 * row, 0.2, 0.2])
+                tt = plt.axes([0.35 + 0.13 * col, 0.55 - 0.17 * row, 0.15, 0.15])
                 tt.set_xticks([])
                 tt.set_yticks([])
                 sd = tt.imshow(np.zeros((224, 224)), cmap=plt.gray())
@@ -143,17 +146,46 @@ class TransferLearningDisplay:
             # Display image info
             #self._text_closest.set_text('\n'.join(['{} {:.4} '.format(*x[1:]) for x in close_fingerprint['predictions'][:5]]))
 
-            thetitle = close_fingerprint['tldp'].filename.split('/')[-1]
+            thetitle = close_fingerprint['tldp']._file_meta['filename'].split('/')[-1]
+            #thetitle += ' ' + ','.join([repr(x) for x in close_fingerprint['tldp'].data_processing])
 
             self.axis_closest.set_title(thetitle, fontsize=8)
             self.fig.canvas.blit(self.axis_closest.bbox)
             self.axis_closest.redraw_in_frame()
 
-            self.axis_closest.text(0.02, 1.0, r'$\bullet$', fontsize=24, 
+            self.axis_closest.text(0.02, 1.0, r'$\bullet$', fontsize=24,
                     color=self._onmove_color, transform=self.axis_closest.transAxes)
 
             self._aitoff.onmove(event, close_fingerprint)
 
+        # Do something based on being in one of the 9 sub windows
+        elif event.inaxes in self.sub_windows:
+
+            subwindow_index = self.sub_windows.index(event.inaxes)
+
+            if self.sub_windows[0] is not None and not subwindow_index == self.sub_window_current:
+                self.sub_window_current = subwindow_index
+
+                to_disp = ''
+                for k, v in self.sub_windows_fingerprint[subwindow_index]['tldp']._file_meta['meta'].items():
+                    to_disp += '{}: {}\n'.format(k, v)
+
+                self._update_text(to_disp)
+
+                # Add outline to hovered subwindow
+                self._add_subwindow_outline(subwindow_index)
+                for index in set(range(9)) - set([subwindow_index]):
+                    self._remove_subwindow_outline(index)
+
+    def _add_subwindow_outline(self, index):
+        for side in ['top', 'bottom', 'left', 'right']:
+            self.sub_windows[index].spines[side].set_visible(True);
+            self.sub_windows[index].spines[side].set_lw(2);
+            self.sub_windows[index].spines[side].set_color('red');
+
+    def _remove_subwindow_outline(self, index):
+        for side in ['top', 'bottom', 'left', 'right']:
+            self.sub_windows[index].spines[side].set_visible(False);
 
     def _onclick(self, event):
         """
@@ -179,10 +211,14 @@ class TransferLearningDisplay:
 
                 self.fingerprint_points[ii] = fpoint
 
-                # Zero out and show we are loading -- should be fast.3
+                # Zero out and show we are loading -- shoul3d be fast.3
                 self.sub_windows[ii].set_title('Loading...', fontsize=8)
                 self.sub_data[ii].set_data(np.zeros((224, 224)))
                 self.sub_windows[ii].redraw_in_frame()
+
+                # Associate the fingerprint to the subwindow so when
+                # we hover over the window we can get info about it.
+                self.sub_windows_fingerprint[ii] = fingerprint
 
                 # Display the data information for the fingerprint cutout
                 row = fingerprint['row_min'], fingerprint['row_max']
@@ -193,7 +229,7 @@ class TransferLearningDisplay:
                     fingerprint['tldp'].display(row, col)
                 ))
 
-                thetitle = fingerprint['tldp'].filename.split('/')[-1]
+                thetitle = fingerprint['tldp']._file_meta['filename'].split('/')[-1]
 
                 # Update the title on the window
                 self.sub_windows[ii].set_title('{}) {:0.3f} {}'.format(

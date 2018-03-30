@@ -35,6 +35,9 @@ class TransferLearning:
     def set_files(self, filenames):
         self._filenames = filenames
 
+    def set_processing(self, processing_dict):
+        self._processing_dict = processing_dict
+
     def display(self, filename, row_minmax, col_minmax):
 
         if filename not in self._data_cache:
@@ -43,31 +46,47 @@ class TransferLearning:
 
         return self._data_cache[filename][row_minmax[0]:row_minmax[1], col_minmax[0]:col_minmax[1]]
 
-    def calculate(self):
+    def calculate_stream(self, data_stream):
         """
         Calculate the fingerprints for each subsection of the image in each file.
+
+        THe processing_dict should be a dictionary that contains keys of 
+          filename -> The filename to process
+          radec -> RA DEC
+          meta -> all the other meta information that should be stored for further processing
 
         :param stepsize:
         :param display:
         :return:
         """
+        log.debug('Calculate the fingerprints for each file and data processing step')
 
-        log.debug('After the plot display')
+        self._processing_dict = data_stream
+
         # Run through each file.
-        for filename in self._filenames:
+        for to_process in self._processing_dict:
+            self.calculate(to_process)
 
-            for dp_set in self._data_processing:
+    def calculate(self, data):
 
-                log.info("Processing filename {} with {}".format(filename, dp_set))
+        # Use the stream processing if the input is a list.
+        if isinstance(data, list):
+            self.calculate_stream(data)
+            return
 
-                tldp_temp = TransferLearningProcessData(filename, dp_set)
-
-                tldp_temp.calculate(self._cutout_creator, self._fingerprint_calculator)
-
-                self._tldp.append(tldp_temp)
+        for dp_set in self._data_processing:
+            log.info("Processing filename {} with {}".format(data['filename'], dp_set))
+            tldp_temp = TransferLearningProcessData(data, dp_set)
+            tldp_temp.calculate(self._cutout_creator, self._fingerprint_calculator)
+            self._tldp.append(tldp_temp)
 
     @property
     def fingerprints(self):
+        """
+        Retrieve the fingerprints from all the processed values. 
+
+        :return: List of fingerprints
+        """
 
         return_fingerprints = []
         for tldp in self._tldp:

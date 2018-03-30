@@ -3,7 +3,6 @@ from sklearn.manifold import TSNE
 from scipy.sparse import csc_matrix
 import itertools
 from scipy.spatial.distance import pdist, squareform
-import matplotlib.pyplot as plt
 
 import logging
 logging.basicConfig(format='%(levelname)-6s: %(name)-10s %(asctime)-15s  %(message)s')
@@ -179,12 +178,9 @@ class tSNE(Similarity):
         tsne_axis.set_title('tSNE [{}]'.format(self._distance_measure))
 
     def _display_hexbin(self, tsne_axis):
-        output = tsne_axis.hexbin(self._Y[:, 0], self._Y[:, 1])
+        output = tsne_axis.hexbin(self._Y[:, 0], self._Y[:, 1], cmap='hot')
         tsne_axis.grid('on')
         tsne_axis.set_title('tSNE [{}]'.format(self._distance_measure))
-
-        # Set the colormap
-        output.set_cmap(plt.hot())
 
         # Set the color limits so that it is a little brighter
         limmax = np.percentile(output.get_array(),99.9)

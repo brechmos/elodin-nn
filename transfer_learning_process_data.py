@@ -34,12 +34,28 @@ class TransferLearningProcessData:
     So, we really only need to encapsulate the file/data and data pre-processing methods.
     """
 
-    def __init__(self, filename, data_processing):
+    def __init__(self, file_meta, data_processing):
+        """
+        The file_meta input should be a dictionary that contains the keys:
+            filename
+            radec
+            meta
+        """
 
-        log.info('Creating TransferLearningProcessData instance with {} and {}'.format(filename, data_processing))
+        log.info('Creating TransferLearningProcessData instance with {} and {}'.format(
+            file_meta['filename'], data_processing))
 
         self._uuid = str(uuid.uuid4())
-        self._filename = filename
+
+        # The file_meta is a dictionary that contains keys:
+        #    filename - string filename
+        #    radec - tuple of (ra dec)
+        #    meta - dictionary of meta information
+        # radec and meta could be empty
+        if not set(file_meta.keys()) == set(['filename', 'radec', 'meta']):
+            log.error('First parameter to TransferLearningProcessData must be a dict containing filename, radec and meta')
+            raise ValueError('First parameter to TransferLearningProcessData must be a dict containing filename, radec and meta')
+        self._file_meta = file_meta
 
         # We need to check to see if the input to this is a dictionary or not
         if len(data_processing) > 0 and isinstance(data_processing[0], dict):
@@ -48,7 +64,7 @@ class TransferLearningProcessData:
             self._data_processing = data_processing
 
         self._original_data = None
-        self._processed_data = self._load_image_data(filename)
+        self._processed_data = self._load_image_data(file_meta['filename'])
 
         # Set in the calculate function
         self._cutout_creator = None
@@ -164,7 +180,7 @@ class TransferLearningProcessData:
         """
         return {
             'uuid': self._uuid,
-            'filename': self._filename,
+            'file_meta': self._file_meta,
             'data_processing': [x.save() for x in self._data_processing],
             'cutout_creator': self._cutout_creator.save(),
             'fingerprint_calculator': self._fingerprint_calculator.save(),
@@ -178,10 +194,10 @@ class TransferLearningProcessData:
         :param parameters: Dictionary of parametesr that comes from the above `save()` command
         :return:
         """
-        log.debug('TransferLearningProcessData loading {}'.format(parameters['filename']))
+        log.debug('TransferLearningProcessData loading {}'.format(parameters['file_meta']['filename']))
 
         self._uuid = parameters['uuid']
-        self._filename = parameters['filename']
+        self._file_meta = parameters['file_meta']
         log.debug('TransferLearningProcessData loading data pocessing')
         self._data_processing = [DataProcessing.load_parameters(x) for x in parameters['data_processing']]
         log.debug('TransferLearningProcessData loading ciutouts')
@@ -202,7 +218,7 @@ class TransferLearningProcessData:
         :return: instance of TLPD loaded with all the appropriate goodness
         """
 
-        tldp = TransferLearningProcessData(parameters['filename'], parameters['data_processing'])
+        tldp = TransferLearningProcessData(parameters['file_meta'], parameters['data_processing'])
         tldp._load(parameters)
 
         return tldp
