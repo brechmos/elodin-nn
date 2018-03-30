@@ -326,7 +326,6 @@ class Aitoff(AxExtra):
             self.axis_aitoff.draw_artist(tt)
 
         ra, dec = self._parent.get_ra_dec(close_fingerprint)
-        print(ra, dec)
         if ra is not None and dec is not None:
             if self._onmove_point is not None:
                 self._onmove_point[0].set_data(ra, dec)
@@ -376,3 +375,6 @@ class Aitoff(AxExtra):
             self.axis_aitoff.draw_artist(tt)
 
         self._parent.fig.canvas.blit(self.axis_aitoff.bbox)
+
+        self.axis_aitoff_background = self._parent.fig.canvas.copy_from_bbox(self.axis_aitoff.bbox)
+
