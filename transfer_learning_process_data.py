@@ -72,12 +72,16 @@ class TransferLearningProcessData:
         self._fingerprints = []
 
     @property
+    def radec(self):
+        return self._file_meta['radec']
+
+    @property
     def data_processing(self):
         return self._data_processing
 
     @property
     def filename(self):
-        return self._filename
+        return self._file_meta['filename']
 
     @property
     def fingerprints(self):
