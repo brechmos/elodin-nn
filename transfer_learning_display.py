@@ -48,7 +48,9 @@ class TransferLearningDisplay:
 
         self.fig = plt.figure(1, figsize=[16, 10])
         plt.gcf()
-        self.axis = plt.axes([0.05, 0.05, 0.3, 0.3])
+
+        # Create the axis for the similarity plot
+        self.axis = plt.axes([0.05, 0.05, 0.3, 0.45])
 
         self._aitoff = Aitoff([0.05, 0.55, 0.3, 0.3], parent=self)
         self.add_axes(self._aitoff.get_axes())
@@ -167,8 +169,14 @@ class TransferLearningDisplay:
                 self.sub_window_current = subwindow_index
 
                 to_disp = ''
+                # Add the meta information
                 for k, v in self.sub_windows_fingerprint[subwindow_index]['tldp']._file_meta['meta'].items():
                     to_disp += '{}: {}\n'.format(k, v)
+
+                # Add the fingerprint similarity
+                to_disp += '\nFingerprints\n------------\n'
+                for p in self.sub_windows_fingerprint[subwindow_index]['predictions'][:8]:
+                    to_disp += '{:-22s} {:4.4f}\n'.format(p[1], p[2])
 
                 self._update_text(to_disp)
 
