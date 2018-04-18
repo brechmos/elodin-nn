@@ -1,4 +1,5 @@
 import numpy as np
+import uuid
 from sklearn.manifold import TSNE
 from scipy.sparse import csc_matrix
 import itertools
@@ -17,6 +18,7 @@ class Similarity:
 
     def __init__(self, similarity_type, *args, **kwargs):
         self.similarity_type = similarity_type
+        self._uuid = str(uuid.uuid4())
 
     def _get(domain):
         for cls in Similarity.__subclasses__():
@@ -28,6 +30,9 @@ class Similarity:
         raise NotImplementedError("Please Implement this method")
 
     def display(self):
+        raise NotImplementedError("Please Implement this method")
+
+    def get_similarity(self):
         raise NotImplementedError("Please Implement this method")
 
     def save(self):
@@ -150,6 +155,14 @@ class tSNE(Similarity):
         log.debug('self._Y is {}'.format(self._Y))
         log.info('Done calculation')
 
+    def get_similarity(self):
+        return {
+            'uuid': self._uuid,
+            'type': 'tsne',
+            'similarity': self._Y.tolist(),
+            'fingerprints': [str(x['_id']) for x in self._fingerprints]
+        }
+
     def display(self, tsne_axis):
         """
         Display the Y values in an axis element.
@@ -257,6 +270,13 @@ class Jaccard(Similarity):
         sparse_adjacency = csc_matrix(A.transpose())
         self._fingerprint_adjacency = self.jaccard_similarities(sparse_adjacency).toarray().T
 
+    def get_similarity(self):
+        return {
+            'uuid': self._uuid,
+            'type': 'tsne',
+            'similarity': self._fingerprint_adjacency.tolist(),
+            'fingerprints': [str(x['_id']) for x in self._fingerprints]
+        }
 
     def display(self, tsne_axis):
         """
@@ -378,6 +398,14 @@ class Distance(Similarity):
             self._X[ii][inds] = [prediction[2] for prediction in values[ii]]
 
         self._fingerprint_adjacency = squareform(pdist(self._X, metric=self._metric))
+
+    def get_similarity(self):
+        return {
+            'uuid': self._uuid,
+            'type': 'tsne',
+            'similarity': self._fingerprint_adjacency.tolist(),
+            'fingerprints': [str(x['_id']) for x in self._fingerprints]
+        }
 
     def display(self, tsne_axis):
         """
