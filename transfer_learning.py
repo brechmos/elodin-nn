@@ -22,7 +22,7 @@ class TransferLearning:
         self._data_processing = data_processing
         self._cutout_creator = cutout_creator
         self._fingerprint_calculator = fingerprint_calculator
-        self._filenames = []
+        self._processing_dict = []
         self._fingerprints = []
         self._uuid = str(uuid.uuid4())
 
@@ -31,9 +31,6 @@ class TransferLearning:
 
         # Processed data
         self._tldp = []
-
-    def set_files(self, filenames):
-        self._filenames = filenames
 
     def set_processing(self, processing_dict):
         self._processing_dict = processing_dict
@@ -111,7 +108,7 @@ class TransferLearning:
             'cutout_creator': self._cutout_creator.save(),
             'fingerprint_calculator': self._fingerprint_calculator.save(),
             'uuid': self._uuid,
-            'filenames': self._filenames,
+            'processing_dict': self._processing_dict,
             'processed_data': [x.save() for x in self._tldp]
         }
 
@@ -139,7 +136,7 @@ class TransferLearning:
             self._cutout_creator = Cutouts.load_parameters(parameters['cutout_creator'])
             self._fingerprint_calculator = Fingerprint.load_parameters(parameters['fingerprint_calculator'])
             self._uuid = parameters['uuid']
-            self._filenames = parameters['filenames']
+            self._processing_dict = parameters['processing_dict']
             self._tldp = [TransferLearningProcessData.load(x) for x in parameters['processed_data']]
 
 
