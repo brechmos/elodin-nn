@@ -32,7 +32,7 @@ class Similarity:
     def display(self):
         raise NotImplementedError("Please Implement this method")
 
-    def get_similarity(self):
+    def get_similarity(self, pk=None):
         raise NotImplementedError("Please Implement this method")
 
     def save(self):
@@ -155,13 +155,18 @@ class tSNE(Similarity):
         log.debug('self._Y is {}'.format(self._Y))
         log.info('Done calculation')
 
-    def get_similarity(self):
+    def get_similarity(self, pk='_id'):
         return {
             'uuid': self._uuid,
             'type': 'tsne',
             'similarity': self._Y.tolist(),
-            'fingerprints': [str(x['_id']) for x in self._fingerprints]
+            'fingerprints': [str(x[pk]) for x in self._fingerprints]
         }
+
+    def load(self, thedict):
+        self._uuid = thedict['uuid']
+        self._Y = np.array(thedict['similarity'])
+        self._fingerprints = thedict['fingerprints']
 
     def display(self, tsne_axis):
         """
@@ -270,12 +275,12 @@ class Jaccard(Similarity):
         sparse_adjacency = csc_matrix(A.transpose())
         self._fingerprint_adjacency = self.jaccard_similarities(sparse_adjacency).toarray().T
 
-    def get_similarity(self):
+    def get_similarity(self, pk='_id'):
         return {
             'uuid': self._uuid,
             'type': 'tsne',
             'similarity': self._fingerprint_adjacency.tolist(),
-            'fingerprints': [str(x['_id']) for x in self._fingerprints]
+            'fingerprints': [str(x[pk]) for x in self._fingerprints]
         }
 
     def display(self, tsne_axis):
@@ -399,12 +404,12 @@ class Distance(Similarity):
 
         self._fingerprint_adjacency = squareform(pdist(self._X, metric=self._metric))
 
-    def get_similarity(self):
+    def get_similarity(self, pk='_id'):
         return {
             'uuid': self._uuid,
             'type': 'tsne',
             'similarity': self._fingerprint_adjacency.tolist(),
-            'fingerprints': [str(x['_id']) for x in self._fingerprints]
+            'fingerprints': [str(x[pk]) for x in self._fingerprints]
         }
 
     def display(self, tsne_axis):
