@@ -3,7 +3,7 @@ import time
 import numpy as np
 import weakref
 
-from utils import gray2rgb
+from transfer_learning.utils import gray2rgb
 
 import logging
 logging.basicConfig(format='%(levelname)-6s: %(name)-10s %(asctime)-15s  %(message)s')
