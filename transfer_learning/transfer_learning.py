@@ -1,14 +1,14 @@
-from similarity import tSNE, Jaccard
+from transfer_learning.similarity import tSNE, Jaccard
 import glob
 import uuid
 import pickle
 import os
 import sys
 
-from transfer_learning_process_data import TransferLearningProcessData
-from transfer_learning_display import TransferLearningDisplay
-from fingerprint import Fingerprint
-from cutouts import Cutouts
+from transfer_learning.transfer_learning_process_data import TransferLearningProcessData
+from transfer_learning.transfer_learning_display import TransferLearningDisplay
+from transfer_learning.fingerprint import Fingerprint
+from transfer_learning.cutouts import Cutouts
 
 import logging
 logging.basicConfig(format='%(levelname)-6s: %(name)-10s %(asctime)-15s  %(message)s')

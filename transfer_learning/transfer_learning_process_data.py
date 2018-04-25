@@ -5,10 +5,10 @@ import multiprocessing
 
 from astropy.io import fits
 
-import utils
-from data_processing import DataProcessing
-from fingerprint import Fingerprint
-from cutouts import Cutouts
+import transfer_learning.utils
+from transfer_learning.data_processing import DataProcessing
+from transfer_learning.fingerprint import Fingerprint
+from transfer_learning.cutouts import Cutouts
 
 import progressbar
 
@@ -96,8 +96,12 @@ class TransferLearningProcessData:
         """
 
         if any(filename.lower().endswith(s) for s in ['tiff', 'tif', 'jpg']):
+            with open('output.log', 'a') as fp:
+                fp.write('going to open {}'.format(filename))
             log.debug('Loading TIFF/JPG file {}'.format(filename))
             data = np.array(imageio.imread(filename))
+            with open('output.log', 'a') as fp:
+                fp.write('  data is {}'.format(data))
         elif 'fits' in filename:
             log.debug('Loading FITS file {}'.format(filename))
             data = fits.open(filename)[1].data
@@ -119,7 +123,7 @@ class TransferLearningProcessData:
 
         # Make RGB (3 channel) if only gray scale (single channel)
         if len(data.shape) == 2:
-            data = utils.gray2rgb(data)
+            data = transfer_learning.utils.gray2rgb(data)
 
         return data
 

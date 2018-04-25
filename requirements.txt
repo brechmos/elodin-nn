@@ -5,3 +5,5 @@ ipython
 numpy
 astropy
 scikit-learn
+nb_conda
+progressbar2

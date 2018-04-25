@@ -1,5 +1,6 @@
 import matplotlib.pyplot as plt
 from matplotlib.backend_bases import MouseEvent
+import matplotlib
 import numpy as np
 import os
 from scipy.spatial import distance_matrix
@@ -7,12 +8,12 @@ from scipy.spatial import distance_matrix
 from astropy import units
 from astropy.coordinates import SkyCoord
 
-import utils
+import transfer_learning.utils
 
 import logging
 logging.basicConfig(format='%(levelname)-6s: %(name)-10s %(asctime)-15s  %(message)s')
 log = logging.getLogger("TransferLearningDisplay")
-log.setLevel(logging.WARNING)
+log.setLevel(logging.DEBUG)
 
 
 class TransferLearningDisplay:
@@ -141,7 +142,7 @@ class TransferLearningDisplay:
             row = close_fingerprint['row_min'], close_fingerprint['row_max']
             col = close_fingerprint['col_min'], close_fingerprint['col_max']
 
-            self._data_closest.set_data(utils.rgb2plot(
+            self._data_closest.set_data(transfer_learning.utils.rgb2plot(
                 close_fingerprint['tldp'].display(row, col)
             ))
 
@@ -205,6 +206,7 @@ class TransferLearningDisplay:
         :return:
         """
         log.debug('Clicked {}'.format(event))
+        print('Clicked {}'.format(event))
 
         # Click in the similarity axis
         if event.inaxes == self.axis:
@@ -235,9 +237,19 @@ class TransferLearningDisplay:
                 col = fingerprint['col_min'], fingerprint['col_max']
 
                 # Show new data and set title
-                self.sub_data[ii].set_data(utils.rgb2plot(
-                    fingerprint['tldp'].display(row, col)
-                ))
+                with open('output.log', 'a') as fp:
+                    fp.write('updating image {}'.format(ii))
+                    fp.write('  {}'.format(fingerprint['tldp'].display(row, col)))
+                    fp.write('  {}'.format(matplotlib.get_backend()))
+                if matplotlib.get_backend() == 'nbAgg':
+                    self.sub_windows[ii].imshow(fingerprint['tldp'].display(row, col))
+                    with open('output.log', 'a') as fp:
+                        fp.write('done updating')
+                    plt.show()
+                else:
+                    self.sub_data[ii].set_data(transfer_learning.utils.rgb2plot(
+                        fingerprint['tldp'].display(row, col)
+                    ))
 
                 thetitle = fingerprint['tldp']._file_meta['filename'].split('/')[-1]
 
@@ -285,7 +297,7 @@ class TransferLearningDisplay:
         self.sub_windows[index].redraw_in_frame()
 
         # Show new data and set title
-        self.sub_data[index].set_data(utils.rgb2plot(
+        self.sub_data[index].set_data(transfer_learning.utils.rgb2plot(
             fingerprint['data'].display(fingerprint['filename'],
                                         fingerprint['row'],
                                         fingerprint['col'])
