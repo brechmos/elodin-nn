@@ -10,7 +10,8 @@ def load_jpg(filename):
 
 def test_calculate_fingerprint():
 
-    data = load_jpg('data/j8za09050_drz_small.jpg')
+    SCRIPTLOC = os.path.dirname(__file__)
+    data = load_jpg('{}/data/j8za09050_drz_small.jpg'.format(SCRIPTLOC))
     fresnet = FingerprintResnet()
 
     predictions = fresnet.calculate(data[:224,:224])
