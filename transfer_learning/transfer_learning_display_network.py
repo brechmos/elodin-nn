@@ -151,7 +151,7 @@ class TransferLearningDisplay:
             # Display image info
             #self._text_closest.set_text('\n'.join(['{} {:.4} '.format(*x[1:]) for x in close_fingerprint['predictions'][:5]]))
 
-            thetitle = close_fingerprint['tldp']._file_meta['filename'].split('/')[-1]
+            thetitle = close_fingerprint['tldp'].filename.split('/')[-1]
             #thetitle += ' ' + ','.join([repr(x) for x in close_fingerprint['tldp'].data_processing])
 
             self.axis_closest.set_title(thetitle, fontsize=8)
@@ -242,7 +242,7 @@ class TransferLearningDisplay:
                     fingerprint['tldp'].display(row, col)
                 ))
 
-                thetitle = fingerprint['tldp']._file_meta['filename'].split('/')[-1]
+                thetitle = fingerprint['tldp'].filename.split('/')[-1]
 
                 # Update the title on the window
                 self.sub_windows[ii].set_title('{}) {:0.3f} {}'.format(

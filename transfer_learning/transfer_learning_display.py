@@ -10,10 +10,14 @@ from astropy.coordinates import SkyCoord
 
 import transfer_learning.utils
 
+import sys
 import logging
 logging.basicConfig(format='%(levelname)-6s: %(name)-10s %(asctime)-15s  %(message)s')
 log = logging.getLogger("TransferLearningDisplay")
-log.setLevel(logging.DEBUG)
+# Can be used for debugging Jupyter Notebooks
+#fhandler = logging.FileHandler(filename='mylog.log', mode='a')
+#log.addHandler(fhandler)
+log.setLevel(logging.WARNING)
 
 
 class TransferLearningDisplay:
@@ -142,14 +146,18 @@ class TransferLearningDisplay:
             row = close_fingerprint['row_min'], close_fingerprint['row_max']
             col = close_fingerprint['col_min'], close_fingerprint['col_max']
 
-            self._data_closest.set_data(transfer_learning.utils.rgb2plot(
-                close_fingerprint['tldp'].display(row, col)
-            ))
+            if matplotlib.get_backend() == 'nbAgg':
+                self.axis_closest.imshow(transfer_learning.utils.rgb2plot(close_fingerprint['tldp'].display(row, col)))
+                self.axis_closest.clim((0,255))
+            else:
+                self._data_closest.set_data(transfer_learning.utils.rgb2plot(
+                    close_fingerprint['tldp'].display(row, col)
+                ))
 
             # Display image info
             #self._text_closest.set_text('\n'.join(['{} {:.4} '.format(*x[1:]) for x in close_fingerprint['predictions'][:5]]))
 
-            thetitle = close_fingerprint['tldp']._file_meta['filename'].split('/')[-1]
+            thetitle = close_fingerprint['tldp'].filename.split('/')[-1]
             #thetitle += ' ' + ','.join([repr(x) for x in close_fingerprint['tldp'].data_processing])
 
             self.axis_closest.set_title(thetitle, fontsize=8)
@@ -205,9 +213,6 @@ class TransferLearningDisplay:
         :param event:
         :return:
         """
-        log.debug('Clicked {}'.format(event))
-        print('Clicked {}'.format(event))
-
         # Click in the similarity axis
         if event.inaxes == self.axis:
             point = event.ydata, event.xdata
@@ -220,7 +225,6 @@ class TransferLearningDisplay:
             points = []
             self._update_text('Displaying result...')
             for ii, (fpoint, distance, fingerprint) in enumerate(close_fingerprints):
-
                 self.fingerprint_points[ii] = fpoint
 
                 # Zero out and show we are loading -- shoul3d be fast.3
@@ -237,27 +241,24 @@ class TransferLearningDisplay:
                 col = fingerprint['col_min'], fingerprint['col_max']
 
                 # Show new data and set title
-                with open('output.log', 'a') as fp:
-                    fp.write('updating image {}'.format(ii))
-                    fp.write('  {}'.format(fingerprint['tldp'].display(row, col)))
-                    fp.write('  {}'.format(matplotlib.get_backend()))
                 if matplotlib.get_backend() == 'nbAgg':
-                    self.sub_windows[ii].imshow(fingerprint['tldp'].display(row, col))
-                    with open('output.log', 'a') as fp:
-                        fp.write('done updating')
-                    plt.show()
+                    data = fingerprint['tldp'].display(row, col)
+                    self.sub_windows[ii].imshow(
+                                transfer_learning.utils.rgb2plot( data )
+                           )
                 else:
                     self.sub_data[ii].set_data(transfer_learning.utils.rgb2plot(
                         fingerprint['tldp'].display(row, col)
                     ))
 
-                thetitle = fingerprint['tldp']._file_meta['filename'].split('/')[-1]
+                thetitle = fingerprint['tldp'].filename.split('/')[-1]
 
                 # Update the title on the window
                 self.sub_windows[ii].set_title('{}) {:0.3f} {}'.format(
                     (ii+1), distance, thetitle), fontsize=8)
-                self.sub_windows[ii].redraw_in_frame()
 
+                if not matplotlib.get_backend() == 'nbAgg':
+                    self.sub_windows[ii].redraw_in_frame()
 
             self._aitoff.onclick(event, close_fingerprints)
 

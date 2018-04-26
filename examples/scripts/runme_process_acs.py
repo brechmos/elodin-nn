@@ -11,11 +11,6 @@ import pickle
 # keys of: filename, radec and meta
 processing_dict = pickle.load(open('../data/hubble_acs.pck', 'rb'))
 
-to_process = []
-for x in processing_dict[:200]:
-    x['filename'] = x['filename'].replace('/Users/crjones/christmas/hubble/ACSimages/data/', 'http://18.218.192.161:4123/ACSimages/')
-    to_process.append(x)
-
 fingerprint_model = FingerprintResnet()
 basic_cutout = FullImageCutout(output_size=224)
 
@@ -25,6 +20,6 @@ data_processing = [
         ]
 
 tl = TransferLearning(basic_cutout, data_processing, fingerprint_model)
-tl.calculate_stream(to_process)
+tl.calculate_stream(processing_dict[:200])
 
 tl.save('acs_200.pck')

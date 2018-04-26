@@ -72,7 +72,7 @@ class TransferLearning:
             return
 
         for dp_set in self._data_processing:
-            log.info("Processing filename {} with {}".format(data['filename'], dp_set))
+            log.info("Processing filename {} with {}".format(data['location'], dp_set))
             tldp_temp = TransferLearningProcessData(data, dp_set)
             tldp_temp.calculate(self._cutout_creator, self._fingerprint_calculator)
             self._tldp.append(tldp_temp)

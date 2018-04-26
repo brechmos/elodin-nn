@@ -43,7 +43,7 @@ class TransferLearningProcessData:
         """
 
         log.info('Creating TransferLearningProcessData instance with {} and {}'.format(
-            file_meta['filename'], data_processing))
+            file_meta['location'], data_processing))
 
         self._uuid = str(uuid.uuid4())
 
@@ -52,7 +52,7 @@ class TransferLearningProcessData:
         #    radec - tuple of (ra dec)
         #    meta - dictionary of meta information
         # radec and meta could be empty
-        if not set(file_meta.keys()) == set(['filename', 'radec', 'meta']):
+        if not set(file_meta.keys()) == set(['location', 'radec', 'meta']):
             log.error('First parameter to TransferLearningProcessData must be a dict containing filename, radec and meta')
             raise ValueError('First parameter to TransferLearningProcessData must be a dict containing filename, radec and meta')
         self._file_meta = file_meta
@@ -64,7 +64,7 @@ class TransferLearningProcessData:
             self._data_processing = data_processing
 
         self._original_data = None
-        self._processed_data = self._load_image_data(file_meta['filename'])
+        self._processed_data = self._load_image_data(file_meta['location'])
 
         # Set in the calculate function
         self._cutout_creator = None
@@ -81,7 +81,11 @@ class TransferLearningProcessData:
 
     @property
     def filename(self):
-        return self._file_meta['filename']
+        return self._file_meta['location']
+
+    @property
+    def location(self):
+        return self._file_meta['location']
 
     @property
     def fingerprints(self):
@@ -96,16 +100,9 @@ class TransferLearningProcessData:
         """
 
         if any(filename.lower().endswith(s) for s in ['tiff', 'tif', 'jpg']):
-            with open('output.log', 'a') as fp:
-                fp.write('going to open {}'.format(filename))
-            log.debug('Loading TIFF/JPG file {}'.format(filename))
             data = np.array(imageio.imread(filename))
-            with open('output.log', 'a') as fp:
-                fp.write('  data is {}'.format(data))
         elif 'fits' in filename:
-            log.debug('Loading FITS file {}'.format(filename))
             data = fits.open(filename)[1].data
-            log.debug('FITS data is {}'.format(data))
 
             # There are some cases where the data might be NaN or Inf.  In those cases we'll set to 0.
             data[~np.isfinite(data)] = 0
@@ -202,7 +199,7 @@ class TransferLearningProcessData:
         :param parameters: Dictionary of parametesr that comes from the above `save()` command
         :return:
         """
-        log.debug('TransferLearningProcessData loading {}'.format(parameters['file_meta']['filename']))
+        log.debug('TransferLearningProcessData loading {}'.format(parameters['file_meta']['location']))
 
         self._uuid = parameters['uuid']
         self._file_meta = parameters['file_meta']
