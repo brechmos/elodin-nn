@@ -47,7 +47,7 @@ def calculate_celery(data, fc_save):
             if x.state == 'PROGRESS' and hasattr(x, 'info') and 'progress' in x.info:
                 counts[x.id] = x.info['progress']
 
-        print('Calculating fingerprints \r{}'.format([v for k,v in counts.items()]), end='')
+        print('\rCalculating fingerprints: {}'.format([v for k,v in counts.items()]), end='')
 
     # Get the results (is a list of lists so need to compress them)
     r =  result.get()
