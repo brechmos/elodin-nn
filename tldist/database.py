@@ -23,6 +23,13 @@ logging.basicConfig(format=FORMAT)
 log = logging.getLogger('database')
 log.setLevel(logging.INFO)
 
+def get_database(database_type):
+    dbcls = None
+    for db in Database.__subclasses__():
+        if db._database_type == database_type:
+            dbcls = db
+    return dbcls
+
 class Database:
     """
     This is the base class to force class definitions.
@@ -59,6 +66,7 @@ class Database:
 class Mongo(Database):
 
     key = '_id'
+    _database_type = 'mongo'
 
     def _convert_objectid(self, dct):
         return {k: v if not isinstance(v, ObjectId) else str(v) for k,v in dct.items()}
@@ -108,6 +116,7 @@ class Mongo(Database):
 class BlitzDB(Database):
 
     key = 'pk'
+    _database_type = 'blitzdb'
 
     class Data(Document):
         pass
@@ -173,6 +182,7 @@ class UnQLite(Database):
     """
 
     key = '__id'
+    _database_type = 'unqilte'
 
     # Singleton instance
     __instance = None

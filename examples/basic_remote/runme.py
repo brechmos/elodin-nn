@@ -42,20 +42,4 @@ fingerprints = calculate_celery(data, fc_save)
 #print('fingerprint pks {}'.format([str(x[db.key]) for x in fingerprints]))
 
 similarity_tsne = similarity_celery(fingerprints, 'tsne')
- 
 similarity_jaccard = similarity_celery(fingerprints, 'tsne')
-
-#print('Going to calculate the similarity')
-#simres = similarity_client.calculate([str(x[db.key]) for x in fingerprints], 'tsne')
-#
-#time.sleep(2)
-#
-#print('Going to calculate the similarity jaccard')
-#simres = similarity_client.calculate([str(x[db.key]) for x in fingerprints], 'jaccard')
-#
-#print('Waiting 3 seconds...')
-#time.sleep(3)
-#
-## Get all similarities
-#sims = similarity_client.get()
-#print('All similarities {} {}'.format(len(sims), sims))
