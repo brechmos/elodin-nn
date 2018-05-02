@@ -4,18 +4,12 @@ from collections import OrderedDict
 import pickle
 import time
 
-from celery import group
-from tldist.fingerprint.task import calculate_celery
-from tldist.similarity.task import similarity_celery
+from tldist.fingerprint.processing import calculate as fingerprint_calculate
+from tldist.similarity.processing import calculate as similarity_calculate
 import os.path
 
 def stringify(dictionary):
     return {k: str(v) for k, v in dictionary.items()}
-
-def chunks(l, n):
-    """Yield successive n-sized chunks from l."""
-    for i in range(0, len(l), n):
-        yield l[i:i + n]
 
 from transfer_learning.fingerprint import FingerprintResnet
 fresnet = FingerprintResnet()
@@ -36,26 +30,9 @@ for fileinfo in processing_dict[:100]:
     #data_client.save(im)
     data.append(im)
 
-fingerprints = calculate_celery(data, fc_save)
+fingerprints = fingerprint_calculate(data, fc_save)
+print([x['uuid'] for x in fingerprints])
 
-#fingerprints = fingerprint_client.get() 
-#print('fingerprint pks {}'.format([str(x[db.key]) for x in fingerprints]))
-
-similarity_tsne = similarity_celery(fingerprints, 'tsne')
+similarity_tsne = similarity_calculate(fingerprints, 'tsne')
  
-similarity_jaccard = similarity_celery(fingerprints, 'tsne')
-
-#print('Going to calculate the similarity')
-#simres = similarity_client.calculate([str(x[db.key]) for x in fingerprints], 'tsne')
-#
-#time.sleep(2)
-#
-#print('Going to calculate the similarity jaccard')
-#simres = similarity_client.calculate([str(x[db.key]) for x in fingerprints], 'jaccard')
-#
-#print('Waiting 3 seconds...')
-#time.sleep(3)
-#
-## Get all similarities
-#sims = similarity_client.get()
-#print('All similarities {} {}'.format(len(sims), sims))
+similarity_jaccard = similarity_calculate(fingerprints, 'tsne')

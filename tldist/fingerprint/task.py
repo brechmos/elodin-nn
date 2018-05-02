@@ -17,6 +17,7 @@ from tlapi.data.api import get_array as get_array_data
 from tldist.celery import app
 
 from tldist.fingerprint.processing import Fingerprint
+from tldist.fingerprint.processing import calculate as processing_calculate
 
 FORMAT = '%(levelname)-8s %(asctime)-15s %(name)-10s %(funcName)-10s %(message)s'
 logging.basicConfig(format=FORMAT)
@@ -55,56 +56,5 @@ def calculate_celery(data, fc_save):
     return list(itertools.chain(*r))
 
 @app.task
-def calculate(data, fc_save):
-    """
-    Calculate the fingerprint from a list of data.  The data
-    must be of the form 
-         [ {'uuid': <somtehing>, 'location': <somewhere>, 'meta': {<meta data} }... ]
-    """
-
-    if not isinstance(data, list) and not isinstance(data[0], dict):
-        log.error('Data must be a list of dictionaries')
-        raise Exception('Data must be a list of dictionaries')
-
-    # Load the fingerprint calculator based on dictionary information
-    fc = Fingerprint.load_parameters(fc_save)
-
-    # Now run through each datum and calculate the fingerprint
-    fingerprints_return = []
-    for ii, datum in enumerate(data):
-
-        # Update the progress if we are using the task version of this.
-        if hasattr(calculate, 'update_state'):
-            calculate.update_state(state='PROGRESS', meta={'progress': ii})
-
-        # Load the data
-        if 'location' not in datum:
-            log.error('Data does not have a location key {}'.format(datum))
-            raise Exception('Data does not have a location key {}'.format(datum))
-
-        response = requests.get(datum['location'])
-
-        if not response.status_code == 200:
-            log.error('Problem loading the data {}'.format(datum['location']))
-            raise Exception('Problem loading the data {}'.format(datum['location']))
-
-        nparray = np.array(imageio.imread(BytesIO(response.content)))
-
-        # Calculate the predictions
-        log.debug('calcuating predictions for  {} data is {}'.format(datum['location'], type(nparray)))
-        try:
-            predictions = fc.calculate(nparray[:224,:224])
-        except:
-            predictions = []
-
-        # Clean the predictions so the json conversion is happy
-        cleaned_predictions = [(x[0], x[1], float(x[2])) for x in predictions]
-
-        # Load up the return list.
-        fingerprints_return.append({
-            'uuid': str(uuid.uuid4()), 
-            'data_uuid': datum['uuid'], 
-            'predictions': cleaned_predictions
-            })
-
-    return fingerprints_return
+def calculate_task(data, fc_save):
+    return processing_calculate(data, fc_save)

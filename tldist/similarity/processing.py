@@ -12,6 +12,27 @@ log.setLevel(logging.WARNING)
 
 # https://stackoverflow.com/questions/456672/class-factory-in-python
 
+def calculate(fingerprints, similarity_calculator):
+    """
+    Similarity calculator.
+    """
+    log.info('Start threaded real_calculate {} fingerprints and simcalc {}'.format(
+        len(fingerprints), similarity_calculator))
+
+    # Create the right similarity calculator
+    if similarity_calculator == 'tsne':
+        sim = tSNE()
+    elif similarity_calculator == 'jaccard':
+        sim = Jaccard()
+    elif similarity_calculator == 'distance':
+        sim = Distance()
+
+    # Calculate the similarity
+    sim.calculate(fingerprints)
+
+    # Return the thing
+    return sim.save()
+
 
 class Similarity:
     _similarity_type = ''

@@ -2,8 +2,7 @@ import sys
 from collections import OrderedDict
 import numpy as np
 import threading
-import time
-import itertools
+import time import itertools
 
 from tldist.celery import app
 from celery import group
@@ -15,6 +14,7 @@ from tlapi.utils import gzipped
 from tlapi.similarity import processing as similarity_processing
 
 from tldist.fingerprint.processing import Fingerprint
+from tldist.fingerprint.processing import calculate as similarity_calculate
 from .processing import tSNE, Jaccard, Distance
 
 FORMAT = '%(levelname)-8s %(asctime)-15s %(name)-10s %(message)s'
@@ -58,19 +58,4 @@ def calculate(fingerprints, similarity_calculator):
     """
     Similarity calculator.
     """
-    log.info('Start threaded real_calculate {} fingerprints and simcalc {}'.format(
-        len(fingerprints), similarity_calculator))
-
-    # Create the right similarity calculator
-    if similarity_calculator == 'tsne':
-        sim = tSNE()
-    elif similarity_calculator == 'jaccard':
-        sim = Jaccard()
-    elif similarity_calculator == 'distance':
-        sim = Distance()
-
-    # Calculate the similarity
-    sim.calculate(fingerprints)
-
-    # Return the thing
-    return sim.save()
+    return similarity_calculate(fingerprints, similarity_calculator)
