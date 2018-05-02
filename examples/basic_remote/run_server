@@ -1,0 +1,3 @@
+#! /bin/sh
+
+celery -A tldist.celery worker --loglevel=info -c 4
