@@ -6,7 +6,7 @@ import requests
 import imageio
 from io import BytesIO
 
-from transfer_learning.utils import gray2rgb
+from tldist.utils import gray2rgb
 
 import logging
 logging.basicConfig(format='%(levelname)-6s: %(name)-10s %(asctime)-15s  %(message)s')
