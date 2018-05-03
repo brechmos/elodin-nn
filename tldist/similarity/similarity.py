@@ -20,6 +20,14 @@ class Similarity:
         return self.__str__()
 
     @property
+    def uuid(self):
+        return self._uuid
+
+    @uuid.setter
+    def uuid(self, value):
+        self._uuid = value
+
+    @property
     def similarity_type(self):
         return self._similarity_type
 
@@ -49,12 +57,14 @@ class Similarity:
 
     def save(self):
         return {
+            'uuid': self._uuid,
             'similarity_type': self._similarity_type,
             'similarity': self._similarity,
             'fingerprint_uuids': self._fingerprint_uuids
         }
 
     def load(self, thedict):
-        self._similarity_type = thedict['self._similarity_type']
+        self._uuid = thedict['uuid']
+        self._similarity_type = thedict['similarity_type']
         self._similarity = thedict['similarity']
         self._fingerprint_uuids = thedict['fingerprint_uuids']

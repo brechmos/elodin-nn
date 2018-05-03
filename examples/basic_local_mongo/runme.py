@@ -12,13 +12,8 @@ from tldist.database import get_database
 
 
 # Create the database
-DB_LOC = '/tmp/mydb'
-print('Going to setup the database in {}'.format(DB_LOC))
-
-if os.path.isdir(DB_LOC):
-    shutil.rmtree(DB_LOC)
-db = get_database('blitzdb', DB_LOC)
-
+print('Going to setup the database')
+db = get_database('mongo', 'localhost')
 
 # Load the data
 print('Loading the Hubble meta data and location information')
@@ -29,7 +24,8 @@ data = []
 for fileinfo in processing_dict[:20]:
     im = Data(location=fileinfo['location'], radec=fileinfo['radec'], meta=fileinfo['meta'])
     data.append(im)
-    db.save('data', im.save())
+    tt = db.save('data', im.save())
+    print(im.uuid, tt)
 
 # Create the fingerprint calculator... fingerprint
 print('Creating the info for the fingerprint calculator')
@@ -47,4 +43,4 @@ db.save('similarity', similarity_tsne.save())
 
 print('Calculating the Jaccard similarity')
 similarity_jaccard = similarity_calculate(fingerprints, 'jaccard')
-db.save('similarity', similarity_tsne.save())
+db.save('similarity', similarity_jaccard.save())

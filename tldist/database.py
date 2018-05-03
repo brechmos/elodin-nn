@@ -82,6 +82,7 @@ class Mongo(Database):
 
     def save(self, table, data):
         mongo_table = getattr(self._database, table)
+        data.update({'_id': data['uuid']})
         tt = mongo_table.insert_one(data)
         return str(tt.inserted_id)
 
@@ -145,6 +146,7 @@ class BlitzDB(Database):
 
     def save(self, table, data):
         blitz_table = self._get_table(table)
+        data.update({'pk': data['uuid']})
         save_id = self._backend.save(blitz_table(data))
         self._backend.commit()
         return save_id['pk']
