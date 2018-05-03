@@ -1,6 +1,5 @@
 import logging
 import os
-import json
 
 # Mongo
 import pymongo
@@ -23,12 +22,14 @@ logging.basicConfig(format=FORMAT)
 log = logging.getLogger('database')
 log.setLevel(logging.INFO)
 
+
 def get_database(database_type):
     dbcls = None
     for db in Database.__subclasses__():
         if db._database_type == database_type:
             dbcls = db
     return dbcls
+
 
 class Database:
     """
@@ -37,7 +38,7 @@ class Database:
 
     def __init__(self):
         self._single_thread_required = True
-    
+
     @property
     def single_thread_required(self):
         return self._single_thread_required
@@ -63,13 +64,14 @@ class Database:
     def delete_database(self):
         raise NotImplementedError("Please Implement this method")
 
+
 class Mongo(Database):
 
     key = '_id'
     _database_type = 'mongo'
 
     def _convert_objectid(self, dct):
-        return {k: v if not isinstance(v, ObjectId) else str(v) for k,v in dct.items()}
+        return {k: v if not isinstance(v, ObjectId) else str(v) for k, v in dct.items()}
 
     def __init__(self, hostname, port=27017):
         self._hostname = hostname
@@ -86,11 +88,11 @@ class Mongo(Database):
 
     def find(self, table, key=None):
         mongo_table = getattr(self._database, table)
-        if  key is None:
-            toreturn =  mongo_table.find({})
+        if key is None:
+            toreturn = mongo_table.find({})
             return [self._convert_objectid(x) for x in toreturn]
         elif isinstance(key, list):
-            data = mongo_table.find({'_id': { '$in': [ObjectId(x) for x in key]}})
+            data = mongo_table.find({'_id': {'$in': [ObjectId(x) for x in key]}})
             return [self._convert_objectid(x) for x in data]
         else:
             toreturn = mongo_table.find_one({'_id': ObjectId(key)})
@@ -104,14 +106,15 @@ class Mongo(Database):
 
     def update(self, table, key, data):
         mongo_table = getattr(self._database, table)
-        tt = mongo_table.replace_one({'_id': ObjectId(key)}, data)
-        return 
+        mongo_table.replace_one({'_id': ObjectId(key)}, data)
+        return
 
     def close(self):
         pass
 
     def delete_database(self):
         self._mongo.drop_database('database')
+
 
 class BlitzDB(Database):
 
@@ -135,7 +138,7 @@ class BlitzDB(Database):
         elif table_name == 'similarity':
             return BlitzDB.Similarity
         else:
-            log.error('BAD TABLE NAME {}'.format(table))
+            log.error('BAD TABLE NAME {}'.format(table_name))
 
     def __init__(self, filename):
         self._filename = filename
@@ -149,7 +152,7 @@ class BlitzDB(Database):
 
     def find(self, table, key=None):
         blitz_table = self._get_table(table)
-        if  key is None:
+        if key is None:
             return [dict(x) for x in self._backend.filter(blitz_table, {})]
         elif isinstance(key, list):
             return [dict(x) for x in self._backend.find(blitz_table, {'pk': {'$in': key}})]
@@ -186,6 +189,7 @@ class UnQLite(Database):
 
     # Singleton instance
     __instance = None
+
     def __new__(cls, val):
         log.info('val'.format(val))
         if UnQLite.__instance is None:
@@ -209,7 +213,7 @@ class UnQLite(Database):
 
         # Jitter in case several are starting up at the same time.
         # this might not be needed and might actually be dumb.
-        time.sleep(2*np.random.rand())
+        time.sleep(2 * np.random.rand())
         if not self.is_up():
             log.info('  database server is not up so starting it now')
             self._t = threading.Thread(target=self._start_flask, args=())
@@ -237,7 +241,7 @@ class UnQLite(Database):
         elif table_name == 'similarity':
             return self._similarity
         else:
-            log.error('BAD TABLE NAME {}'.format(table))
+            log.error('BAD TABLE NAME {}'.format(table_name))
 
     def save(self, table, data):
         """
@@ -289,9 +293,9 @@ class UnQLite(Database):
         url = '{}:{}/update/{}/'.format(self._host, self._port, table)
         log.info('unqlite save to {}'.format(url))
         payload = {
-                    'data': data,
-                    'key': key
-                  }
+            'data': data,
+            'key': key
+        }
         resp = requests.post(url, json=payload)
         return resp.json()
 
@@ -427,7 +431,7 @@ class UnQLite(Database):
         data['__id'] = key
         with self._db.transaction():
             collection.update(key, data)
-    
+
         return jsonify(key)
 
     def _convert(self, input):

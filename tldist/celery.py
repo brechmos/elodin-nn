@@ -7,12 +7,13 @@ c = ConfigParser()
 c.read('config.ini')
 
 app = Celery('tldist',
-        broker=c['processor']['celery_broker'],
-        backend=c['processor']['celery_backend'],
-        include=[
-            'tldist.fingerprint.task',
-            'tldist.similarity.task',
-            ])
+             broker=c['processor']['celery_broker'],
+             backend=c['processor']['celery_backend'],
+             include=[
+                 'tldist.fingerprint.task',
+                 'tldist.similarity.task',
+                 ]
+            )
 
 # Optional configuration, see the application user guide.
 app.conf.update(
