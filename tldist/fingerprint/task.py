@@ -12,10 +12,7 @@ import requests
 import imageio
 from io import BytesIO
 
-from tlapi.data.api import get as get_data
-from tlapi.data.api import get_array as get_array_data
 from tldist.celery import app
-
 from tldist.fingerprint.processing import Fingerprint
 from tldist.fingerprint.processing import calculate as processing_calculate
 
