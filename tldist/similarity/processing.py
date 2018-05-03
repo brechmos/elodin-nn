@@ -5,9 +5,11 @@ from scipy.sparse import csc_matrix
 import itertools
 from scipy.spatial.distance import pdist, squareform
 
+from tldist.similarity.similarity import Similarity
+
 import logging
 logging.basicConfig(format='%(levelname)-6s: %(asctime)-15s %(name)-10s %(funcName)-10s %(message)s')
-log = logging.getLogger("Similarity")
+log = logging.getLogger("SimilarityCalculator")
 log.setLevel(logging.WARNING)
 
 
@@ -33,7 +35,7 @@ def calculate(fingerprints, similarity_calculator):
     return sim.save()
 
 
-class Similarity:
+class SimilarityCalculator:
     _similarity_type = ''
 
     def __init__(self, similarity_type, *args, **kwargs):
@@ -59,7 +61,7 @@ class Similarity:
         raise NotImplementedError("Please Implement this method")
 
 
-class tSNE(Similarity):
+class tSNE(SimilarityCalculator):
 
     _similarity_type = 'tsne'
 
@@ -176,12 +178,7 @@ class tSNE(Similarity):
         log.info('Done calculation')
 
     def get_similarity(self):
-        return {
-            'uuid': self._uuid,
-            'type': 'tsne',
-            'similarity': self._Y.tolist(),
-            'fingerprints': [fp.uuid for fp in self._fingerprints]
-        }
+        return Similarity('tsne', self._Y.tolist(), [fp.uuid for fp in self._fingerprints])
 
     def load(self, thedict):
         self._uuid = thedict['uuid']
@@ -239,7 +236,7 @@ class tSNE(Similarity):
         return [(self._Y[ind], distances[ind], self._fingerprints[ind]) for ind in inds[:n]]
 
 
-class Jaccard(Similarity):
+class Jaccard(SimilarityCalculator):
     """
     Jaccard similarity implementation.  The Jaccard similarity is a set based method, which, implemented here,
     is computes the similiarity of two cutouts based on only the names of the imagenet images in the fingerprint for
@@ -300,12 +297,7 @@ class Jaccard(Similarity):
         self._fingerprint_adjacency = self.jaccard_similarities(sparse_adjacency).toarray().T
 
     def get_similarity(self):
-        return {
-            'uuid': self._uuid,
-            'type': 'jaccard',
-            'similarity': self._fingerprint_adjacency.tolist(),
-            'fingerprints': [fp.uuid for fp in self._fingerprints]
-        }
+        return Similarity('jaccard', self._fingerprint_adjacency.tolist(), [fp.uuid for fp in self._fingerprints])
 
     def save(self):
         return self.get_similarity()
@@ -371,7 +363,7 @@ class Jaccard(Similarity):
         return [((row, ind), distances[ind], self._fingerprints[ind]) for ind in inds[:n]]
 
 
-class Distance(Similarity):
+class Distance(SimilarityCalculator):
     """
     Based on https://docs.scipy.org/doc/scipy/reference/generated/scipy.spatial.distance.pdist.html#scipy.spatial.distance.pdist
     """
@@ -433,12 +425,7 @@ class Distance(Similarity):
         self._fingerprint_adjacency = squareform(pdist(self._X, metric=self._metric))
 
     def get_similarity(self):
-        return {
-            'uuid': self._uuid,
-            'type': 'distance',
-            'similarity': self._fingerprint_adjacency.tolist(),
-            'fingerprints': [x.uuid for x in self._fingerprints]
-        }
+        return Similarity('distance', self._fingerprint_adjacency.tolist(), [fp.uuid for fp in self._fingerprints])
 
     def save(self):
         return self.get_similarity()
