@@ -1,0 +1,12 @@
+unqlite
+requests
+pymongo
+numpy
+matplotlib
+imageio
+blitzdb
+celery
+keras
+tensorflow
+scikit-learn
+redis
