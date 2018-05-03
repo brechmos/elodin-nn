@@ -17,7 +17,7 @@ def chunks(l, n):
     for i in range(0, len(l), n):
         yield l[i:i + n]
 
-from transfer_learning.fingerprint import FingerprintResnet
+from tldist.fingerprint.processing import FingerprintResnet
 fresnet = FingerprintResnet()
 fc_save = fresnet.save()
 
@@ -26,7 +26,7 @@ filename_prepend = 'http://18.218.192.161:4123/ACSimages/'
 processing_dict = pickle.load(open('hubble_acs.pck', 'rb'))
 
 data = []
-for fileinfo in processing_dict[:100]:
+for fileinfo in processing_dict[:36]:
     im = {
         'uuid': str(uuid.uuid4()),
         'location': fileinfo['location'],
