@@ -7,6 +7,7 @@ import imageio
 from io import BytesIO
 
 from tldist.utils import gray2rgb
+from tldist.fingerprint.fingerprint import Fingerprint
 
 import logging
 logging.basicConfig(format='%(levelname)-6s: %(name)-10s %(asctime)-15s  %(message)s')
@@ -27,7 +28,7 @@ def calculate(data, fc_save):
         raise Exception('Data must be a list of dictionaries')
 
     # Load the fingerprint calculator based on dictionary information
-    fc = Fingerprint.load_parameters(fc_save)
+    fc = FingerprintCalculator.load_parameters(fc_save)
 
     # Now run through each datum and calculate the fingerprint
     fingerprints_return = []
@@ -61,11 +62,7 @@ def calculate(data, fc_save):
         cleaned_predictions = [(x[0], x[1], float(x[2])) for x in predictions]
 
         # Load up the return list.
-        fingerprints_return.append({
-            'uuid': str(uuid.uuid4()),
-            'data_uuid': datum['uuid'],
-            'predictions': cleaned_predictions
-        })
+        fingerprints_return.append(Fingerprint(data_uuid=datum['uuid'], predictions=cleaned_predictions))
 
     return fingerprints_return
 

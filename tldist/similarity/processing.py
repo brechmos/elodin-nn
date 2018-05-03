@@ -153,10 +153,10 @@ class tSNE(Similarity):
         for ii, fp in enumerate(fingerprints):
             log.debug('    fingerprint is {}'.format(fp))
             # Add to unique label list
-            labels.extend([pred[1] for pred in fp['predictions'] if pred[1] not in labels])
+            labels.extend([pred[1] for pred in fp.predictions if pred[1] not in labels])
 
             # Store the predictions for next processing
-            values[ii] = fp['predictions']
+            values[ii] = fp.predictions
 
             self._fingerprints.append(fp)
         log.info('Unique labels {}'.format(labels))
@@ -180,7 +180,7 @@ class tSNE(Similarity):
             'uuid': self._uuid,
             'type': 'tsne',
             'similarity': self._Y.tolist(),
-            'fingerprints': [str(x['uuid']) for x in self._fingerprints]
+            'fingerprints': [fp.uuid for fp in self._fingerprints]
         }
 
     def load(self, thedict):
@@ -287,7 +287,7 @@ class Jaccard(Similarity):
 
         self._fingerprints = fingerprints
 
-        self._predictions = [set([tt[1] for tt in x['predictions']]) for x in fingerprints]
+        self._predictions = [set([tt[1] for tt in fp.predictions]) for fp in fingerprints]
 
         up = list(set(list(itertools.chain(*[list(x) for x in self._predictions]))))
 
@@ -304,7 +304,7 @@ class Jaccard(Similarity):
             'uuid': self._uuid,
             'type': 'jaccard',
             'similarity': self._fingerprint_adjacency.tolist(),
-            'fingerprints': [str(x['uuid']) for x in self._fingerprints]
+            'fingerprints': [fp.uuid for fp in self._fingerprints]
         }
 
     def save(self):
@@ -417,10 +417,10 @@ class Distance(Similarity):
         values = {}
         for ii, fp in enumerate(fingerprints):
             # Add to unique label list
-            labels.extend([pred[1] for pred in fp['predictions'] if pred[1] not in labels])
+            labels.extend([pred[1] for pred in fp.predictions if pred[1] not in labels])
 
             # Store the predictions for next processing
-            values[ii] = fp['predictions']
+            values[ii] = fp.predictions
 
         unique_labels = list(set(labels))
         log.debug('Unique labels {}'.format(unique_labels))
@@ -437,7 +437,7 @@ class Distance(Similarity):
             'uuid': self._uuid,
             'type': 'distance',
             'similarity': self._fingerprint_adjacency.tolist(),
-            'fingerprints': [str(x['uuid']) for x in self._fingerprints]
+            'fingerprints': [x.uuid for x in self._fingerprints]
         }
 
     def save(self):
