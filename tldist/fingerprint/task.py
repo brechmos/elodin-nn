@@ -33,7 +33,7 @@ def calculate_celery(data, fc_save):
 
     # Queue up and run
     job = group([
-        calculate.s(tt, fc_save) for tt in chunks(data, len(data)//4)
+        calculate_task.s(tt, fc_save) for tt in chunks(data, len(data)//4)
     ])
     result = job.apply_async()
 
