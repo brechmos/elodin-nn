@@ -11,7 +11,7 @@ from tldist.utils import gray2rgb
 import logging
 logging.basicConfig(format='%(levelname)-6s: %(name)-10s %(asctime)-15s  %(message)s')
 log = logging.getLogger("Fingerprint")
-log.setLevel(logging.WARNING)
+log.setLevel(logging.INFO)
 
 
 def calculate(data, fc_save):
@@ -20,6 +20,7 @@ def calculate(data, fc_save):
     must be of the form
          [ {'uuid': <somtehing>, 'location': <somewhere>, 'meta': {<meta data} }... ]
     """
+    log.info('')
 
     if not isinstance(data, list) and not isinstance(data[0], dict):
         log.error('Data must be a list of dictionaries')
@@ -66,7 +67,7 @@ def calculate(data, fc_save):
             'predictions': cleaned_predictions
         })
 
-        return fingerprints_return
+    return fingerprints_return
 
 
 class Fingerprint:
