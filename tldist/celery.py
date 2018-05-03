@@ -19,8 +19,8 @@ app = Celery('tldist',
 # Optional configuration, see the application user guide.
 app.conf.update(
     CELERY_TASK_RESULT_EXPIRES = 3600,
-    CELERY_TASK_SERIALIZER = 'json',
-    CELERY_RESULT_SERIALIZER = 'json',
+    CELERY_TASK_SERIALIZER = 'pickle',
+    CELERY_RESULT_SERIALIZER = 'pickle',
     CELERY_ACCEPT_CONTENT = ['pickle', 'json']
 )
 

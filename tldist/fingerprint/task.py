@@ -14,6 +14,7 @@ from io import BytesIO
 from tldist.celery import app
 from tldist.fingerprint.processing import calculate as processing_calculate
 from tldist.data.data import Data
+from tldist.fingerprint.fingerprint import Fingerprint
 
 FORMAT = '%(levelname)-8s %(asctime)-15s %(name)-10s %(funcName)-10s %(message)s'
 logging.basicConfig(format=FORMAT)
@@ -34,9 +35,9 @@ def calculate_celery(data, fc_save):
 
     # Queue up and run
     job = group([
-        calculate_task.s([x.save() for x in tt], fc_save) for tt in chunks(data, len(data) // 4)
+        calculate_task.s(tt, fc_save) for tt in chunks(data, len(data) // 4)
     ])
-    result = job.apply_async(serializer='json')
+    result = job.apply_async()
 
     # Dispaly progress
     counts = OrderedDict({x.id: 0 for x in result.children})
@@ -50,9 +51,7 @@ def calculate_celery(data, fc_save):
 
     # Get the results (is a list of lists so need to compress them)
     r = result.get()
-    r_single_list = list(itertools.chain(*r))
-
-    return [Fingerprint.fingerprint_factory(x) for x in r_single_list]
+    return list(itertools.chain(*r))
 
 
 @app.task
