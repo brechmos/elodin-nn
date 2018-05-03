@@ -2,6 +2,10 @@ import uuid
 
 class Similarity:
 
+    @staticmethod
+    def similarity_factory(thedict):
+        return Similarity(similarity_type=thedict['similarity_type'], similarity=thedict['similarity'], fingerprint_uuids=thedict['fingerprint_uuids'])
+
     def __init__(self, similarity_type=None, similarity=None, fingerprint_uuids=[]):
         self._uuid = str(uuid.uuid4())
         self._similarity_type = similarity_type
@@ -11,6 +15,9 @@ class Similarity:
     def __str__(self):
         return 'Similarity {} based on {}...'.format(
                 self._similarity_type, self._fingerprint_uuids[:3])
+
+    def __repr__(self):
+        return self.__str__()
 
     @property
     def similarity_type(self):
