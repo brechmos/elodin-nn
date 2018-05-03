@@ -13,10 +13,11 @@ logging.basicConfig(format='%(levelname)-6s: %(name)-10s %(asctime)-15s  %(messa
 log = logging.getLogger("Fingerprint")
 log.setLevel(logging.WARNING)
 
+
 def calculate(data, fc_save):
     """
     Calculate the fingerprint from a list of data.  The data
-    must be of the form 
+    must be of the form
          [ {'uuid': <somtehing>, 'location': <somewhere>, 'meta': {<meta data} }... ]
     """
 
@@ -51,8 +52,8 @@ def calculate(data, fc_save):
         # Calculate the predictions
         log.debug('calcuating predictions for  {} data is {}'.format(datum['location'], type(nparray)))
         try:
-            predictions = fc.calculate(nparray[:224,:224])
-        except:
+            predictions = fc.calculate(nparray[:224, :224])
+        except Exception:
             predictions = []
 
         # Clean the predictions so the json conversion is happy
@@ -60,12 +61,12 @@ def calculate(data, fc_save):
 
         # Load up the return list.
         fingerprints_return.append({
-            'uuid': str(uuid.uuid4()), 
-            'data_uuid': datum['uuid'], 
+            'uuid': str(uuid.uuid4()),
+            'data_uuid': datum['uuid'],
             'predictions': cleaned_predictions
-            })
+        })
 
-    return fingerprints_return
+        return fingerprints_return
 
 
 class Fingerprint:
@@ -131,7 +132,7 @@ class Fingerprint:
                 if s >= 0 and s < N:
                     # create fingerprint
                     return subclasses[s]
-            except:
+            except Exception:
                 pass
 
     @staticmethod
@@ -221,7 +222,6 @@ class FingerprintResnet(Fingerprint):
             'class_name': self.__class__.__name__,
             'uuid': self._uuid
         }
-
 
 
 class FingerprintVGG16(Fingerprint):
@@ -387,7 +387,6 @@ class FingerprintInceptionV3(Fingerprint):
             'class_name': self.__class__.__name__,
             'uuid': self._uuid
         }
-
 
 
 class FingerprintInceptionResNetV2(Fingerprint):

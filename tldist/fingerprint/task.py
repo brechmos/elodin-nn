@@ -21,10 +21,12 @@ logging.basicConfig(format=FORMAT)
 log = logging.getLogger('fingerprint')
 log.setLevel(logging.DEBUG)
 
+
 def chunks(l, n):
     """Yield successive n-sized chunks from l."""
     for i in range(0, len(l), n):
         yield l[i:i + n]
+
 
 def calculate_celery(data, fc_save):
     """
@@ -33,7 +35,7 @@ def calculate_celery(data, fc_save):
 
     # Queue up and run
     job = group([
-        calculate_task.s(tt, fc_save) for tt in chunks(data, len(data)//4)
+        calculate_task.s(tt, fc_save) for tt in chunks(data, len(data) // 4)
     ])
     result = job.apply_async()
 
@@ -45,12 +47,13 @@ def calculate_celery(data, fc_save):
             if x.state == 'PROGRESS' and hasattr(x, 'info') and 'progress' in x.info:
                 counts[x.id] = x.info['progress']
 
-        print('\rCalculating fingerprints: {}'.format([v for k,v in counts.items()]), end='')
+        print('\rCalculating fingerprints: {}'.format([v for k, v in counts.items()]), end='')
 
     # Get the results (is a list of lists so need to compress them)
-    r =  result.get()
+    r = result.get()
 
     return list(itertools.chain(*r))
+
 
 @app.task
 def calculate_task(data, fc_save):
