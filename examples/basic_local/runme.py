@@ -11,7 +11,7 @@ import os.path
 def stringify(dictionary):
     return {k: str(v) for k, v in dictionary.items()}
 
-from transfer_learning.fingerprint import FingerprintResnet
+from tldist.fingerprint.processing import FingerprintResnet
 fresnet = FingerprintResnet()
 fc_save = fresnet.save()
 
