@@ -156,7 +156,7 @@ class BlitzDB(Database):
         if key is None:
             return [dict(x) for x in self._backend.filter(blitz_table, {})]
         elif isinstance(key, list):
-            return [dict(x) for x in self._backend.find(blitz_table, {'pk': {'$in': key}})]
+            return [dict(x) for x in self._backend.filter(blitz_table, {'pk': {'$in': key}})]
         else:
             return dict(self._backend.get(blitz_table, {'pk': key}))
 
