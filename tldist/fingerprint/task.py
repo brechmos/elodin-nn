@@ -34,9 +34,9 @@ def calculate_celery(data, fc_save):
 
     # Queue up and run
     job = group([
-        calculate_task.s(tt, fc_save) for tt in chunks(data, len(data) // 4)
+        calculate_task.s([x.save() for x in tt], fc_save) for tt in chunks(data, len(data) // 4)
     ])
-    result = job.apply_async(serializer='pickle')
+    result = job.apply_async(serializer='json')
 
     # Dispaly progress
     counts = OrderedDict({x.id: 0 for x in result.children})
@@ -52,7 +52,7 @@ def calculate_celery(data, fc_save):
     r = result.get()
     r_single_list = list(itertools.chain(*r))
 
-    return r_single_list
+    return [Fingerprint.fingerprint_factory(x) for x in r_single_list]
 
 
 @app.task

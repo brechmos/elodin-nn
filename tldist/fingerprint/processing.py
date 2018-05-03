@@ -24,9 +24,14 @@ def calculate(data, fc_save):
     """
     log.info('')
 
-    if not isinstance(data, list) and not isinstance(data[0], Data):
+    if not isinstance(data, list) and not isinstance(data[0], (dict, Data)):
         log.error('Data must be a list of dictionaries')
         raise Exception('Data must be a list of dictionaries')
+
+    deserialize = False
+    if isinstance(data[0], dict):
+        data = [Data.data_factory(x) for x in data]
+        deserialize = True
 
     # Load the fingerprint calculator based on dictionary information
     fc = FingerprintCalculator.load_parameters(fc_save)
@@ -60,6 +65,9 @@ def calculate(data, fc_save):
 
         # Load up the return list.
         fingerprints_return.append(Fingerprint(data_uuid=datum.uuid, predictions=cleaned_predictions))
+
+    if deserialize == True:
+        fingerprints_return = [x.save() for x in fingerprints_return]
 
     return fingerprints_return
 
