@@ -70,7 +70,7 @@ def calculate(data, fc_save):
     return fingerprints_return
 
 
-class Fingerprint:
+class FingerprintCalculator:
 
     # What is currently happening is the Fingerprint calculator gets created for each TransferLearningProcessData
     # instance which is not good. What we want to do is create an instance if one does not exist with the
@@ -112,7 +112,7 @@ class Fingerprint:
 
         :return:  selected class
         """
-        subclasses = Fingerprint.__subclasses__()
+        subclasses = FingerprintCalculator.__subclasses__()
 
         selected = False
         N = 0
@@ -139,11 +139,11 @@ class Fingerprint:
     @staticmethod
     def load_parameters(parameters):
         # First let's see if we have an instance with this UUID already created
-        newinstance = Fingerprint.getinstances(parameters['uuid'])
+        newinstance = FingerprintCalculator.getinstances(parameters['uuid'])
 
         if newinstance is None:
             # If there is not an instance with that uuid, THEN we will create a new instance of that subclass
-            for class_ in Fingerprint.__subclasses__():
+            for class_ in FingerprintCalculator.__subclasses__():
                 if class_.__name__ == parameters['class_name']:
                     tt = class_()
                     tt.load(parameters)
@@ -162,27 +162,27 @@ class Fingerprint:
         self._uuid = parameters['uuid']
 
 
-class FingerprintResnet(Fingerprint):
+class FingerprintCalculatorResnet(FingerprintCalculator):
 
     def __init__(self, max_fingerprints=200):
-        super(FingerprintResnet, self).__init__()
+        super(FingerprintCalculatorResnet, self).__init__()
 
         from keras.applications.resnet50 import ResNet50
 
         # Load it when needed in calculate()
-        log.debug('FingerprintResnet __init__')
+        log.debug('FingerprintCalculatorResnet __init__')
         self._model = ResNet50(weights='imagenet')
 
         self._max_fingerprints = max_fingerprints
 
     def __str__(self):
-        return 'Fingerprint (renet50, imagenet)'
+        return 'FingerprintCalculator (renet50, imagenet)'
 
     def calculate(self, data):
         from keras.applications.resnet50 import preprocess_input as preprocess_input
         from keras.applications.resnet50 import decode_predictions as decode_predictions
 
-        log.debug('FingerprintResnet: calculate')
+        log.debug('FingerprintCalculatorResnet: calculate')
 
         # if self._model is None:
         #     self._model = ResNet50(weights='imagenet')
@@ -225,10 +225,10 @@ class FingerprintResnet(Fingerprint):
         }
 
 
-class FingerprintVGG16(Fingerprint):
+class FingerprintCalculatorVGG16(FingerprintCalculator):
 
     def __init__(self, max_fingerprints=200):
-        super(FingerprintVGG16, self).__init__()
+        super(FingerprintCalculatorVGG16, self).__init__()
 
         from keras.applications.vgg16 import VGG16
         self._model = VGG16(weights='imagenet')
@@ -236,7 +236,7 @@ class FingerprintVGG16(Fingerprint):
         self._max_fingerprints = max_fingerprints
 
     def __str__(self):
-        return 'Fingerprint (vgg16, imagenet)'
+        return 'FingerprintCalculator (vgg16, imagenet)'
 
     def calculate(self, data):
         from keras.applications.vgg16 import preprocess_input
@@ -280,10 +280,10 @@ class FingerprintVGG16(Fingerprint):
         }
 
 
-class FingerprintVGG19(Fingerprint):
+class FingerprintCalculatorVGG19(FingerprintCalculator):
 
     def __init__(self, max_fingerprints=200):
-        super(FingerprintVGG19, self).__init__()
+        super(FingerprintCalculatorVGG19, self).__init__()
 
         from keras.applications.vgg19 import VGG19
         self._model = VGG19(weights='imagenet')
@@ -291,7 +291,7 @@ class FingerprintVGG19(Fingerprint):
         self._max_fingerprints = max_fingerprints
 
     def __str__(self):
-        return 'Fingerprint (vgg19, imagenet)'
+        return 'FingerprintCalculator (vgg19, imagenet)'
 
     def calculate(self, data):
         from keras.applications.vgg19 import preprocess_input
@@ -335,10 +335,10 @@ class FingerprintVGG19(Fingerprint):
         }
 
 
-class FingerprintInceptionV3(Fingerprint):
+class FingerprintCalculatorInceptionV3(FingerprintCalculator):
 
     def __init__(self, max_fingerprints=200):
-        super(FingerprintInceptionV3, self).__init__()
+        super(FingerprintCalculatorInceptionV3, self).__init__()
 
         from keras.applications.inception_v3 import InceptionV3
         self._model = InceptionV3(weights='imagenet')
@@ -346,7 +346,7 @@ class FingerprintInceptionV3(Fingerprint):
         self._max_fingerprints = max_fingerprints
 
     def __str__(self):
-        return 'Fingerprint (inception_v3, imagenet)'
+        return 'FingerprintCalculator (inception_v3, imagenet)'
 
     def calculate(self, data):
         from keras.applications.inception_v3 import preprocess_input
@@ -390,10 +390,10 @@ class FingerprintInceptionV3(Fingerprint):
         }
 
 
-class FingerprintInceptionResNetV2(Fingerprint):
+class FingerprintCalculatorInceptionResNetV2(FingerprintCalculator):
 
     def __init__(self, max_fingerprints):
-        super(FingerprintInceptionResNetV2, self).__init__()
+        super(FingerprintCalculatorInceptionResNetV2, self).__init__()
 
         from keras.applications.inception_resnet_v2 import InceptionResNetV2
         self._model = InceptionResNetV2(weights='imagenet')
@@ -401,7 +401,7 @@ class FingerprintInceptionResNetV2(Fingerprint):
         self._max_fingerprints = max_fingerprints
 
     def __str__(self):
-        return 'Fingerprint (inception_resnet_v2, imagenet)'
+        return 'FingerprintCalculator (inception_resnet_v2, imagenet)'
 
     def calculate(self, data):
         from keras.applications.inception_resnet_v2 import preprocess_input

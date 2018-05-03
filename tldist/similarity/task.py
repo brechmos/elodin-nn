@@ -10,7 +10,6 @@ import logging
 import json
 import time
 
-from tldist.fingerprint.processing import Fingerprint
 from tldist.similarity.processing import calculate as similarity_calculate
 from .processing import tSNE, Jaccard, Distance
 

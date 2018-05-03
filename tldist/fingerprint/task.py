@@ -13,7 +13,6 @@ import imageio
 from io import BytesIO
 
 from tldist.celery import app
-from tldist.fingerprint.processing import Fingerprint
 from tldist.fingerprint.processing import calculate as processing_calculate
 
 FORMAT = '%(levelname)-8s %(asctime)-15s %(name)-10s %(funcName)-10s %(message)s'
