@@ -11,7 +11,7 @@ import logging
 import json
 
 from tldist.fingerprint.processing import Fingerprint
-from tldist.fingerprint.processing import calculate as similarity_calculate
+from tldist.similarity.processing import calculate as similarity_calculate
 from .processing import tSNE, Jaccard, Distance
 
 FORMAT = '%(levelname)-8s %(asctime)-15s %(name)-10s %(message)s'
