@@ -2,8 +2,8 @@ import uuid
 import pickle
 
 from tldist.fingerprint.processing import FingerprintResnet
-from tldist.fingerprint.task import calculate_celery
-from tldist.similarity.task import similarity_celery
+from tldist.fingerprint.task import calculate_celery as calculate_fingerprints
+from tldist.similarity.task import similarity_celery as calculate_similarity
 
 
 def stringify(dictionary):
@@ -33,10 +33,10 @@ for fileinfo in processing_dict[:36]:
     # data_client.save(im)
     data.append(im)
 
-fingerprints = calculate_celery(data, fc_save)
+fingerprints = calculate_fingerprints(data, fc_save)
 
 # fingerprints = fingerprint_client.get()
 # print('fingerprint pks {}'.format([str(x[db.key]) for x in fingerprints]))
 
-similarity_tsne = similarity_celery(fingerprints, 'tsne')
-similarity_jaccard = similarity_celery(fingerprints, 'jaccard')
+similarity_tsne = calculate_similarity(fingerprints, 'tsne')
+similarity_jaccard = calculate_similarity(fingerprints, 'jaccard')
