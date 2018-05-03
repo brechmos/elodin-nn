@@ -2,16 +2,13 @@ import sys
 from collections import OrderedDict
 import numpy as np
 import threading
-import time import itertools
+import time 
+import itertools
 
 from tldist.celery import app
 from celery import group
-from tlapi.fingerprint.api import get as get_fingerprint
-from tlapi.fingerprint import client as fingerprint_client
 import logging
 import json
-from tlapi.utils import gzipped
-from tlapi.similarity import processing as similarity_processing
 
 from tldist.fingerprint.processing import Fingerprint
 from tldist.fingerprint.processing import calculate as similarity_calculate
