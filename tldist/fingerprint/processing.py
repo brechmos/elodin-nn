@@ -8,6 +8,7 @@ from io import BytesIO
 
 from tldist.utils import gray2rgb
 from tldist.fingerprint.fingerprint import Fingerprint
+from tldist.data.data import Data
 
 import logging
 logging.basicConfig(format='%(levelname)-6s: %(name)-10s %(asctime)-15s  %(message)s')
@@ -23,7 +24,7 @@ def calculate(data, fc_save):
     """
     log.info('')
 
-    if not isinstance(data, list) and not isinstance(data[0], dict):
+    if not isinstance(data, list) and not isinstance(data[0], Data):
         log.error('Data must be a list of dictionaries')
         raise Exception('Data must be a list of dictionaries')
 
@@ -39,20 +40,16 @@ def calculate(data, fc_save):
             calculate.update_state(state='PROGRESS', meta={'progress': ii})
 
         # Load the data
-        if 'location' not in datum:
-            log.error('Data does not have a location key {}'.format(datum))
-            raise Exception('Data does not have a location key {}'.format(datum))
-
-        response = requests.get(datum['location'])
+        response = requests.get(datum.location)
 
         if not response.status_code == 200:
-            log.error('Problem loading the data {}'.format(datum['location']))
-            raise Exception('Problem loading the data {}'.format(datum['location']))
+            log.error('Problem loading the data {}'.format(datum.location))
+            raise Exception('Problem loading the data {}'.format(datum.location))
 
         nparray = np.array(imageio.imread(BytesIO(response.content)))
 
         # Calculate the predictions
-        log.debug('calcuating predictions for  {} data is {}'.format(datum['location'], type(nparray)))
+        log.debug('calcuating predictions for  {} data is {}'.format(datum.location, type(nparray)))
         try:
             predictions = fc.calculate(nparray[:224, :224])
         except Exception:
@@ -62,7 +59,7 @@ def calculate(data, fc_save):
         cleaned_predictions = [(x[0], x[1], float(x[2])) for x in predictions]
 
         # Load up the return list.
-        fingerprints_return.append(Fingerprint(data_uuid=datum['uuid'], predictions=cleaned_predictions))
+        fingerprints_return.append(Fingerprint(data_uuid=datum.uuid, predictions=cleaned_predictions))
 
     return fingerprints_return
 

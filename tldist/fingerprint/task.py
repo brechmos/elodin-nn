@@ -7,13 +7,13 @@ import itertools
 
 from celery import group
 import numpy as np
-import json
 import requests
 import imageio
 from io import BytesIO
 
 from tldist.celery import app
 from tldist.fingerprint.processing import calculate as processing_calculate
+from tldist.data.data import Data
 
 FORMAT = '%(levelname)-8s %(asctime)-15s %(name)-10s %(funcName)-10s %(message)s'
 logging.basicConfig(format=FORMAT)
@@ -36,7 +36,7 @@ def calculate_celery(data, fc_save):
     job = group([
         calculate_task.s(tt, fc_save) for tt in chunks(data, len(data) // 4)
     ])
-    result = job.apply_async()
+    result = job.apply_async(serializer='pickle')
 
     # Dispaly progress
     counts = OrderedDict({x.id: 0 for x in result.children})
@@ -50,10 +50,12 @@ def calculate_celery(data, fc_save):
 
     # Get the results (is a list of lists so need to compress them)
     r = result.get()
+    r_single_list = list(itertools.chain(*r))
 
-    return list(itertools.chain(*r))
+    return r_single_list
 
 
 @app.task
 def calculate_task(data, fc_save):
+    log.debug('data[0] is of type {} and is {}'.format(type(data[0]), data[0]))
     return processing_calculate(data, fc_save)

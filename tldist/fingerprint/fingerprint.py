@@ -2,6 +2,10 @@ import uuid
 
 class Fingerprint:
 
+    @staticmethod
+    def fingerprint_factory(thedict):
+        return Fingerprint(data_uuid=thedict['data_uuid'], predictions=thedict['predictions'])
+
     def __init__(self, data_uuid=None, predictions=[]):
         self._uuid = str(uuid.uuid4())
         self._data_uuid = data_uuid

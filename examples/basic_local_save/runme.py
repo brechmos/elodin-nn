@@ -3,14 +3,12 @@ import pickle
 import os
 import shutil
 
-from tldist.fingerprint.processing import FingerprintResnet
+from tldist.fingerprint.processing import FingerprintCalculatorResnet
 from tldist.fingerprint.processing import calculate as fingerprint_calculate
 from tldist.similarity.processing import calculate as similarity_calculate
+from tldist.data.data import Data
 from tldist.database import get_database
 
-
-def stringify(dictionary):
-    return {k: str(v) for k, v in dictionary.items()}
 
 
 # Create the database
@@ -30,29 +28,24 @@ processing_dict = pickle.load(open('../data/hubble_acs.pck', 'rb'))
 print('Setting up the data structure required')
 data = []
 for fileinfo in processing_dict[:20]:
-    im = {
-        'uuid': str(uuid.uuid4()),
-        'location': fileinfo['location'],
-        'radec': fileinfo['radec'],
-        'meta': stringify(fileinfo['meta'])
-    }
+    im = Data(location=fileinfo['location'], radec=fileinfo['radec'], meta=fileinfo['meta'])
     data.append(im)
-    db.save('data', im)
+    db.save('data', im.save())
 
 # Create the fingerprint calculator... fingerprint
 print('Creating the info for the fingerprint calculator')
-fresnet = FingerprintResnet()
+fresnet = FingerprintCalculatorResnet()
 fc_save = fresnet.save()
 
 print('Calculating the fingerprints')
 fingerprints = fingerprint_calculate(data, fc_save)
-print([x['uuid'] for x in fingerprints])
-[db.save('fingerprint', x) for x in fingerprints]
+print([fp.uuid for fp in fingerprints])
+[db.save('fingerprint', x.save()) for x in fingerprints]
 
 print('Calculating the tSNE similarity')
 similarity_tsne = similarity_calculate(fingerprints, 'tsne')
-db.save('similarity', similarity_tsne)
+db.save('similarity', similarity_tsne.save())
 
 print('Calculating the Jaccard similarity')
 similarity_jaccard = similarity_calculate(fingerprints, 'jaccard')
-db.save('similarity', similarity_tsne)
+db.save('similarity', similarity_tsne.save())

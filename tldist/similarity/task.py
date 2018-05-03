@@ -29,7 +29,7 @@ def similarity_celery(fingerprints, sim):
     job = group([
         calculate.s(fingerprints, sim)
     ])
-    celery_result = job.apply_async()
+    celery_result = job.apply_async(serializer='pickle')
 
     # Show the progress (not really needed)
     counts = OrderedDict({x.id: 0 for x in celery_result.children})

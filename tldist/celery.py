@@ -6,6 +6,7 @@ from configparser import ConfigParser
 c = ConfigParser()
 c.read('config.ini')
 
+
 app = Celery('tldist',
              broker=c['processor']['celery_broker'],
              backend=c['processor']['celery_backend'],
@@ -17,7 +18,10 @@ app = Celery('tldist',
 
 # Optional configuration, see the application user guide.
 app.conf.update(
-    result_expires=3600,
+    CELERY_TASK_RESULT_EXPIRES = 3600,
+    CELERY_TASK_SERIALIZER = 'pickle',
+    CELERY_RESULT_SERIALIZER = 'pickle',
+    CELERY_ACCEPT_CONTENT = ['pickle']
 )
 
 if __name__ == '__main__':
