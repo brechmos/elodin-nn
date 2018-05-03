@@ -2,7 +2,6 @@ import sys
 from collections import OrderedDict
 import numpy as np
 import threading
-import time 
 import itertools
 
 from tldist.celery import app
@@ -18,6 +17,7 @@ FORMAT = '%(levelname)-8s %(asctime)-15s %(name)-10s %(message)s'
 logging.basicConfig(format=FORMAT)
 log = logging.getLogger('similarity')
 log.setLevel(logging.DEBUG)
+
 
 def similarity_celery(fingerprints, sim):
     """
@@ -41,7 +41,7 @@ def similarity_celery(fingerprints, sim):
             if x.state == 'PROGRESS' and hasattr(x, 'info') and 'progress' in x.info:
                 counts[x.id] = x.info['progress']
 
-        print('\r{}'.format([v for k,v in counts.items()]), end='')
+        print('\r{}'.format([v for k, v in counts.items()]), end='')
 
     # Get the results (will be a list of lists)
     r = celery_result.get()
@@ -49,6 +49,7 @@ def similarity_celery(fingerprints, sim):
     # In this case, there is a list returned with one dict element. If this
     # changes in the future then we'll have to modify this to be something different.
     return r[0]
+
 
 @app.task
 def calculate(fingerprints, similarity_calculator):

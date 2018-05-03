@@ -10,7 +10,6 @@ logging.basicConfig(format='%(levelname)-6s: %(asctime)-15s %(name)-10s %(funcNa
 log = logging.getLogger("Similarity")
 log.setLevel(logging.WARNING)
 
-# https://stackoverflow.com/questions/456672/class-factory-in-python
 
 def calculate(fingerprints, similarity_calculator):
     """
@@ -136,7 +135,7 @@ class tSNE(Similarity):
                     s = int(s)
                     if s >= 0 and s < N:
                         self._distance_measure = self._distance_measures[s]
-                except:
+                except Exception:
                     pass
         else:
             if distance_measure in self._distance_measures:
@@ -212,10 +211,10 @@ class tSNE(Similarity):
             raise ValueError('Plot type {} is not in the valid list {}'.format(self._display_type, self._display_types))
 
     def _display_plot(self, tsne_axis):
-#        colors = ['b', 'g', 'r', 'c', 'm', 'y', 'k', 'w']
-#        for ii, fi in enumerate(set(self._filename_index)):
-#            inds = np.nonzero(self._filename_index == fi)[0]
-        tsne_axis.plot(self._Y[:, 0], self._Y[:, 1], '.')#, '{}.'.format(colors[ii%len(colors)]))
+        # colors = ['b', 'g', 'r', 'c', 'm', 'y', 'k', 'w']
+        # for ii, fi in enumerate(set(self._filename_index)):
+        #     inds = np.nonzero(self._filename_index == fi)[0]
+        tsne_axis.plot(self._Y[:, 0], self._Y[:, 1], '.')
         tsne_axis.grid('on')
         tsne_axis.set_title('tSNE [{}]'.format(self._distance_measure))
 
@@ -225,7 +224,7 @@ class tSNE(Similarity):
         tsne_axis.set_title('tSNE [{}]'.format(self._distance_measure))
 
         # Set the color limits so that it is a little brighter
-        limmax = np.percentile(output.get_array(),99.9)
+        limmax = np.percentile(output.get_array(), 99.9)
         output.set_clim((0, limmax))
 
         return output
@@ -238,6 +237,7 @@ class tSNE(Similarity):
         log.debug('Size of the fingerprint list {}'.format(len(self._fingerprints)))
 
         return [(self._Y[ind], distances[ind], self._fingerprints[ind]) for ind in inds[:n]]
+
 
 class Jaccard(Similarity):
     """
@@ -369,6 +369,7 @@ class Jaccard(Similarity):
         log.debug('Size of the fingerprint list {}'.format(len(self._fingerprints)))
 
         return [((row, ind), distances[ind], self._fingerprints[ind]) for ind in inds[:n]]
+
 
 class Distance(Similarity):
     """
