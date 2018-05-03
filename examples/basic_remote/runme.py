@@ -22,8 +22,7 @@ fresnet = FingerprintResnet()
 fc_save = fresnet.save()
 
 # Load the data
-filename_prepend = 'http://18.218.192.161:4123/ACSimages/'
-processing_dict = pickle.load(open('hubble_acs.pck', 'rb'))
+processing_dict = pickle.load(open('../data/hubble_acs.pck', 'rb'))
 
 data = []
 for fileinfo in processing_dict[:36]:
