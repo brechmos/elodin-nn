@@ -10,3 +10,4 @@ keras
 tensorflow
 scikit-learn
 redis
+ipython
