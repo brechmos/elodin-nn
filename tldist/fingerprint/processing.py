@@ -166,7 +166,7 @@ class FingerprintCalculator:
 
 class FingerprintCalculatorResnet(FingerprintCalculator):
 
-    def __init__(self, max_fingerprints=200):
+    def __init__(self, max_fingerprints=9999):
         super(FingerprintCalculatorResnet, self).__init__()
 
         from keras.applications.resnet50 import ResNet50

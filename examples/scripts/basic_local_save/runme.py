@@ -5,8 +5,8 @@ import shutil
 
 from tldist.fingerprint.processing import FingerprintCalculatorResnet
 from tldist.fingerprint.processing import calculate as fingerprint_calculate
-from tldist.similarity.processing import calculate as similarity_calculate
-from tldist.data.data import Data
+from tldist.similarity.similarity import calculate as similarity_calculate
+from tldist.data import Data
 from tldist.database import get_database
 
 
@@ -22,11 +22,11 @@ db = get_database('blitzdb', DB_LOC)
 
 # Load the data
 print('Loading the Hubble meta data and location information')
-processing_dict = pickle.load(open('../data/hubble_acs.pck', 'rb'))
+processing_dict = pickle.load(open('../../data/hubble_acs.pck', 'rb'))
 
 print('Setting up the data structure required')
 data = []
-for fileinfo in processing_dict[:20]:
+for fileinfo in processing_dict[:10]:
     im = Data(location=fileinfo['location'], radec=fileinfo['radec'], meta=fileinfo['meta'])
     data.append(im)
     db.save('data', im.save())
@@ -47,4 +47,4 @@ db.save('similarity', similarity_tsne.save())
 
 print('Calculating the Jaccard similarity')
 similarity_jaccard = similarity_calculate(fingerprints, 'jaccard')
-db.save('similarity', similarity_tsne.save())
+db.save('similarity', similarity_jaccard.save())
