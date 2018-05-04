@@ -225,13 +225,15 @@ class Aitoff(object):
         self._axis.set_ylabel('DEC')
         self._onmove_point = None
         self._onclick_points = {}
-        self._axis_background = self._axis.get_figure().canvas.copy_from_bbox(self._axis.bbox)
         self._axis_text_labels = []
 
         self._axis_aitoff_text_labels = []
         
         self._onmove_point = None
         self._onmove_color = (0.1, 0.6, 0.1)    
+
+        self._axis.get_figure().canvas.draw()
+        self._axis_background = self._axis.get_figure().canvas.copy_from_bbox(self._axis.bbox)
  
     def convert_ra_dec(self, ra, dec):
         if ra is not None and dec is not None:
@@ -263,7 +265,7 @@ class Aitoff(object):
                 self._onclick_points[ii] = self._axis.plot(ra, dec, 'bo', label=str(ii))
             points.append([ra,dec])
 
-        self._axis.get_figure().canvas.restore_region(self.axis_background)
+        self._axis.get_figure().canvas.restore_region(self._axis_background)
 
         # annotate the points in the aitoff plot
         points = np.array(points)
@@ -286,14 +288,15 @@ class Aitoff(object):
 
         self._axis.get_figure().canvas.blit(self._axis.bbox)
 
-        self.axis_background = self._axis.get_figure().canvas.copy_from_bbox(self._axis.bbox) 
+        self._axis.get_figure().canvas.draw()
+        self._axis_background = self._axis.get_figure().canvas.copy_from_bbox(self._axis.bbox) 
 
     def on_move(self, radec):
         try:
             ra, dec = self.convert_ra_dec(radec[0], radec[1])
 
             # Update the mbitoff figure as well
-            self._axis.get_figure().canvas.restore_region(self.axis_background)
+            self._axis.get_figure().canvas.restore_region(self._axis_background)
 
             if self._onmove_point is not None:
                 self._onmove_point[0].set_data(ra, dec)
