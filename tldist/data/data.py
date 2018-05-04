@@ -1,5 +1,9 @@
 import uuid
 import json
+import numpy as np
+import imageio
+import requests
+from io import BytesIO
 
 def stringify(dictionary):
     return {k: str(v) for k, v in dictionary.items()}
@@ -52,8 +56,14 @@ class Data:
     def meta(self, value):
         self._meta = value
 
-    def toJSON(self):
-        return json.dumps(self.save())
+    def get_data(self):
+        response = requests.get(self.location)
+
+        if not response.status_code == 200:
+            log.error('Problem loading the data {}'.format(datum.location))
+            raise Exception('Problem loading the data {}'.format(datum.location))
+
+        return np.array(imageio.imread(BytesIO(response.content)))
 
     def save(self):
         return {
