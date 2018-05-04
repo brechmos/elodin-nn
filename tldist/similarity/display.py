@@ -182,6 +182,7 @@ class SimilarImages(object):
 class Image(object):
     def __init__(self, axes_limits):
         self._axes = plt.axes(axes_limits)
+        self._axes_data = None
                           
     def store(self, thedict):
         self._axes._imdata = thedict
@@ -194,8 +195,9 @@ class Image(object):
         self._axes.set_yticks([])
         self._axes.set_xlabel('')
         self._axes.set_ylabel('')
-        self._axes.imshow(data, cmap=plt.gray())
-    
+
+        self._axes_data = self._axes.imshow(data, cmap=plt.gray())
+
         if title:
             self._axes.set_title(title, fontsize=8)
     
