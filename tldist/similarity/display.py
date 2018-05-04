@@ -305,9 +305,10 @@ class Aitoff(object):
         except Exception as e:
             log.error('display point {}'.format(e))
             
-db = get_database('blitzdb', '/tmp/basic_notebook.db')
-similarities = db.find('similarity')
-similarity_tsne = Similarity.similarity_factory(similarities[0])
+if __name__ == '__main__':
+    db = get_database('blitzdb', '/tmp/basic_notebook.db')
+    similarities = db.find('similarity')
+    similarity_tsne = Similarity.similarity_factory(similarities[0])
 
-simdisp = SimilarityDisplay(similarity_tsne, db)
+    simdisp = SimilarityDisplay(similarity_tsne, db)
 
