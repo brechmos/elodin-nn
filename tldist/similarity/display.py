@@ -26,6 +26,8 @@ class SimilarityDisplay(object):
     
     def __init__(self, similarity, db):
         
+        plt.ion()
+
         self._similarity = similarity
         self._db = db
         
@@ -44,7 +46,7 @@ class SimilarityDisplay(object):
         self._move_processing_callback = False
         
         # The AITOFF plot
-        self._aitoff_axis = Aitoff([0.1, 0.5, 0.4, 0.4], self)
+        self._aitoff_axis = Aitoff([0.1, 0.55, 0.4, 0.4])
         
         # Display the similarity matrix based on display method in 
         # the similarity subclass (e.g,. tSNE, Jaccard etc)
@@ -64,6 +66,8 @@ class SimilarityDisplay(object):
             data = db.find('data', data_uuid)
             d = Data.data_factory(data)
             self._similar_images_axis.set_image(ii, d.get_data(), os.path.basename(d.location), fingerprints[ii])
+
+        plt.show()
     
     def _move_callback(self, event):
         """
@@ -195,6 +199,9 @@ class Image(object):
         if title:
             self._axes.set_title(title, fontsize=8)
     
+        self._axes.get_figure().canvas.blit(self._axes.bbox)
+        self._axes.redraw_in_frame()
+
     def plot(self, x, y, title=''):
         self._axes.plot(x, y, '.')
         if title:
@@ -208,8 +215,7 @@ class Image(object):
     
 class Aitoff(object):
 
-    def __init__(self, axes_limits, parent):
-        self._parent = parent
+    def __init__(self, axes_limits):
         self._axes_limits = axes_limits
 
         # If we have ra_dec then let's display the Aitoff projection axis
@@ -219,10 +225,9 @@ class Aitoff(object):
         self._axis.set_ylabel('DEC')
         self._onmove_point = None
         self._onclick_points = {}
-        self._axis_background = self._parent._figure.canvas.copy_from_bbox(self._axis.bbox)
+        self._axis_background = self._axis.get_figure().canvas.copy_from_bbox(self._axis.bbox)
         self._axis_text_labels = []
 
-        self.axis_aitoff_background = self._parent._figure.canvas.copy_from_bbox(self._axis.bbox)
         self._axis_aitoff_text_labels = []
         
         self._onmove_point = None
@@ -258,7 +263,7 @@ class Aitoff(object):
                 self._onclick_points[ii] = self._axis.plot(ra, dec, 'bo', label=str(ii))
             points.append([ra,dec])
 
-        self._parent._figure.canvas.restore_region(self.axis_aitoff_background)
+        self._axis.get_figure().canvas.restore_region(self.axis_background)
 
         # annotate the points in the aitoff plot
         points = np.array(points)
@@ -279,16 +284,16 @@ class Aitoff(object):
             self._axis_aitoff_text_labels.append(tt)
             self._axis.draw_artist(tt)
 
-        self._parent._figure.canvas.blit(self._axis.bbox)
+        self._axis.get_figure().canvas.blit(self._axis.bbox)
 
-        self.axis_aitoff_background = self._parent._figure.canvas.copy_from_bbox(self._axis.bbox) 
+        self.axis_background = self._axis.get_figure().canvas.copy_from_bbox(self._axis.bbox) 
 
     def on_move(self, radec):
         try:
             ra, dec = self.convert_ra_dec(radec[0], radec[1])
 
             # Update the mbitoff figure as well
-            self._parent._figure.canvas.restore_region(self.axis_aitoff_background)
+            self._axis.get_figure().canvas.restore_region(self.axis_background)
 
             if self._onmove_point is not None:
                 self._onmove_point[0].set_data(ra, dec)
@@ -296,7 +301,7 @@ class Aitoff(object):
                 self._onmove_point = self._axis.plot(ra, dec,
                         'o', color=self._onmove_color)
                 
-            self._parent._figure.canvas.blit(self._axis.bbox)    
+            self._axis.get_figure().canvas.blit(self._axis.bbox)    
         except Exception as e:
             log.error('display point {}'.format(e))
             
