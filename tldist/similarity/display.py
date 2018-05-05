@@ -35,7 +35,7 @@ class SimilarityDisplay(object):
         self._figure = plt.figure(2, figsize=[10,6])
         
         # The NxM set of similar images
-        self._similar_images_axis = SimilarImages([0.5, 0.5, 0.4, 0.4], [3, 3], db)
+        self._similar_images_axis = SimilarImages([0.5, 0.4, 0.4, 0.5], [3, 3], db)
 
         # The current image displayed as one moves around the
         # similarity plot (e.g., tSNE)
@@ -65,7 +65,7 @@ class SimilarityDisplay(object):
             data_uuid = f.data_uuid
             data = self._db.find('data', data_uuid)
             d = Data.data_factory(data)
-            self._similar_images_axis.set_image(ii, d.get_data(), os.path.basename(d.location), fingerprints[ii])
+            self._similar_images_axis.set_image(ii, d.get_data(), str(ii) + ') ' + os.path.basename(d.location), fingerprints[ii])
 
         plt.show()
     
@@ -149,8 +149,8 @@ class SimilarImages(object):
             for ci in range(self._rows_cols[1]):
                 row_size = axes_limits[2] / rows_cols[0]
                 col_size = axes_limits[3] / rows_cols[1]
-                sub_limits = [axes_limits[0]+(row_size + 0.02)*ri, 
-                              axes_limits[1]+(col_size + 0.02)*ci, 
+                sub_limits = [axes_limits[0]+(row_size + 0.02)*ri,
+                              axes_limits[1]+(col_size + 0.02)*ci,
                               row_size, 
                               col_size]
                 
