@@ -35,7 +35,7 @@ class SimilarityDisplay(object):
         self._figure = plt.figure(2, figsize=[10,6])
         
         # The NxM set of similar images
-        self._similar_images_axis = SimilarImages([0.5, 0.5, 0.4, 0.4], [3, 3])
+        self._similar_images_axis = SimilarImages([0.5, 0.5, 0.4, 0.4], [3, 3], db)
 
         # The current image displayed as one moves around the
         # similarity plot (e.g., tSNE)
@@ -59,11 +59,11 @@ class SimilarityDisplay(object):
     
         # Initialize the 9 similar images with the first 9 fingerprints
         # TODO: Fix this so it is the first and the actual similar ones
-        fingerprints = db.find('fingerprint')
+        fingerprints = self._db.find('fingerprint')
         for ii in range(9):
             f = Fingerprint.fingerprint_factory(fingerprints[ii])
             data_uuid = f.data_uuid
-            data = db.find('data', data_uuid)
+            data = self._db.find('data', data_uuid)
             d = Data.data_factory(data)
             self._similar_images_axis.set_image(ii, d.get_data(), os.path.basename(d.location), fingerprints[ii])
 
@@ -87,10 +87,10 @@ class SimilarityDisplay(object):
             if not fingerprint_uuid == self._current_image_axis_fingerprint_uuid and (now - self._current_image_axis_time_update) > 0.5:
                 self._current_image_axis_fingerprint_uuid = fingerprint_uuid
                 
-                fingerprint = db.find('fingerprint', fingerprint_uuid)
+                fingerprint = self._db.find('fingerprint', fingerprint_uuid)
                 
                 # Get the data location
-                data = db.find('data', fingerprint['data_uuid'])
+                data = self._db.find('data', fingerprint['data_uuid'])
                 d = Data.data_factory(data)
             
                 # Display the image
@@ -113,8 +113,8 @@ class SimilarityDisplay(object):
 
                 aitoff_fingerprints = []
                 for fp in close_fingerprints:
-                    fingerprint = db.find('fingerprint', fp['fingerprint_uuid'])
-                    data = db.find('data', fingerprint['data_uuid'])
+                    fingerprint = self._db.find('fingerprint', fp['fingerprint_uuid'])
+                    data = self._db.find('data', fingerprint['data_uuid'])
                     a = (fp['tsne_point'], fp['distance'], data['radec'], fingerprint)
                     aitoff_fingerprints.append(a)
                 self._aitoff_axis.on_click(aitoff_fingerprints)
@@ -138,9 +138,10 @@ class SimilarityDisplay(object):
             self._similar_images_axis.set_images(close_fingerprint_uuids)
 
 class SimilarImages(object):
-    def __init__(self, axes_limits, rows_cols):
+    def __init__(self, axes_limits, rows_cols, db):
         self._axes_limits = axes_limits
         self._rows_cols = rows_cols
+        self._db = db
         
         self.axes = []
         ii = 0
@@ -163,10 +164,10 @@ class SimilarImages(object):
         for ii, fp in enumerate(fingerprints):
             # Get the fingerprint
             f_uuid = fp['fingerprint_uuid']
-            fingerprint = db.find('fingerprint', f_uuid)
+            fingerprint = self._db.find('fingerprint', f_uuid)
                 
             # Get the data location
-            data = db.find('data', fingerprint['data_uuid'])
+            data = self._db.find('data', fingerprint['data_uuid'])
             d = Data.data_factory(data)
             
             self.set_image(ii, d.get_data(), fingerprint=fingerprint)
@@ -202,7 +203,7 @@ class Image(object):
             self._axes.set_title(title, fontsize=8)
     
         self._axes.get_figure().canvas.blit(self._axes.bbox)
-        self._axes.redraw_in_frame()
+        #self._axes.redraw_in_frame()
 
     def plot(self, x, y, title=''):
         self._axes.plot(x, y, '.')
