@@ -20,7 +20,7 @@ log = logging.getLogger("TransferLearningDisplay")
 # Can be used for debugging Jupyter Notebooks
 fhandler = logging.FileHandler(filename='/tmp/mylog.log', mode='a')
 log.addHandler(fhandler)
-log.setLevel(logging.WARNING)
+log.setLevel(logging.DEBUG)
 
 class SimilarityDisplay(object):
     
@@ -65,7 +65,7 @@ class SimilarityDisplay(object):
             data_uuid = f.data_uuid
             data = self._db.find('data', data_uuid)
             d = Data.data_factory(data)
-            self._similar_images_axis.set_image(ii, d.get_data(), str(ii) + ') ' + os.path.basename(d.location), fingerprints[ii])
+            self._similar_images_axis.set_image(ii, d.get_data(), str(ii+1) + ') ' + os.path.basename(d.location), fingerprints[ii])
 
         plt.show()
     
