@@ -35,7 +35,7 @@ class SimilarityDisplay(object):
         self._figure = plt.figure(2, figsize=[10,6])
         
         # The NxM set of similar images
-        self._similar_images_axis = SimilarImages([0.5, 0.4, 0.4, 0.5], [3, 3], db)
+        self._similar_images_axis = SimilarImages([0.5, 0.25, 0.4, 0.5], [3, 3], db)
 
         # The current image displayed as one moves around the
         # similarity plot (e.g., tSNE)
@@ -145,12 +145,12 @@ class SimilarImages(object):
         
         self.axes = []
         ii = 0
-        for ri in range(self._rows_cols[0]):
-            for ci in range(self._rows_cols[1]):
+        for ci in range(self._rows_cols[1]):
+            for ri in range(self._rows_cols[0]):
                 row_size = axes_limits[2] / rows_cols[0]
                 col_size = axes_limits[3] / rows_cols[1]
                 sub_limits = [axes_limits[0]+(row_size + 0.02)*ri,
-                              axes_limits[1]+(col_size + 0.02)*ci,
+                              axes_limits[1]+axes_limits[3]-(col_size + 0.04)*ci,
                               row_size, 
                               col_size]
                 
