@@ -12,3 +12,4 @@ scikit-learn
 redis
 ipython
 jupyter
+unqlite
