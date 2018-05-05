@@ -11,3 +11,4 @@ tensorflow
 scikit-learn
 redis
 ipython
+unqlite
