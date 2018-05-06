@@ -7,7 +7,7 @@ from configparser import ConfigParser
 
 from tldist.fingerprint.processing import FingerprintCalculatorResnet
 from tldist.fingerprint.processing import calculate as fingerprint_calculate
-from tldist.similarity.processing import calculate as similarity_calculate
+from tldist.similarity import calculate as similarity_calculate
 from tldist.data.data import Data
 from tldist.database import get_database
 
@@ -25,7 +25,7 @@ db = get_database('unqlite', config['database']['filename'])
 
 # Load the data
 print('Loading the Hubble meta data and location information')
-processing_dict = pickle.load(open('../data/hubble_acs.pck', 'rb'))
+processing_dict = pickle.load(open('../../data/hubble_acs.pck', 'rb'))
 
 print('Setting up the data structure required')
 data = []
