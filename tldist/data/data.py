@@ -29,6 +29,8 @@ class Data:
         self._radec = radec
         self._meta = meta
 
+        self._cached_data = None
+
     def __str__(self):
         return 'Data located {} at RA/DEC {}'.format(
                 self.location, self.radec)
@@ -65,8 +67,21 @@ class Data:
     def meta(self, value):
         self._meta = value
 
-    def get_data(self):
+    @property
+    def shape(self):
+        if self._cached_data is None:
+            self._cached_data = self.get_data()
+        return self._cached_data.shape
 
+    def get_data(self):
+        log.info('Data going to be returned')
+
+        # If we have the data already loaded then don't
+        # need to reload all the data.
+        if self._cached_data is not None:
+            return self._cac
+
+        log.debug('Data is not cached, so will need to load it')
         regex = r".*[jpg|tif|tiff]$"
 
         # Distant dataset
