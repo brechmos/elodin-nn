@@ -79,7 +79,7 @@ class Data:
         # If we have the data already loaded then don't
         # need to reload all the data.
         if self._cached_data is not None:
-            return self._cac
+            return self._cached_data
 
         log.debug('Data is not cached, so will need to load it')
         regex = r".*[jpg|tif|tiff]$"
@@ -92,11 +92,13 @@ class Data:
                 log.error('Problem loading the data {}'.format(datum.location))
                 raise Exception('Problem loading the data {}'.format(datum.location))
 
-            return np.array(imageio.imread(BytesIO(response.content)))
+            self._cached_data = np.array(imageio.imread(BytesIO(response.content)))
+            return self._cached_data
 
         # Local dataset
         elif re.match(regex, self.location):
-            return np.array(imageio.imread(self.location))
+            self._cached_data = np.array(imageio.imread(self.location))
+            return self._cached_data
 
         # Unknwon dataset
         else:

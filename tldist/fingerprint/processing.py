@@ -8,15 +8,15 @@ from io import BytesIO
 
 from tldist.utils import gray2rgb
 from tldist.fingerprint.fingerprint import Fingerprint
-from tldist.data.data import Data
+from tldist.cutout import Cutout
 
 import logging
-logging.basicConfig(format='%(levelname)-6s: %(name)-10s %(asctime)-15s  %(message)s')
+logging.basicConfig(format='%(levelname)-6s: %(asctime)-15s %(name)-10s %(funcName)-10s %(message)s')
 log = logging.getLogger("Fingerprint")
-log.setLevel(logging.INFO)
+log.setLevel(logging.DEBUG)
 
 
-def calculate(data, fc_save):
+def calculate(cutouts, fc_save):
     """
     Calculate the fingerprint from a list of data.  The data
     must be of the form
@@ -24,50 +24,45 @@ def calculate(data, fc_save):
     """
     log.info('')
 
-    if not isinstance(data, list) and not isinstance(data[0], (dict, Data)):
+    if not isinstance(cutouts, list) and not isinstance(cutouts[0], (dict, Cutout)):
         log.error('Data must be a list of dictionaries')
         raise Exception('Data must be a list of dictionaries')
 
-    deserialize = False
-    if isinstance(data[0], dict):
-        data = [Data.data_factory(x) for x in data]
-        deserialize = True
+#    deserialize = False
+#    if isinstance(cutouts[0], dict):
+#        data = [Cutout.data_factory(x) for x in data]
+#        deserialize = True
 
     # Load the fingerprint calculator based on dictionary information
     fc = FingerprintCalculator.load_parameters(fc_save)
 
     # Now run through each datum and calculate the fingerprint
     fingerprints_return = []
-    for ii, datum in enumerate(data):
+    for ii, cutout in enumerate(cutouts):
 
         # Update the progress if we are using the task version of this.
         if hasattr(calculate, 'update_state'):
             calculate.update_state(state='PROGRESS', meta={'progress': ii})
 
         # Load the data
-        response = requests.get(datum.location)
-
-        if not response.status_code == 200:
-            log.error('Problem loading the data {}'.format(datum.location))
-            raise Exception('Problem loading the data {}'.format(datum.location))
-
-        nparray = np.array(imageio.imread(BytesIO(response.content)))
+        nparray = cutout.get_data()
 
         # Calculate the predictions
-        log.debug('calcuating predictions for  {} data is {}'.format(datum.location, type(nparray)))
+        log.debug('calcuating predictions for  {} data is {}'.format(cutout.data.location, type(nparray)))
         try:
-            predictions = fc.calculate(nparray[:224, :224])
-        except Exception:
+            predictions = fc.calculate(nparray)
+        except Exception as e:
+            log.error('Problem calculating predictions, {}'.format(e))
             predictions = []
 
         # Clean the predictions so the json conversion is happy
         cleaned_predictions = [(x[0], x[1], float(x[2])) for x in predictions]
 
         # Load up the return list.
-        fingerprints_return.append(Fingerprint(data_uuid=datum.uuid, predictions=cleaned_predictions))
+        fingerprints_return.append(Fingerprint(cutout_uuid=cutout.uuid, predictions=cleaned_predictions))
 
-    if deserialize == True:
-        fingerprints_return = [x.save() for x in fingerprints_return]
+#    if deserialize == True:
+#        fingerprints_return = [x.save() for x in fingerprints_return]
 
     return fingerprints_return
 
@@ -141,8 +136,13 @@ class FingerprintCalculator:
     @staticmethod
     def load_parameters(parameters):
         # First let's see if we have an instance with this UUID already created
-        newinstance = FingerprintCalculator.getinstances(parameters['uuid'])
+        log.debug('parameters passed in is {}'.format(parameters))
+        if parameters['uuid'] is not None:
+            newinstance = FingerprintCalculator.getinstances(parameters['uuid'])
+        else:
+            newinstance = None
 
+        log.debug('newinstance is {}'.format(newinstance))
         if newinstance is None:
             # If there is not an instance with that uuid, THEN we will create a new instance of that subclass
             for class_ in FingerprintCalculator.__subclasses__():
@@ -215,8 +215,8 @@ class FingerprintCalculatorResnet(FingerprintCalculator):
             self._predictions = [('test', 'beaver', 0.0000000000001), ]
 
         end_time = time.time()
-        log.debug('Predictions: {}'.format(self._predictions[:10]))
-        log.info('Calculate {} predictions took {}s'.format(len(self._predictions), end_time - start_time))
+        log.debug('Top 10 redictions: {}'.format(self._predictions[:10]))
+        log.info('Calculate prediction took {}s'.format(end_time - start_time))
 
         return self._predictions
 
