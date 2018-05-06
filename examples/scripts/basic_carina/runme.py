@@ -20,12 +20,22 @@ image_data.get_data()
 #
 #  Create the cutouts
 #
+print('Going to calculate the sliding window cutouts')
 sliding_window_cutouts = BasicCutouts(output_size=224, step_size=424)
 cutouts = sliding_window_cutouts.create_cutouts(image_data)
 
+#
+#  Compute the fingerprints for each cutout
+#
+print('Calculate the fingerprint for each cutout')
 fingerprints = fingerprint_calculate(cutouts, fc_save)
 print([str(x) for x in fingerprints])
 
-#similarity_tsne = similarity_calculate(fingerprints, 'tsne')
 #
-#similarity_jaccard = similarity_calculate(fingerprints, 'tsne')
+#  Compute the similarity metrics
+#
+print('Calculating the tSNE similarity')
+similarity_tsne = similarity_calculate(fingerprints, 'tsne')
+
+print('Calculating the jaccard similarity')
+similarity_jaccard = similarity_calculate(fingerprints, 'jaccard')

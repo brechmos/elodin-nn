@@ -13,7 +13,7 @@ from .cutout import Cutout
 import logging
 logging.basicConfig(format='%(levelname)-6s: %(asctime)-15s %(name)-10s %(funcName)-10s %(message)s')
 log = logging.getLogger("Cutouts")
-log.setLevel(logging.DEBUG)
+log.setLevel(logging.INFO)
 
 class BasicCutouts:
     """
