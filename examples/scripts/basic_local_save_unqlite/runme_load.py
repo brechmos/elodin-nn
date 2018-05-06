@@ -3,9 +3,6 @@ import pickle
 import os
 import shutil
 
-from tldist.fingerprint.processing import FingerprintCalculatorResnet
-from tldist.fingerprint.processing import calculate as fingerprint_calculate
-from tldist.similarity.processing import calculate as similarity_calculate
 from tldist.data.data import Data
 from tldist.similarity.similarity import Similarity
 from tldist.database import get_database
