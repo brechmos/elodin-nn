@@ -1,9 +1,18 @@
 import uuid
 import json
+import re
+import logging
+from io import BytesIO
+
 import numpy as np
 import imageio
 import requests
-from io import BytesIO
+
+logging.basicConfig(format='%(levelname)-6s: %(asctime)-15s %(name)-10s %(funcName)-10s %(message)s')
+log = logging.getLogger("data")
+fhandler = logging.FileHandler(filename='/tmp/mylog.log', mode='a')
+log.addHandler(fhandler)
+log.setLevel(logging.DEBUG)
 
 def stringify(dictionary):
     return {k: str(v) for k, v in dictionary.items()}
@@ -57,13 +66,27 @@ class Data:
         self._meta = value
 
     def get_data(self):
-        response = requests.get(self.location)
 
-        if not response.status_code == 200:
-            log.error('Problem loading the data {}'.format(datum.location))
-            raise Exception('Problem loading the data {}'.format(datum.location))
+        regex = r".*[jpg|tif|tiff]$"
 
-        return np.array(imageio.imread(BytesIO(response.content)))
+        # Distant dataset
+        if 'http' in self.location:
+            response = requests.get(self.location)
+
+            if not response.status_code == 200:
+                log.error('Problem loading the data {}'.format(datum.location))
+                raise Exception('Problem loading the data {}'.format(datum.location))
+
+            return np.array(imageio.imread(BytesIO(response.content)))
+
+        # Local dataset
+        elif re.match(regex, self.location):
+            return np.array(imageio.imread(self.location))
+
+        # Unknwon dataset
+        else:
+            log.error('Unknown file type of file {}'.format(self.location))
+            raise Exception('Unknown type of file {}'.format(self.location))
 
     def save(self):
         return {
