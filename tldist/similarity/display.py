@@ -16,11 +16,11 @@ from astropy import units
 import sys
 import logging
 logging.basicConfig(format='%(levelname)-6s: %(asctime)-15s %(name)-10s %(funcName)-10s %(message)s')
-log = logging.getLogger("TransferLearningDisplay")
+log = logging.getLogger("display")
 # Can be used for debugging Jupyter Notebooks
 fhandler = logging.FileHandler(filename='/tmp/mylog.log', mode='a')
 log.addHandler(fhandler)
-log.setLevel(logging.DEBUG)
+log.setLevel(logging.WARNING)
 
 class SimilarityDisplay(object):
     
@@ -90,10 +90,12 @@ class SimilarityDisplay(object):
                 fingerprint = self._db.find('fingerprint', fingerprint_uuid)
                 
                 # Get the data location
+                log.debug('Loading data {}'.format(fingerprint['data_uuid']))
                 data = self._db.find('data', fingerprint['data_uuid'])
                 d = Data.data_factory(data)
             
                 # Display the image
+                log.debug('Imshow on _current_image_axis')
                 self._current_image_axis.imshow(d.get_data())
                 
                 # Display the location on the Aitoff plot
@@ -203,7 +205,11 @@ class Image(object):
             self._axes.set_title(title, fontsize=8)
     
         self._axes.get_figure().canvas.blit(self._axes.bbox)
-        #self._axes.redraw_in_frame()
+
+        # This is definitely needed to update the image if we 
+        # are calling this from a script.
+        if not matplotlib.get_backend() == 'nbAgg':
+            self._axes.redraw_in_frame()
 
     def plot(self, x, y, title=''):
         self._axes.plot(x, y, '.')
