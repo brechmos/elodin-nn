@@ -32,7 +32,7 @@ def calculate(fingerprints, similarity_calculator):
     sim.calculate(fingerprints)
 
     # Return the thing
-    return sim
+    return sim.save()
 
 
 class Similarity:
@@ -107,21 +107,10 @@ class Similarity:
         self._parameters = value
 
     def save(self):
-        return {
-            'uuid': self._uuid,
-            'similarity_type': self._similarity_type,
-            'similarity': self._similarity,
-            'fingerprint_uuids': self._fingerprint_uuids,
-            'parameters': self._parameters,
-        }
+        raise Exception('save function must be defined in subclass')
 
     def load(self, thedict):
-        self._uuid = thedict['uuid']
-        self._similarity_type = thedict['similarity_type']
-        self._similarity = thedict['similarity']
-        self._fingerprint_uuids = thedict['fingerprint_uuids']
-        self._parameters = thedict['parameters']
-
+        raise Exception('load function must be defined in subclass')
 
 class tSNE(Similarity):
 
@@ -445,6 +434,29 @@ class Jaccard(Similarity):
 
         return [((row, ind), distances[ind], self._fingerprints[ind]) for ind in inds[:n]]
 
+    #
+    #  Utility Methods
+    #
+
+    def save(self):
+        log.info('Returning the dictionary of information')
+        return {
+            'uuid': self._uuid,
+            'similarity_type': self._similarity_type,
+            'similarity': self._fingerprint_adjacency.tolist(),
+            'fingerprint_uuids': [fp.uuid for fp in self._fingerprints],
+            'parameters': {
+            }
+        }
+
+    def load(self, thedict):
+        log.info('Loading the dictionary of information')
+        self._uuid = thedict['uuid']
+        self._fingerprint_adjacency = np.array(thedict['similarity_type'])
+        self._Y = np.array(thedict['similarity'])
+        self._fingerprint_uuids = thedict['fingerprint_uuids']
+        self._parameters = thedict['parameters']
+        self._distance_measure = self._parameters['distance_measure']
 
 class Distance(Similarity):
     """
@@ -544,3 +556,29 @@ class Distance(Similarity):
         inds = np.argsort(distances)
 
         return [((row, ind), distances[ind], self._fingerprints[ind]) for ind in inds[:n]]
+
+    #
+    #  Utility Methods
+    #
+
+    def save(self):
+        log.info('Returning the dictionary of information')
+        return {
+            'uuid': self._uuid,
+            'similarity_type': self._similarity_type,
+            'similarity': self._fingerprint_adjacency.tolist(),
+            'fingerprint_uuids': [fp.uuid for fp in self._fingerprints],
+            'parameters': {
+                'metric': self._metric
+            }
+        }
+
+    def load(self, thedict):
+        log.info('Loading the dictionary of information')
+        self._uuid = thedict['uuid']
+        self._fingerprint_adjacency = np.array(thedict['similarity_type'])
+        self._Y = np.array(thedict['similarity'])
+        self._fingerprint_uuids = thedict['fingerprint_uuids']
+        self._parameters = thedict['parameters']
+        self._metric = self._parameters['metric']
+
