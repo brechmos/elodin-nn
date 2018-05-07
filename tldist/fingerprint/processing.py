@@ -2,9 +2,6 @@ import uuid
 import time
 import numpy as np
 import weakref
-import requests
-import imageio
-from io import BytesIO
 
 from tldist.utils import gray2rgb
 from tldist.fingerprint.fingerprint import Fingerprint
@@ -14,6 +11,7 @@ import logging
 logging.basicConfig(format='%(levelname)-6s: %(asctime)-15s %(name)-10s %(funcName)-10s %(message)s')
 log = logging.getLogger("Fingerprint")
 log.setLevel(logging.INFO)
+
 
 def calculate(cutouts, fc_save, task=None):
     """
