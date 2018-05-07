@@ -1,8 +1,12 @@
 import uuid
-import json
-import numpy as np
+import logging
 
 from tldist.data import Data
+
+logging.basicConfig(format='%(levelname)-6s: %(asctime)-15s %(name)-10s %(funcName)-10s %(message)s')
+log = logging.getLogger("Fingerprint")
+log.setLevel(logging.INFO)
+
 
 class Cutout:
     """
@@ -23,7 +27,7 @@ class Cutout:
         self._cutout_processing = []
 
         # This is the "original data"
-        # TODO: create a cached version as we really don't need this as it 
+        # TODO: create a cached version as we really don't need this as it
         #       is simply recreated
         bb = self._bounding_box
         self._original_data = self._data.get_data()[bb[0]:bb[1], bb[2]:bb[3]]
@@ -50,7 +54,7 @@ class Cutout:
             log.error('Data must be of type data')
             raise Exception('Data must be of type data')
 
-        self._data = data
+        self._data = value
 
     @property
     def bounding_box(self):
@@ -62,11 +66,11 @@ class Cutout:
         if not isinstance(value, (list, tuple)) and not len(value) == 4:
             log.error('Bounding box must be a list of 4 integers')
             raise Exception('Bounding box must be a list of 4 integers')
-        
-        self._bounding_box = bounding_box
+
+        self._bounding_box = value
 
     def get_data(self):
-        
+
         bb = self._bounding_box
         data = self._data.get_data()[bb[0]:bb[1], bb[2]:bb[3]]
         return data
