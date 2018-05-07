@@ -8,6 +8,7 @@ fhandler = logging.FileHandler(filename='/tmp/mylog.log', mode='a')
 log.addHandler(fhandler)
 log.setLevel(logging.INFO)
 
+
 class DataProcessing(object):
 
     @staticmethod
@@ -16,6 +17,7 @@ class DataProcessing(object):
             return Resize(thedict)
         elif thedict['data_processing_type'] == 'crop':
             return Crop(thedict)
+
 
 class Resize(DataProcessing):
 
@@ -30,7 +32,7 @@ class Resize(DataProcessing):
 
         if not isinstance(output_size, (list, tuple)) and not len(output_size) == 2:
             raise Exception('Data processing resize output_size parmaeter, {}, is wrong'.format(output_size))
-            
+
         self._output_size = output_size
 
     def save(self):
@@ -42,7 +44,7 @@ class Resize(DataProcessing):
         }
 
     def load(self, thedict):
-    
+
         if not thedict['data_processing_type'] == 'resize':
             raise Exception('wrong data processing type {} for resize')
 
@@ -51,6 +53,7 @@ class Resize(DataProcessing):
     def process(self, data):
         log.debug('resizeing data to {}'.format(self._output_size))
         return skimage.transform.resize(data, self._output_size)
+
 
 class Crop(DataProcessing):
 
@@ -64,7 +67,7 @@ class Crop(DataProcessing):
 
         if not isinstance(output_size, (list, tuple)) and not len(output_size) == 4:
             raise Exception('Data processing resize output_size parmaeter, {}, is wrong'.format(output_size))
-            
+
         self._output_size = output_size
 
     def save(self):
@@ -76,7 +79,7 @@ class Crop(DataProcessing):
         }
 
     def load(self, thedict):
-    
+
         if not thedict['data_processing_type'] == 'crop':
             raise Exception('wrong data processing type {} for crop')
 

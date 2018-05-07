@@ -1,5 +1,4 @@
 import uuid
-import json
 import re
 import logging
 from io import BytesIO
@@ -16,8 +15,10 @@ fhandler = logging.FileHandler(filename='/tmp/mylog.log', mode='a')
 log.addHandler(fhandler)
 log.setLevel(logging.INFO)
 
+
 def stringify(dictionary):
     return {k: str(v) for k, v in dictionary.items()}
+
 
 class Data:
 
@@ -53,7 +54,7 @@ class Data:
 
     @location.setter
     def location(self, value):
-        self._location = location
+        self._location = value
 
     @property
     def radec(self):
@@ -61,7 +62,7 @@ class Data:
 
     @radec.setter
     def radec(self, value):
-        self._radec = radec
+        self._radec = value
 
     @property
     def meta(self):
@@ -91,8 +92,8 @@ class Data:
             response = requests.get(self.location)
 
             if not response.status_code == 200:
-                log.error('Problem loading the data {}'.format(datum.location))
-                raise Exception('Problem loading the data {}'.format(datum.location))
+                log.error('Problem loading the data {}'.format(self.location))
+                raise Exception('Problem loading the data {}'.format(self.location))
 
             self._cached_data = np.array(imageio.imread(BytesIO(response.content)))
 
