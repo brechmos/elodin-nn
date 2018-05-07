@@ -13,9 +13,13 @@ fhandler = logging.FileHandler(filename='/tmp/mylog.log', mode='a')
 log.addHandler(fhandler)
 log.setLevel(logging.WARNING)
 
-def calculate(fingerprints, similarity_calculator):
+def calculate(fingerprints, similarity_calculator, serialize_output=False):
     """
     Similarity calculator.
+    
+    This function might be called locally and in that case we want to return the
+    actual similarity calculator instance.  Or it might be run rmeotely (via celery)
+    and in this case we want to reutrn the serialized version of the similarity instance.
     """
     log.info('Start threaded real_calculate {} fingerprints and simcalc {}'.format(
         len(fingerprints), similarity_calculator))
@@ -32,7 +36,10 @@ def calculate(fingerprints, similarity_calculator):
     sim.calculate(fingerprints)
 
     # Return the thing
-    return sim.save()
+    if serialize_output:
+        return sim.save()
+    else:
+        return sim
 
 
 class Similarity:

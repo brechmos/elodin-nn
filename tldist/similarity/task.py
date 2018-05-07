@@ -57,4 +57,4 @@ def calculate(fingerprints, similarity_calculator):
     Similarity calculator.
     """
     log.debug('In the app.task calculate with similarity_calculator = {}'.format(similarity_calculator))
-    return similarity_calculate(fingerprints, similarity_calculator)
+    return similarity_calculate(fingerprints, similarity_calculator, serialize_output=True)

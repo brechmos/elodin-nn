@@ -35,7 +35,7 @@ def calculate_celery(cutouts, fc_save):
 
     # Queue up and run
     job = group([
-        calculate_task.s(tt, fc_save) for tt in chunks(cutouts, len(cutouts) // 4)
+        calculate_task.s(tt, fc_save) for tt in chunks(cutouts, len(cutouts) // 2)
     ])
     result = job.apply_async()
 
@@ -56,5 +56,5 @@ def calculate_celery(cutouts, fc_save):
 
 @app.task
 def calculate_task(cutouts, fc_save):
-    log.debug('cutout[0] is of type {} and is {}'.format(type(cutouts[0]), cutouts[0]))
-    return processing_calculate(cutouts, fc_save)
+    log.debug('app.current_task {}'.format(app.current_task))
+    return processing_calculate(cutouts, fc_save, task=app.current_task)

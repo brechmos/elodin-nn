@@ -15,7 +15,7 @@ logging.basicConfig(format='%(levelname)-6s: %(asctime)-15s %(name)-10s %(funcNa
 log = logging.getLogger("Fingerprint")
 log.setLevel(logging.INFO)
 
-def calculate(cutouts, fc_save):
+def calculate(cutouts, fc_save, task=None):
     """
     Calculate the fingerprint from a list of data.  The data
     must be of the form
@@ -40,8 +40,8 @@ def calculate(cutouts, fc_save):
     for ii, cutout in enumerate(cutouts):
 
         # Update the progress if we are using the task version of this.
-        if hasattr(calculate, 'update_state'):
-            calculate.update_state(state='PROGRESS', meta={'progress': ii})
+        if task is not None:
+            task.update_state(state='PROGRESS', meta={'progress': ii})
 
         # Load the data
         nparray = cutout.get_data()
