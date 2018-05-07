@@ -28,14 +28,14 @@ def chunks(l, n):
         yield l[i:i + n]
 
 
-def calculate_celery(data, fc_save):
+def calculate_celery(cutouts, fc_save):
     """
     This function will queue up all the jobs and run them using celery.
     """
 
     # Queue up and run
     job = group([
-        calculate_task.s(tt, fc_save) for tt in chunks(data, len(data) // 4)
+        calculate_task.s(tt, fc_save) for tt in chunks(cutouts, len(cutouts) // 4)
     ])
     result = job.apply_async()
 
@@ -55,6 +55,6 @@ def calculate_celery(data, fc_save):
 
 
 @app.task
-def calculate_task(data, fc_save):
-    log.debug('data[0] is of type {} and is {}'.format(type(data[0]), data[0]))
-    return processing_calculate(data, fc_save)
+def calculate_task(cutouts, fc_save):
+    log.debug('cutout[0] is of type {} and is {}'.format(type(cutouts[0]), cutouts[0]))
+    return processing_calculate(cutouts, fc_save)

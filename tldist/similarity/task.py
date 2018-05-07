@@ -10,8 +10,8 @@ import logging
 import json
 import time
 
-from tldist.similarity.processing import calculate as similarity_calculate
-from .processing import tSNE, Jaccard, Distance
+from .similarity import calculate as similarity_calculate
+from .similarity import tSNE, Jaccard, Distance
 
 FORMAT = '%(levelname)-8s %(asctime)-15s %(name)-10s %(message)s'
 logging.basicConfig(format=FORMAT)

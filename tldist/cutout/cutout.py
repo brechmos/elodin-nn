@@ -10,10 +10,23 @@ class Cutout:
     will be calculated from this cutout.
     """
 
-    def __init__(self, data, bounding_box):
+    def __init__(self, data, bounding_box, generator_parameters):
+        """
+        :param data: Data object
+        :param bounding_box: [row_start, row_end, col_start, col_end]
+        :param generator_parameters: parameters used to generate the cutout
+        """
         self._uuid = str(uuid.uuid4())
         self._data = data
         self._bounding_box = bounding_box
+        self._generator_parameters = generator_parameters
+        self._cutout_processing = []
+
+        # This is the "original data"
+        # TODO: create a cached version as we really don't need this as it 
+        #       is simply recreated
+        bb = self._bounding_box
+        self._original_data = self._data.get_data()[bb[0]:bb[1], bb[2]:bb[3]]
 
     def __str__(self):
         return 'Cutout for data {} with box {}'.format(
@@ -62,10 +75,12 @@ class Cutout:
         return {
             'uuid': self._uuid,
             'data': self._data.save(),
-            'bounding_box': self._bounding_box
+            'bounding_box': self._bounding_box,
+            'cutout_processing': self._cutout_processing
         }
 
     def load(self, thedict):
         self._uuid = thedict['uuid']
         self._data = Data(thedict['data'])
+        self._cutout_processing = Data(thedict['cutout_processing'])
         self._bounding_box = thedict['bounding_box']

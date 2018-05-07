@@ -8,6 +8,8 @@ import numpy as np
 import imageio
 import requests
 
+from .processing import DataProcessing
+
 logging.basicConfig(format='%(levelname)-6s: %(asctime)-15s %(name)-10s %(funcName)-10s %(message)s')
 log = logging.getLogger("data")
 fhandler = logging.FileHandler(filename='/tmp/mylog.log', mode='a')
@@ -27,8 +29,10 @@ class Data:
         self._uuid = str(uuid.uuid4())
         self._location = location
         self._radec = radec
+        self._processing = []
         self._meta = meta
 
+        # 2D or 3D Numpy array
         self._cached_data = None
 
     def __str__(self):
@@ -73,9 +77,7 @@ class Data:
             self._cached_data = self.get_data()
         return self._cached_data.shape
 
-    def get_data(self):
-        log.info('Data going to be returned')
-
+    def _load_and_process(self):
         # If we have the data already loaded then don't
         # need to reload all the data.
         if self._cached_data is not None:
@@ -93,23 +95,46 @@ class Data:
                 raise Exception('Problem loading the data {}'.format(datum.location))
 
             self._cached_data = np.array(imageio.imread(BytesIO(response.content)))
-            return self._cached_data
 
         # Local dataset
         elif re.match(regex, self.location):
             self._cached_data = np.array(imageio.imread(self.location))
-            return self._cached_data
 
-        # Unknwon dataset
+        # Unknown dataset
         else:
             log.error('Unknown file type of file {}'.format(self.location))
             raise Exception('Unknown type of file {}'.format(self.location))
+
+        for x in self._processing:
+            processor = DataProcessing.load(x)
+            self._cached_data = processor.process(self._cached_data)
+
+    def get_data(self):
+        """
+        Retrieve the numpy array of data
+
+        :return: 2D or 3D data array
+        """
+        log.info('Data going to be returned')
+
+        if self._cached_data is None:
+            self._load_and_process()
+
+        return self._cached_data
+
+    def add_processing(self, processing):
+
+        if not isinstance(processing, dict):
+            raise Exception('Data processing must be a dict that describes the type of processing.')
+
+        self._processing.append(processing)
 
     def save(self):
         return {
             'uuid': self._uuid,
             'location': self._location,
             'radec': self._radec,
+            'processing': self._processing,
             'meta': stringify(self._meta)
         }
 
@@ -117,4 +142,5 @@ class Data:
         self._uuid = thedict['uuid']
         self._location = thedict['location']
         self._radec = thedict['radec']
+        self._processing = thedict['processing']
         self._meta = thedict['meta']

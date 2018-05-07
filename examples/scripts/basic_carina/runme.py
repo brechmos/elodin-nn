@@ -5,7 +5,7 @@ from tldist.fingerprint.processing import FingerprintCalculatorResnet
 from tldist.fingerprint.processing import calculate as fingerprint_calculate
 from tldist.similarity.similarity import calculate as similarity_calculate
 from tldist.data import Data
-from tldist.cutout import BasicCutouts
+from tldist.cutout.generators import BasicCutoutGenerator
 
 fc_save = FingerprintCalculatorResnet().save()
 
@@ -21,7 +21,7 @@ image_data.get_data()
 #  Create the cutouts
 #
 print('Going to calculate the sliding window cutouts')
-sliding_window_cutouts = BasicCutouts(output_size=224, step_size=424)
+sliding_window_cutouts = BasicCutoutGenerator(output_size=224, step_size=424)
 cutouts = sliding_window_cutouts.create_cutouts(image_data)
 
 #

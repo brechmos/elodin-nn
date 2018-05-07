@@ -1,1 +1,1 @@
-from .similarity import calculate
+from .similarity import *
