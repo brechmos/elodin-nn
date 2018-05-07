@@ -1,5 +1,4 @@
 import uuid
-import weakref
 import itertools
 import numpy as np
 
@@ -18,6 +17,7 @@ log.setLevel(logging.DEBUG)
 The Cutout Generators should be instanciated and then run on a Data object in order
 to generate Cutout objects. Might be one or more cutouts per call.
 """
+
 
 class BasicCutoutGenerator:
     """
@@ -218,6 +218,7 @@ class BlobCutoutGenerator:
         """
         return 'Blob Cutout (mean_threshold={}, gaussian_smoothign_sigma={})'.format(self._mean_threshold,
                                                                                      self._gaussian_smoothing_sigma)
+
     def number_cutouts(self, data):
         """
         Number of cutouts given the data, this was implemented primarily for the progress bar.  If the create_cutouts
@@ -270,7 +271,8 @@ class BlobCutoutGenerator:
             min_col = max(min_col - self._label_padding, 0)
             max_col = min(max_col + self._label_padding, data.shape[1])
 
-            log.debug('label mins and maxs with padding {} {}   {} {}'.format(min_row, max_row, min_col, max_col))
+            log.debug('label mins and maxs with padding {} {}   {} {}'.format(
+                min_row, max_row, min_col, max_col))
 
             # Correct so it is square
             rr = max_row - min_row
@@ -329,4 +331,3 @@ class BlobCutoutGenerator:
         self._label_padding = parameters['label_padding']
         self._mean_threshold = parameters['mean_threshold']
         self._uuid = parameters['uuid']
-
