@@ -1,20 +1,12 @@
-import sys
 import logging
 import time
-import uuid
 from collections import OrderedDict
 import itertools
 
 from celery import group
-import numpy as np
-import requests
-import imageio
-from io import BytesIO
 
 from tldist.celery import app
 from tldist.fingerprint.processing import calculate as processing_calculate
-from tldist.data.data import Data
-from tldist.fingerprint.fingerprint import Fingerprint
 
 FORMAT = '%(levelname)-8s %(asctime)-15s %(name)-10s %(funcName)-10s %(message)s'
 logging.basicConfig(format=FORMAT)
@@ -35,8 +27,9 @@ def calculate_celery(cutouts, fc_save):
 
     # Queue up and run
     job = group([
-        calculate_task.s(tt, fc_save) for tt in chunks(cutouts, len(cutouts) // 2)
-    ])
+                    calculate_task.s(tt, fc_save)
+                    for tt in chunks(cutouts, len(cutouts) // 2)
+                ])
     result = job.apply_async()
 
     # Dispaly progress
@@ -44,11 +37,13 @@ def calculate_celery(cutouts, fc_save):
     while not result.ready():
         time.sleep(0.1)
         for x in result.children:
-            if x.state == 'PROGRESS' and hasattr(x, 'info') and 'progress' in x.info:
+            if (x.state == 'PROGRESS' and hasattr(x, 'info') and
+                    'progress' in x.info):
                 counts[x.id] = x.info['progress']
 
         states_complete = [int(v) for k, v in counts.items()]
-        print('\rCalculating fingerprints: {} {:.1f}%'.format(states_complete, sum(states_complete)/len(cutouts)*100), end='')
+        print('\rCalculating fingerprints: {} {:.1f}%'.format(
+            states_complete, sum(states_complete)/len(cutouts)*100), end='')
 
     # Get the results (is a list of lists so need to compress them)
     r = result.get()
