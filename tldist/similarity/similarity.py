@@ -13,10 +13,11 @@ fhandler = logging.FileHandler(filename='/tmp/mylog.log', mode='a')
 log.addHandler(fhandler)
 log.setLevel(logging.WARNING)
 
+
 def calculate(fingerprints, similarity_calculator, serialize_output=False):
     """
     Similarity calculator.
-    
+
     This function might be called locally and in that case we want to return the
     actual similarity calculator instance.  Or it might be run rmeotely (via celery)
     and in this case we want to reutrn the serialized version of the similarity instance.
@@ -100,9 +101,9 @@ class Similarity:
     @fingerprint_uuids.setter
     def fingerprint_uuids(self, value):
 
-        if not instance(value, list):
+        if not isinstance(value, list):
             raise ValueError('Fingerprint_uuids must be a list')
-        
+
         self._fingerprint_uuids = value
 
     @property
@@ -118,6 +119,7 @@ class Similarity:
 
     def load(self, thedict):
         raise Exception('load function must be defined in subclass')
+
 
 class tSNE(Similarity):
 
@@ -209,7 +211,7 @@ class tSNE(Similarity):
         self._parameters = thedict['parameters']
         self._distance_measure = self._parameters['distance_measure']
 
-    # 
+    #
     #  Display methods
     #
 
@@ -310,8 +312,8 @@ class tSNE(Similarity):
         log.debug('Size of the fingerprint list {}'.format(len(self._fingerprints)))
 
         return [{
-                    'tsne_point': self._Y[ind], 
-                    'distance': distances[ind], 
+                    'tsne_point': self._Y[ind],
+                    'distance': distances[ind],
                     'fingerprint_uuid': self._fingerprint_uuids[ind]
                 } for ind in inds[:n]]
 
@@ -343,7 +345,6 @@ class Jaccard(Similarity):
         self._filename_index = []
         self._fingerprint_adjacency = None
         self._predictions = []
-
 
     #
     # Calculation Methods
@@ -465,6 +466,7 @@ class Jaccard(Similarity):
         self._parameters = thedict['parameters']
         self._distance_measure = self._parameters['distance_measure']
 
+
 class Distance(Similarity):
     """
     Based on https://docs.scipy.org/doc/scipy/reference/generated/scipy.spatial.distance.pdist.html#scipy.spatial.distance.pdist
@@ -529,9 +531,6 @@ class Distance(Similarity):
     def get_similarity(self):
         return Similarity('distance', self._fingerprint_adjacency.tolist(), [fp.uuid for fp in self._fingerprints])
 
-    def save(self):
-        return self.get_similarity()
-
     def display(self, tsne_axis):
         """
         Display the Y values in an axis element.
@@ -588,4 +587,3 @@ class Distance(Similarity):
         self._fingerprint_uuids = thedict['fingerprint_uuids']
         self._parameters = thedict['parameters']
         self._metric = self._parameters['metric']
-

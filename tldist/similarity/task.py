@@ -1,13 +1,8 @@
-import sys
 from collections import OrderedDict
-import numpy as np
-import threading
-import itertools
 
 from tldist.celery import app
 from celery import group
 import logging
-import json
 import time
 
 from .similarity import calculate as similarity_calculate
