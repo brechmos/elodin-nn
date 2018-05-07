@@ -14,13 +14,23 @@ class Cutout:
     will be calculated from this cutout.
     """
 
-    def __init__(self, data, bounding_box, generator_parameters):
+    @staticmethod
+    def cutout_factory(thedict):
+        print(thedict.keys())
+        data = Data.data_factory(thedict['data'])
+        return Cutout(data, thedict['bounding_box'], thedict['generator_parameters'], uuid_in=thedict['uuid'])
+
+    def __init__(self, data, bounding_box, generator_parameters, uuid_in=None):
         """
         :param data: Data object
         :param bounding_box: [row_start, row_end, col_start, col_end]
         :param generator_parameters: parameters used to generate the cutout
         """
-        self._uuid = str(uuid.uuid4())
+
+        if uuid_in is None:
+            self._uuid = str(uuid.uuid4())
+        else:
+            self._uuid = uuid_in
         self._data = data
         self._bounding_box = bounding_box
         self._generator_parameters = generator_parameters
@@ -80,11 +90,13 @@ class Cutout:
             'uuid': self._uuid,
             'data': self._data.save(),
             'bounding_box': self._bounding_box,
+            'generator_parameters': self._generator_parameters,
             'cutout_processing': self._cutout_processing
         }
 
     def load(self, thedict):
         self._uuid = thedict['uuid']
         self._data = Data(thedict['data'])
+        self._generator_parameters = Data(thedict['generator_parameters'])
         self._cutout_processing = Data(thedict['cutout_processing'])
         self._bounding_box = thedict['bounding_box']

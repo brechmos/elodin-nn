@@ -10,11 +10,7 @@ from blitzdb import FileBackend, Document
 import shutil
 
 # Unqlite
-import requests
-import threading
 import unqlite
-import time
-import numpy as np
 
 FORMAT = '%(levelname)-8s %(asctime)-15s %(name)-10s %(funcName)10s %(message)s'
 logging.basicConfig(format=FORMAT)
@@ -124,6 +120,9 @@ class BlitzDB(Database):
     class Data(Document):
         pass
 
+    class Cutout(Document):
+        pass
+
     class Fingerprint(Document):
         pass
 
@@ -133,6 +132,8 @@ class BlitzDB(Database):
     def _get_table(self, table_name):
         if table_name == 'data':
             return BlitzDB.Data
+        elif table_name == 'cutout':
+            return BlitzDB.Cutout
         elif table_name == 'fingerprint':
             return BlitzDB.Fingerprint
         elif table_name == 'similarity':
@@ -216,6 +217,10 @@ class UnQLite(Database):
         if not self._data.exists():
             self._data.create()
 
+        self._cutout = self._db.collection('cutout')
+        if not self._cutout.exists():
+            self._cutout.create()
+
         self._fingerprint = self._db.collection('fingerprint')
         if not self._fingerprint.exists():
             self._fingerprint.create()
@@ -231,6 +236,8 @@ class UnQLite(Database):
         """
         if table_name == 'data':
             return self._data
+        elif table_name == 'cutout':
+            return self._cutout
         elif table_name == 'fingerprint':
             return self._fingerprint
         elif table_name == 'similarity':

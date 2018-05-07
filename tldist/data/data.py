@@ -24,13 +24,18 @@ class Data:
 
     @staticmethod
     def data_factory(thedict):
-        return Data(location=thedict['location'], radec=thedict['radec'], meta=thedict['meta'])
+        return Data(location=thedict['location'], processing=thedict['processing'],
+                    radec=thedict['radec'], meta=thedict['meta'],
+                    uuid_in=thedict['uuid'])
 
-    def __init__(self, location='', radec=[], meta={}):
-        self._uuid = str(uuid.uuid4())
+    def __init__(self, location='', processing=[], radec=[], meta={}, uuid_in=None):
+        if uuid_in is None:
+            self._uuid = str(uuid.uuid4())
+        else:
+            self._uuid = uuid_in
         self._location = location
         self._radec = radec
-        self._processing = []
+        self._processing = processing 
         self._meta = meta
 
         # 2D or 3D Numpy array

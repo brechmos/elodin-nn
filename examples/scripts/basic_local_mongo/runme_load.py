@@ -27,6 +27,6 @@ print(similarities)
 similarity_tsne = similarities[0]
 
 fingerprints = db.find('fingerprint')
-similarity_fingerprints = [ for fuuid in similarity_tsne.fingerprint__uuids]
+similarity_fingerprints = [fuuid for fuuid in similarity_tsne.fingerprint__uuids]
 
 print(fingerprints[:3])

@@ -464,7 +464,6 @@ class Jaccard(Similarity):
         self._Y = np.array(thedict['similarity'])
         self._fingerprint_uuids = thedict['fingerprint_uuids']
         self._parameters = thedict['parameters']
-        self._distance_measure = self._parameters['distance_measure']
 
 
 class Distance(Similarity):
