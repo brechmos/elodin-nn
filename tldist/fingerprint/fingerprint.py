@@ -1,10 +1,12 @@
 import uuid
 
+
 class Fingerprint:
 
     @staticmethod
     def fingerprint_factory(thedict):
-        return Fingerprint(cutout_uuid=thedict['cutout_uuid'], predictions=thedict['predictions'])
+        return Fingerprint(cutout_uuid=thedict['cutout_uuid'],
+                           predictions=thedict['predictions'])
 
     def __init__(self, cutout_uuid=None, predictions=[]):
         self._uuid = str(uuid.uuid4())
@@ -48,5 +50,6 @@ class Fingerprint:
         return {
              'uuid': self.uuid,
              'cutout_uuid': self.cutout_uuid,
-             'predictions': [(x[0], x[1], float(x[2])) for x in self.predictions]
+             'predictions': [(x[0], x[1], float(x[2]))
+                             for x in self.predictions]
         }
