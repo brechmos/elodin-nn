@@ -3,19 +3,31 @@ import uuid
 
 class Fingerprint:
 
+    _fingerprint_collection = {}
+
     @staticmethod
-    def fingerprint_factory(thedict):
-        return Fingerprint(cutout_uuid=thedict['cutout_uuid'],
-                           predictions=thedict['predictions'],
-                           uuid_in=thedict['uuid'])
+    def fingerprint_factory(parameter):
+        if isinstance(parameter, str):
+            return Fingerprint._fingerprint_collection[parameter]
+        else:
+            return Fingerprint(cutout_uuid=parameter['cutout_uuid'],
+                               predictions=parameter['predictions'],
+                               uuid_in=parameter['uuid'])
 
     def __init__(self, cutout_uuid=None, predictions=[], uuid_in=None):
         if uuid_in is None:
             self._uuid = str(uuid.uuid4())
         else:
+            if self._uuid in self._fingerprint_collection:
+                return self._fingerprint_collection[self._uuid]
             self._uuid = uuid_in
         self._cutout_uuid = cutout_uuid
         self._predictions = predictions
+
+        self._fingerprint_collection[self._uuid] = self
+
+    def __del__(self):
+        del Fingerprint._fingerprint_collection[self._uuid]
 
     def __str__(self):
         return 'Fingerprint {} based on cutout {} with predictions {}'.format(

@@ -13,7 +13,7 @@ logging.basicConfig(format='%(levelname)-6s: %(asctime)-15s %(name)-10s %(funcNa
 log = logging.getLogger("data")
 fhandler = logging.FileHandler(filename='/tmp/mylog.log', mode='a')
 log.addHandler(fhandler)
-log.setLevel(logging.INFO)
+log.setLevel(logging.DEBUG)
 
 
 def stringify(dictionary):
@@ -22,28 +22,43 @@ def stringify(dictionary):
 
 class Data:
 
+    # Collection to confirm we have unique instances based on uuid
+    _data_collection = {}
+
     @staticmethod
-    def data_factory(thedict):
-        return Data(location=thedict['location'], processing=thedict['processing'],
-                    radec=thedict['radec'], meta=thedict['meta'],
-                    uuid_in=thedict['uuid'])
+    def data_factory(parameter):
+
+        # If parameter is a UUID
+        if isinstance(parameter, str):
+            return Data._data_collection[parameter]
+        else:
+            return Data(location=parameter['location'], processing=parameter['processing'],
+                        radec=parameter['radec'], meta=parameter['meta'],
+                        uuid_in=parameter['uuid'])
 
     def __init__(self, location='', processing=[], radec=[], meta={}, uuid_in=None):
         if uuid_in is None:
             self._uuid = str(uuid.uuid4())
         else:
             self._uuid = uuid_in
+
         self._location = location
         self._radec = radec
-        self._processing = processing 
+        self._processing = processing
         self._meta = meta
 
         # 2D or 3D Numpy array
         self._cached_data = None
 
+        self._data_collection[self._uuid] = self
+
+    def __del__(self):
+        del self._data_collection[self._uuid]
+
     def __str__(self):
         return 'Data located {} at RA/DEC {}'.format(
                 self.location, self.radec)
+
 
     @property
     def uuid(self):

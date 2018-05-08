@@ -9,13 +9,17 @@ from tldist.data import Data
 from tldist.cutout.generators import FullImageCutoutGenerator
 from tldist.database import get_database
 
-# Create the database
-DB_LOC = '/tmp/mydb'
-print('Going to setup the database in {}'.format(DB_LOC))
+from configparser import ConfigParser
 
-if os.path.isdir(DB_LOC):
-    shutil.rmtree(DB_LOC)
-db = get_database('blitzdb', DB_LOC)
+config = ConfigParser()
+config.read('config.ini')
+
+# Create the database
+print('Going to setup the database in {}'.format(config['database']['filename']))
+
+if os.path.isdir(config['database']['filename']):
+    shutil.rmtree(config['database']['filename'])
+db = get_database('blitzdb', config['database']['filename'])
 
 
 # Load the data

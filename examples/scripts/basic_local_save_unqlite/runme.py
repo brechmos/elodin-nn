@@ -8,8 +8,9 @@ from configparser import ConfigParser
 from tldist.fingerprint.processing import FingerprintCalculatorResnet
 from tldist.fingerprint.processing import calculate as fingerprint_calculate
 from tldist.similarity import calculate as similarity_calculate
-from tldist.data.data import Data
+from tldist.data import Data
 from tldist.database import get_database
+from tldist.cutout.generators import FullImageCutoutGenerator
 
 config = ConfigParser()
 config.read('config.ini')
@@ -34,13 +35,26 @@ for fileinfo in processing_dict[:20]:
     data.append(im)
     db.save('data', im.save())
 
+#
+#  Create cutouts
+#
+print('Creating the Full image cutout generator')
+full_cutout = FullImageCutoutGenerator(output_size=(224, 224))
+
+print('Going to create the cutouts')
+cutouts = []
+for datum in data:
+    cutout = full_cutout.create_cutouts(datum)
+    db.save('cutout', cutout.save())
+    cutouts.append(cutout)
+
 # Create the fingerprint calculator... fingerprint
 print('Creating the info for the fingerprint calculator')
 fresnet = FingerprintCalculatorResnet()
 fc_save = fresnet.save()
 
 print('Calculating the fingerprints')
-fingerprints = fingerprint_calculate(data, fc_save)
+fingerprints = fingerprint_calculate(cutouts, fc_save)
 print([fp.uuid for fp in fingerprints])
 [db.save('fingerprint', x.save()) for x in fingerprints]
 

@@ -45,23 +45,36 @@ def calculate(fingerprints, similarity_calculator, serialize_output=False):
 
 class Similarity:
 
+    _similarity_collection = {}
+
     @staticmethod
     def similarity_factory(thedict):
-        if thedict['similarity_type'] == 'tsne':
-            sim = tSNE()
-        elif thedict['similarity_type'] == 'jaccard':
-            sim = Jaccard()
-        elif thedict['similarity_type'] == 'distance':
-            sim = Distance()
-        sim.load(thedict)
-        return sim
+        if isinstance(thedict, str):
+            return Similarity._similarity_collection[thedict]
+        else:
+            if thedict['similarity_type'] == 'tsne':
+                sim = tSNE()
+            elif thedict['similarity_type'] == 'jaccard':
+                sim = Jaccard()
+            elif thedict['similarity_type'] == 'distance':
+                sim = Distance()
+            sim.load(thedict)
+            return sim
 
-    def __init__(self, similarity_type=None, similarity=None, fingerprint_uuids=[]):
-        self._uuid = str(uuid.uuid4())
+    def __init__(self, similarity_type=None, similarity=None, fingerprint_uuids=[], uuid_in=None):
+        if uuid_in is None:
+            self._uuid = str(uuid.uuid4())
+        else:
+            self._uuid = uuid_in
         self._similarity_type = similarity_type
         self._similarity = similarity
         self._fingerprint_uuids = fingerprint_uuids
         self._parameters = {}
+    
+        self._similarity_collection[self._uuid] = self
+
+    def __del__(self):
+        del self._similarity_collection[self._uuid]
 
     def __str__(self):
         return 'Similarity {} based on {}...'.format(

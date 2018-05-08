@@ -14,11 +14,16 @@ class Cutout:
     will be calculated from this cutout.
     """
 
+    # Collection to confirm we have unique instances based on uuid
+    _cutout_collection = {}
+
     @staticmethod
-    def cutout_factory(thedict):
-        print(thedict.keys())
-        data = Data.data_factory(thedict['data'])
-        return Cutout(data, thedict['bounding_box'], thedict['generator_parameters'], uuid_in=thedict['uuid'])
+    def cutout_factory(parameter):
+        if isinstance(parameter, str):
+            return Cutout._cutout_collection[parameter]
+        else:
+            data = Data.data_factory(parameter['data'])
+            return Cutout(data, parameter['bounding_box'], parameter['generator_parameters'], uuid_in=parameter['uuid'])
 
     def __init__(self, data, bounding_box, generator_parameters, uuid_in=None):
         """
@@ -30,7 +35,10 @@ class Cutout:
         if uuid_in is None:
             self._uuid = str(uuid.uuid4())
         else:
+            if uuid_in in self._cutout_collection:
+                return self._cutout_collection[uuid_in]
             self._uuid = uuid_in
+
         self._data = data
         self._bounding_box = bounding_box
         self._generator_parameters = generator_parameters
@@ -41,6 +49,11 @@ class Cutout:
         #       is simply recreated
         bb = self._bounding_box
         self._original_data = self._data.get_data()[bb[0]:bb[1], bb[2]:bb[3]]
+
+        self._cutout_collection[self._uuid] = self
+
+    def __del__(self):
+        del self._cutout_collection[self._uuid]
 
     def __str__(self):
         return 'Cutout for data {} with box {}'.format(
