@@ -1,5 +1,4 @@
 import uuid
-import logging
 import itertools
 
 import numpy as np
@@ -7,11 +6,8 @@ from sklearn.manifold import TSNE
 from scipy.sparse import csc_matrix
 from scipy.spatial.distance import pdist, squareform
 
-logging.basicConfig(format='%(levelname)-6s: %(asctime)-15s %(name)-10s %(funcName)-10s %(message)s')
-log = logging.getLogger("similarity")
-fhandler = logging.FileHandler(filename='/tmp/mylog.log', mode='a')
-log.addHandler(fhandler)
-log.setLevel(logging.INFO)
+from ..tl_logging import get_logger
+log = get_logger('similarity', '/tmp/mylog.log')
 
 
 def calculate(fingerprints, similarity_calculator, serialize_output=False):

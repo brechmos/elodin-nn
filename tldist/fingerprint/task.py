@@ -1,4 +1,3 @@
-import logging
 import time
 from collections import OrderedDict
 import itertools
@@ -8,10 +7,8 @@ from celery import group
 from tldist.celery import app
 from tldist.fingerprint.processing import calculate as processing_calculate
 
-FORMAT = '%(levelname)-8s %(asctime)-15s %(name)-10s %(funcName)-10s %(message)s'
-logging.basicConfig(format=FORMAT)
-log = logging.getLogger('fingerprint task')
-log.setLevel(logging.INFO)
+from ..tl_logging import get_logger
+log = get_logger('fingerprint task')
 
 
 def chunks(l, n):

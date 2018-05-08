@@ -7,10 +7,8 @@ from tldist.utils import gray2rgb
 from tldist.fingerprint.fingerprint import Fingerprint
 from tldist.cutout import Cutout
 
-import logging
-logging.basicConfig(format='%(levelname)-6s: %(asctime)-15s %(name)-10s %(funcName)-10s %(message)s')
-log = logging.getLogger("fingerprint processing")
-log.setLevel(logging.INFO)
+from ..tl_logging import get_logger
+log = get_logger('fingerprint processing')
 
 
 def calculate(cutouts, fc_save, task=None):

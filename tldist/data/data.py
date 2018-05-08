@@ -1,6 +1,5 @@
 import uuid
 import re
-import logging
 from io import BytesIO
 
 import numpy as np
@@ -9,11 +8,8 @@ import requests
 
 from .processing import DataProcessing
 
-logging.basicConfig(format='%(levelname)-6s: %(asctime)-15s %(name)-10s %(funcName)-10s %(message)s')
-log = logging.getLogger("data")
-fhandler = logging.FileHandler(filename='/tmp/mylog.log', mode='a')
-log.addHandler(fhandler)
-log.setLevel(logging.INFO)
+from ..tl_logging import get_logger
+log = get_logger('cutout generator', '/tmp/mylog.log')
 
 
 def stringify(dictionary):

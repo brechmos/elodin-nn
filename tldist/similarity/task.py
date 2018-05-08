@@ -2,16 +2,13 @@ from collections import OrderedDict
 
 from tldist.celery import app
 from celery import group
-import logging
 import time
 
 from .similarity import calculate as similarity_calculate
 from .similarity import tSNE, Jaccard, Distance
 
-FORMAT = '%(levelname)-8s %(asctime)-15s %(name)-10s %(funcName)-10s %(message)s'
-logging.basicConfig(format=FORMAT)
-log = logging.getLogger('similarity task')
-log.setLevel(logging.INFO)
+from ..tl_logging import get_logger
+log = get_logger('similarity task')
 
 
 def similarity_celery(fingerprints, sim):

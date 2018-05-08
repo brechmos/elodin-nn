@@ -1,4 +1,3 @@
-import logging
 import os
 
 # Mongo
@@ -12,10 +11,9 @@ import shutil
 # Unqlite
 import unqlite
 
-FORMAT = '%(levelname)-8s %(asctime)-15s %(name)-10s %(funcName)10s %(message)s'
-logging.basicConfig(format=FORMAT)
-log = logging.getLogger('database')
-log.setLevel(logging.INFO)
+from .tl_logging import get_logger
+
+log = get_logger('database', '/tmp/mylog.log')
 
 
 def get_database(database_type, *args, **kwargs):
@@ -228,7 +226,6 @@ class UnQLite(Database):
         self._similarity = self._db.collection('similarity')
         if not self._similarity.exists():
             self._similarity.create()
-
 
     def _get_table(self, table_name):
         """

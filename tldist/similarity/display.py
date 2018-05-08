@@ -13,13 +13,8 @@ from tldist.fingerprint import Fingerprint
 from astropy.coordinates import SkyCoord
 from astropy import units
 
-import logging
-logging.basicConfig(format='%(levelname)-6s: %(asctime)-15s %(name)-10s %(funcName)-10s %(message)s')
-log = logging.getLogger("display")
-# Can be used for debugging Jupyter Notebooks
-fhandler = logging.FileHandler(filename='/tmp/mylog.log', mode='a')
-log.addHandler(fhandler)
-log.setLevel(logging.INFO)
+from ..tl_logging import get_logger
+log = get_logger('display', '/tmp/mylog.log')
 
 
 class SimilarityDisplay(object):
