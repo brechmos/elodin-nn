@@ -23,19 +23,25 @@ similarities = db.find('similarity')
 # Currently the similarities is a list of dictionaries where each dictionary
 # represents a similarity.  So, best is to load into a Similarity 
 # instance.
+print(similarities)
 similarities = [Similarity.similarity_factory(s) for s in similarities]
 print(similarities)
 
 # Grab the first on so we can work with it.
+print('going to grab the first one')
 similarity_tsne = similarities[0]
+print('got it')
 
 # Load all the fingerprints from the similarity.
+print('going to show the first three fingerprints in this similarity {}'.format(similarity_tsne.fingerprint_uuids))
 fingerprints = db.find('fingerprint', similarity_tsne.fingerprint_uuids)
 print(fingerprints[:3])
 
 # Next load the data that correpsonds to each fingerprint.
-print(db.find('data', [f['data_uuid'] for f in fingerprints[:5]]))
+print('Going to show cutouts')
+print(db.find('cutout', [f['cutout_uuid'] for f in fingerprints[:5]]))
 
 # If we actually want to have Data instances we can do:
-data = [Data.data_factory(d) for d in db.find('data', [f['data_uuid'] for f in fingerprints[:5]])]
-print(data[0])
+# data = [Data.data_factory(d) for d in db.find('data', [f['data_uuid'] for f in fingerprints[:5]])]
+# print(data[0])
+print('Done')

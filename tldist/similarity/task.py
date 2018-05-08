@@ -10,8 +10,8 @@ from .similarity import tSNE, Jaccard, Distance
 
 FORMAT = '%(levelname)-8s %(asctime)-15s %(name)-10s %(funcName)-10s %(message)s'
 logging.basicConfig(format=FORMAT)
-log = logging.getLogger('similarity')
-log.setLevel(logging.DEBUG)
+log = logging.getLogger('similarity task')
+log.setLevel(logging.INFO)
 
 
 def similarity_celery(fingerprints, sim):

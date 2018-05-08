@@ -4,7 +4,7 @@ import logging
 from tldist.data import Data
 
 logging.basicConfig(format='%(levelname)-6s: %(asctime)-15s %(name)-10s %(funcName)-10s %(message)s')
-log = logging.getLogger("Fingerprint")
+log = logging.getLogger("cutout")
 log.setLevel(logging.INFO)
 
 

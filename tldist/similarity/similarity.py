@@ -8,10 +8,10 @@ from scipy.sparse import csc_matrix
 from scipy.spatial.distance import pdist, squareform
 
 logging.basicConfig(format='%(levelname)-6s: %(asctime)-15s %(name)-10s %(funcName)-10s %(message)s')
-log = logging.getLogger("Similarity")
+log = logging.getLogger("similarity")
 fhandler = logging.FileHandler(filename='/tmp/mylog.log', mode='a')
 log.addHandler(fhandler)
-log.setLevel(logging.WARNING)
+log.setLevel(logging.INFO)
 
 
 def calculate(fingerprints, similarity_calculator, serialize_output=False):
@@ -70,11 +70,12 @@ class Similarity:
         self._similarity = similarity
         self._fingerprint_uuids = fingerprint_uuids
         self._parameters = {}
-    
+
         self._similarity_collection[self._uuid] = self
 
     def __del__(self):
-        del self._similarity_collection[self._uuid]
+        if self._uuid in self._similarity_collection:
+            del self._similarity_collection[self._uuid]
 
     def __str__(self):
         return 'Similarity {} based on {}...'.format(
@@ -147,7 +148,7 @@ class tSNE(Similarity):
 
         super().__init__(tSNE._similarity_type, *args, **kwargs)
 
-        log.info('Created {}'.format(__class__._similarity_type))
+        log.info('Created {}'.format(self._similarity_type))
 
         # Each line / element in these should correpsond
         self._Y = None
@@ -351,7 +352,7 @@ class Jaccard(Similarity):
         """
         super(Jaccard, self).__init__(Jaccard._similarity_type, *args, **kwargs)
 
-        log.info('Created {}'.format(__class__._similarity_type))
+        log.info('Created {}'.format(self._similarity_type))
 
         # Each line / element in these should correpsond
         self._fingerprints = []
@@ -490,7 +491,7 @@ class Distance(Similarity):
 
         super(Distance, self).__init__(Distance._similarity_type, *args, **kwargs)
 
-        log.info('Created {}'.format(__class__._similarity_type))
+        log.info('Created {}'.format(self._similarity_type))
 
         # Each line / element in these should correpsond
         self._filename_index = []

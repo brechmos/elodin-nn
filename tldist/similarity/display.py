@@ -19,7 +19,7 @@ log = logging.getLogger("display")
 # Can be used for debugging Jupyter Notebooks
 fhandler = logging.FileHandler(filename='/tmp/mylog.log', mode='a')
 log.addHandler(fhandler)
-log.setLevel(logging.WARNING)
+log.setLevel(logging.INFO)
 
 
 class SimilarityDisplay(object):

@@ -13,7 +13,7 @@ logging.basicConfig(format='%(levelname)-6s: %(asctime)-15s %(name)-10s %(funcNa
 log = logging.getLogger("data")
 fhandler = logging.FileHandler(filename='/tmp/mylog.log', mode='a')
 log.addHandler(fhandler)
-log.setLevel(logging.DEBUG)
+log.setLevel(logging.INFO)
 
 
 def stringify(dictionary):

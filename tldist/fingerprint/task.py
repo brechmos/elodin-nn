@@ -10,8 +10,8 @@ from tldist.fingerprint.processing import calculate as processing_calculate
 
 FORMAT = '%(levelname)-8s %(asctime)-15s %(name)-10s %(funcName)-10s %(message)s'
 logging.basicConfig(format=FORMAT)
-log = logging.getLogger('fingerprint')
-log.setLevel(logging.DEBUG)
+log = logging.getLogger('fingerprint task')
+log.setLevel(logging.INFO)
 
 
 def chunks(l, n):

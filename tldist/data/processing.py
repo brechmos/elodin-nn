@@ -3,7 +3,7 @@ import logging
 import skimage
 
 logging.basicConfig(format='%(levelname)-6s: %(asctime)-15s %(name)-10s %(funcName)-10s %(message)s')
-log = logging.getLogger("data")
+log = logging.getLogger("data processing")
 fhandler = logging.FileHandler(filename='/tmp/mylog.log', mode='a')
 log.addHandler(fhandler)
 log.setLevel(logging.INFO)

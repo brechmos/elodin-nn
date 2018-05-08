@@ -1,4 +1,9 @@
 import uuid
+import logging
+
+logging.basicConfig(format='%(levelname)-6s: %(asctime)-15s %(name)-10s %(funcName)-10s %(message)s')
+log = logging.getLogger("fingerprint")
+log.setLevel(logging.INFO)
 
 
 class Fingerprint:
