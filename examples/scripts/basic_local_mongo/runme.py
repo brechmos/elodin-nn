@@ -7,12 +7,16 @@ from tldist.similarity import calculate as similarity_calculate
 from tldist.data import Data
 from tldist.database import get_database
 
+from configparser import ConfigParser
+config = ConfigParser()
+
+config.read('config.ini')
 
 #
 # Create the database
 #
 print('Going to setup the database')
-db = get_database('mongo', 'localhost')
+db = get_database(config['database']['type'], config['database']['hostname'])
 
 #
 # Load the data

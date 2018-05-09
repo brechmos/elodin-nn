@@ -1,22 +1,14 @@
-import uuid
-import pickle
-import os
-import shutil
-
-from tldist.fingerprint.processing import FingerprintCalculatorResnet
-from tldist.fingerprint.processing import calculate as fingerprint_calculate
-from tldist.similarity.similarity import calculate as similarity_calculate
-from tldist.data.data import Data
 from tldist.similarity.similarity import Similarity
 from tldist.database import get_database
 
+from configparser import ConfigParser
+config = ConfigParser()
 
+config.read('config.ini')
 
 # Create the database
-DB_LOC = '/tmp/mydb'
-print('Going to setup the database in {}'.format(DB_LOC))
-
-db = get_database('blitzdb', DB_LOC)
+print('Going to setup the database')
+db = get_database(config['database']['type'], config['database']['hostname'])
 
 # Load the similarities
 similarities = db.find('similarity')
@@ -27,6 +19,4 @@ print(similarities)
 similarity_tsne = similarities[0]
 
 fingerprints = db.find('fingerprint')
-similarity_fingerprints = [fuuid for fuuid in similarity_tsne.fingerprint__uuids]
-
 print(fingerprints[:3])
