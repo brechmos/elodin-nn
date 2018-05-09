@@ -13,13 +13,16 @@ import unqlite
 
 from .tl_logging import get_logger
 
-log = get_logger('database', '/tmp/mylog.log')
+import logging
+log = get_logger('database', level=logging.DEBUG)
 
 
 def get_database(database_type, *args, **kwargs):
     dbcls = None
     for db in Database.__subclasses__():
+        log.debug('comparing {} to {}'.format(db._database_type, database_type))
         if db._database_type == database_type:
+            log.debug('   ...same')
             dbcls = db
     return dbcls(*args, **kwargs)
 
@@ -187,16 +190,6 @@ class UnQLite(Database):
     key = '__id'
     _database_type = 'unqlite'
 
-    # Singleton instance
-    __instance = None
-
-    def __new__(cls, val):
-        log.info('val'.format(val))
-        if UnQLite.__instance is None:
-            UnQLite.__instance = object.__new__(cls)
-        UnQLite.__instance.val = val
-        return UnQLite.__instance
-
     def __init__(self, filename):
         """
         Initialize the database and flask app
@@ -209,22 +202,31 @@ class UnQLite(Database):
         self._filename = filename
 
         self._db = unqlite.UnQLite(self._filename)
+        log.debug('Opened unqlite database file {} {}'.format(self._filename, self._db))
 
         # Setup the unqlite database collections
+        log.debug('Setting up data collection')
         self._data = self._db.collection('data')
         if not self._data.exists():
+            log.debug('  ... doesn''t exist so creating.')
             self._data.create()
 
         self._cutout = self._db.collection('cutout')
+        log.debug('Setting up cutout collection')
         if not self._cutout.exists():
+            log.debug('  ... doesn''t exist so creating.')
             self._cutout.create()
 
         self._fingerprint = self._db.collection('fingerprint')
+        log.debug('Setting up fingerprint collection')
         if not self._fingerprint.exists():
+            log.debug('  ... doesn''t exist so creating.')
             self._fingerprint.create()
 
         self._similarity = self._db.collection('similarity')
+        log.debug('Setting up similarity collection')
         if not self._similarity.exists():
+            log.debug('  ... doesn''t exist so creating.')
             self._similarity.create()
 
     def _get_table(self, table_name):
@@ -253,9 +255,14 @@ class UnQLite(Database):
 
         :param table: string representation of the table/collection name
         """
+        log.info('saving to {}'.format(table))
         collection = self._get_table(table)
         with self._db.transaction():
-            collection.store(data)
+            try:
+                collection.store(data)
+            except Exception as e:
+                log.error(e)
+
         return collection.last_record_id()
 
     def find(self, table, key=None):
@@ -264,7 +271,9 @@ class UnQLite(Database):
 
         :param table: string representation of the table/collection name
         """
+        log.info('Searching for data in {} with key {}'.format(table, key))
         collection = self._get_table(table)
+        log.debug('Collection is {}'.format(collection))
         if key is None:
             return self._convert([x for x in collection.all()])
         elif isinstance(key, list):
@@ -311,3 +320,6 @@ class UnQLite(Database):
             return input.decode('utf-8')
         else:
             return input
+
+    def close(self):
+        self._db.close()

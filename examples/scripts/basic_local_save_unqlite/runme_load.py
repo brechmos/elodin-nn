@@ -13,12 +13,13 @@ config = ConfigParser()
 config.read('config.ini')
 
 # Set the database
-print('Going to setup the database in {}'.format(config['database']['filename']))
+print('Loading the database from {}'.format(config['database']['filename']))
 db = get_database('unqlite', config['database']['filename'])
 
 # Load the similarities
 print('Loading up the similarity data from the database')
 similarities = db.find('similarity')
+print(similarities)
 
 # Currently the similarities is a list of dictionaries where each dictionary
 # represents a similarity.  So, best is to load into a Similarity 

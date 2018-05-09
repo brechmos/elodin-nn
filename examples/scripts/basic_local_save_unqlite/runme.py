@@ -30,7 +30,7 @@ processing_dict = pickle.load(open('../../data/hubble_acs.pck', 'rb'))
 
 print('Setting up the data structure required')
 data = []
-for fileinfo in processing_dict[:20]:
+for fileinfo in processing_dict[:25]:
     im = Data(location=fileinfo['location'], radec=fileinfo['radec'], meta=fileinfo['meta'])
     data.append(im)
     db.save('data', im.save())
@@ -65,3 +65,5 @@ db.save('similarity', similarity_tsne.save())
 print('Calculating the Jaccard similarity')
 similarity_jaccard = similarity_calculate(fingerprints, 'jaccard')
 db.save('similarity', similarity_tsne.save())
+
+db.close()

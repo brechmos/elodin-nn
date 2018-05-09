@@ -8,6 +8,6 @@ def get_logger(name, logfile=None, level=logging.INFO):
     if logfile is not None:
         fhandler = logging.FileHandler(filename=logfile, mode='a')
         log.addHandler(fhandler)
-    log.setLevel(logging.INFO)
+    log.setLevel(level)
 
     return log
