@@ -1,4 +1,5 @@
 import uuid
+import weakref
 
 from ..tl_logging import get_logger
 log = get_logger('fingerprint')
@@ -6,7 +7,7 @@ log = get_logger('fingerprint')
 
 class Fingerprint:
 
-    _fingerprint_collection = {}
+    _fingerprint_collection = weakref.WeakValueDictionary()
 
     @staticmethod
     def fingerprint_factory(parameter):
@@ -28,9 +29,6 @@ class Fingerprint:
         self._predictions = predictions
 
         self._fingerprint_collection[self._uuid] = self
-
-    def __del__(self):
-        del Fingerprint._fingerprint_collection[self._uuid]
 
     def __str__(self):
         return 'Fingerprint {} based on cutout {} with predictions {}'.format(

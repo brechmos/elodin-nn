@@ -1,3 +1,4 @@
+import weakref
 import uuid
 import itertools
 
@@ -41,7 +42,7 @@ def calculate(fingerprints, similarity_calculator, serialize_output=False):
 
 class Similarity:
 
-    _similarity_collection = {}
+    _similarity_collection = weakref.WeakValueDictionary()
 
     @staticmethod
     def similarity_factory(thedict):
@@ -68,10 +69,6 @@ class Similarity:
         self._parameters = {}
 
         self._similarity_collection[self._uuid] = self
-
-    def __del__(self):
-        if self._uuid in self._similarity_collection:
-            del self._similarity_collection[self._uuid]
 
     def __str__(self):
         return 'Similarity {} based on {}...'.format(

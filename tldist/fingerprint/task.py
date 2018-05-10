@@ -25,7 +25,7 @@ def calculate_celery(cutouts, fc_save):
     # Queue up and run
     job = group([
                     calculate_task.s(tt, fc_save)
-                    for tt in chunks(cutouts, len(cutouts) // 2)
+                    for tt in chunks(cutouts, len(cutouts) // 8)
                 ])
     result = job.apply_async()
 

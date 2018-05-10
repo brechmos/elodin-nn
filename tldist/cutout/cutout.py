@@ -1,3 +1,4 @@
+import weakref
 import uuid
 import logging
 
@@ -14,7 +15,7 @@ class Cutout:
     """
 
     # Collection to confirm we have unique instances based on uuid
-    _cutout_collection = {}
+    _cutout_collection = weakref.WeakValueDictionary()
 
     @staticmethod
     def cutout_factory(parameter):
@@ -50,9 +51,6 @@ class Cutout:
         self._original_data = self._data.get_data()[bb[0]:bb[1], bb[2]:bb[3]]
 
         self._cutout_collection[self._uuid] = self
-
-    def __del__(self):
-        del self._cutout_collection[self._uuid]
 
     def __str__(self):
         return 'Cutout for data {} with box {}'.format(

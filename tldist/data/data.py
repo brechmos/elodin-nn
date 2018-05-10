@@ -1,3 +1,4 @@
+import weakref
 import uuid
 import re
 from io import BytesIO
@@ -19,7 +20,7 @@ def stringify(dictionary):
 class Data:
 
     # Collection to confirm we have unique instances based on uuid
-    _data_collection = {}
+    _data_collection = weakref.WeakValueDictionary()
 
     @staticmethod
     def data_factory(parameter):
@@ -47,9 +48,6 @@ class Data:
         self._cached_data = None
 
         self._data_collection[self._uuid] = self
-
-    def __del__(self):
-        del self._data_collection[self._uuid]
 
     def __str__(self):
         return 'Data located {} at RA/DEC {}'.format(
