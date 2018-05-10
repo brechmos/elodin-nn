@@ -9,6 +9,7 @@ celery
 keras
 tensorflow
 scikit-learn
+scikit-image
 redis
 ipython
 jupyter
