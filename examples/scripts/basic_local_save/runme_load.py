@@ -2,11 +2,13 @@ from tldist.cutout import Cutout
 from tldist.similarity.similarity import Similarity
 from tldist.database import get_database
 
+from configparser import ConfigParser
+config = ConfigParser()
+config.read('config.ini')
 
 # Set the database
-DB_LOC = '/tmp/mydb'
-print('Going to setup the database in {}'.format(DB_LOC))
-db = get_database('blitzdb', DB_LOC)
+print('Going to setup the database in {}'.format(config['database']['filename']))
+db = get_database(config['database']['type'], config['database']['filename'])
 
 # Load the similarities
 print('Loading up the similarity data from the database')
