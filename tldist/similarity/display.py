@@ -15,7 +15,8 @@ from astropy.coordinates import SkyCoord
 from astropy import units
 
 from ..tl_logging import get_logger
-log = get_logger('display', '/tmp/mylog.log')
+import logging
+log = get_logger('display', '/tmp/mylog.log', level=logging.DEBUG)
 
 
 class SimilarityDisplay(object):
@@ -114,7 +115,8 @@ class SimilarityDisplay(object):
                 aitoff_fingerprints = []
                 for fp in close_fingerprints:
                     fingerprint = self._db.find('fingerprint', fp['fingerprint_uuid'])
-                    data = self._db.find('data', fingerprint['data_uuid'])
+                    cutout = self._db.find('cutout', fingerprint['cutout_uuid'])
+                    data = cutout['data']
                     a = (fp['tsne_point'], fp['distance'], data['radec'], fingerprint)
                     aitoff_fingerprints.append(a)
                 self._aitoff_axis.on_click(aitoff_fingerprints)
@@ -166,8 +168,10 @@ class SimilarImages(object):
             fingerprint = self._db.find('fingerprint', f_uuid)
 
             # Get the data location
-            data = self._db.find('data', fingerprint['data_uuid'])
-            d = Data.data_factory(data)
+            fingerprint = Fingerprint.fingerprint_factory(fingerprint)
+            cutout_dict = self._db.find('cutout', fingerprint.cutout_uuid)
+            cutout = Cutout.cutout_factory(cutout_dict)
+            d = cutout.data
 
             self.set_image(ii, d.get_data(), fingerprint=fingerprint)
 
