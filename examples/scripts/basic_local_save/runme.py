@@ -31,7 +31,7 @@ data = []
 for fileinfo in processing_dict[:20]:
     im = Data(location=fileinfo['location'], radec=fileinfo['radec'], meta=fileinfo['meta'])
     data.append(im)
-    db.save('data', im.save())
+    db.save('data', im)
 
 #
 #  Create cutouts
@@ -43,7 +43,7 @@ print('Going to create the cutouts')
 cutouts = []
 for datum in data:
     cutout = full_cutout.create_cutouts(datum)
-    db.save('cutout', cutout.save())
+    db.save('cutout', cutout)
     cutouts.append(cutout)
 
 # Create the fingerprint calculator... fingerprint
@@ -53,12 +53,12 @@ fc_save = fresnet.save()
 
 print('Calculating the fingerprints')
 fingerprints = fingerprint_calculate(cutouts, fc_save)
-[db.save('fingerprint', x.save()) for x in fingerprints]
+[db.save('fingerprint', x) for x in fingerprints]
 
 print('Calculating the tSNE similarity')
 similarity_tsne = similarity_calculate(fingerprints, 'tsne')
-db.save('similarity', similarity_tsne.save())
+db.save('similarity', similarity_tsne)
 
 print('Calculating the Jaccard similarity')
 similarity_jaccard = similarity_calculate(fingerprints, 'jaccard')
-db.save('similarity', similarity_jaccard.save())
+db.save('similarity', similarity_jaccard)
