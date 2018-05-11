@@ -1,11 +1,13 @@
 import weakref
 import uuid
-import logging
+import traceback
 
 from tldist.data import Data
+from tldist.cutout.processing import CutoutProcessing
 
 from ..tl_logging import get_logger
-log = get_logger('cutout')
+import logging
+log = get_logger('cutout', level=logging.DEBUG)
 
 
 class Cutout:
@@ -15,43 +17,53 @@ class Cutout:
     """
 
     # Collection to confirm we have unique instances based on uuid
-    _cutout_collection = weakref.WeakValueDictionary()
+    #_cutout_collection = weakref.WeakValueDictionary()
 
-    @staticmethod
-    def cutout_factory(parameter):
-        if isinstance(parameter, str):
-            return Cutout._cutout_collection[parameter]
-        else:
-            data = Data.data_factory(parameter['data'])
-            return Cutout(data, parameter['bounding_box'], parameter['generator_parameters'], uuid_in=parameter['uuid'])
-
-    def __init__(self, data, bounding_box, generator_parameters, uuid_in=None):
+#    @staticmethod
+#    def cutout_factory(parameter):
+#        if isinstance(parameter, str):
+#            return Cutout._cutout_collection[parameter]
+#        else:
+#            data = Data.data_factory(parameter['data'])
+#            print("HEREHHERHEHREHRHEHRHRHE")
+#            return Cutout(data, parameter['bounding_box'], parameter['generator_parameters'],
+#                          cutout_processing=parameter['cutout_processing'],
+#                          uuid_in=parameter['uuid'])
+#
+    def __init__(self, data, bounding_box, generator_parameters, cutout_processing=[], uuid_in=None):
         """
         :param data: Data object
         :param bounding_box: [row_start, row_end, col_start, col_end]
         :param generator_parameters: parameters used to generate the cutout
         """
+        log.info('Creaing new cutout with data = {},  bounding_box = {}, generator_parameters = {}, cutout_rpcoessing = {}, uuid_in {}'.format(
+            data, bounding_box, generator_parameters, cutout_processing, uuid_in))
 
         if uuid_in is None:
             self._uuid = str(uuid.uuid4())
         else:
             self._uuid = uuid_in
+
         self._data = data
         self._bounding_box = bounding_box
         self._generator_parameters = generator_parameters
-        self._cutout_processing = []
+
+        if len(cutout_processing) > 0:
+            raise Exception('huh')
+        self._cutout_processing = cutout_processing
+
+        bb = self._bounding_box
 
         # This is the "original data"
-        # TODO: create a cached version as we really don't need this as it
-        #       is simply recreated
-        bb = self._bounding_box
         self._original_data = self._data.get_data()[bb[0]:bb[1], bb[2]:bb[3]]
 
-        self._cutout_collection[self._uuid] = self
+        self._cached_output = None
+
+        # self._cutout_collection[self._uuid] = self
 
     def __str__(self):
-        return 'Cutout for data {} with box {}'.format(
-                self._data, self._bounding_box)
+        return 'Cutout for data {} with box {} and processing {}'.format(
+                self._data, self._bounding_box, self._cutout_processing)
 
     @property
     def uuid(self):
@@ -86,24 +98,43 @@ class Cutout:
 
         self._bounding_box = value
 
-    def get_data(self):
+    @property
+    def cutout_processing(self):
+        return self._cutout_processing
 
-        bb = self._bounding_box
-        data = self._data.get_data()[bb[0]:bb[1], bb[2]:bb[3]]
-        return data
+    def add_processing(self, cutout_processing):
+        log.info('Adding processing {}'.format(cutout_processing))
+        self._cutout_processing.append(cutout_processing)
+
+    def get_data(self):
+        log.info('')
+
+        if self._cached_output is None:
+            data = self._original_data
+
+            # Apply the processing
+            for processing in self._cutout_processing:
+                data = processing.process(data)
+
+            self._cached_output = data
+
+        return self._cached_output
 
     def save(self):
+        log.info('')
         return {
             'uuid': self._uuid,
             'data': self._data.save(),
             'bounding_box': self._bounding_box,
             'generator_parameters': self._generator_parameters,
-            'cutout_processing': self._cutout_processing
+            'cutout_processing': [x.save() for x in self._cutout_processing]
         }
 
     def load(self, thedict):
+        log.info('Loading cutout')
+
         self._uuid = thedict['uuid']
         self._data = Data(thedict['data'])
         self._generator_parameters = Data(thedict['generator_parameters'])
-        self._cutout_processing = Data(thedict['cutout_processing'])
+        self._cutout_processing = [CutoutProcessing.load(x) for x in thedict['cutout_processing']]
         self._bounding_box = thedict['bounding_box']

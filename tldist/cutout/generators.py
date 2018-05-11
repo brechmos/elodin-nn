@@ -6,7 +6,7 @@ from skimage import measure
 from skimage import filters
 import skimage.transform
 
-from .cutout import Cutout
+from tldist.cutout import Cutout
 
 from ..tl_logging import get_logger
 log = get_logger('cutout generator')
@@ -157,6 +157,7 @@ class FullImageCutoutGenerator:
         :param data: Input data from which we will create the cutouts based on a sliding window.
         :return: the row start and end, column start and end and the actual numpy array of data that is the cutout
         """
+        log.info('Creating new cutout from data {}'.format(data.uuid))
         return Cutout(data, [0, self._output_size[0], 0, self._output_size[1]], self.save())
 
     def save(self):
