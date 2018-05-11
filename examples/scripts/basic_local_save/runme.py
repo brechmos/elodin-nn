@@ -7,6 +7,8 @@ from tldist.fingerprint.processing import calculate as fingerprint_calculate
 from tldist.similarity.similarity import calculate as similarity_calculate
 from tldist.data import Data
 from tldist.cutout.generators import FullImageCutoutGenerator
+from tldist.cutout.processing import Resize as CutoutResize
+from tldist.cutout.processing import Crop as CutoutCrop
 from tldist.database import get_database
 
 from configparser import ConfigParser
@@ -39,10 +41,18 @@ for fileinfo in processing_dict[:20]:
 print('Creating the Full image cutout generator')
 full_cutout = FullImageCutoutGenerator(output_size=(224, 224))
 
+cutout_crop = CutoutCrop([10, -10, 10, -10])
+cutout_resize = CutoutResize([224, 224])
+
 print('Going to create the cutouts')
 cutouts = []
 for datum in data:
     cutout = full_cutout.create_cutouts(datum)
+
+    # Add the processing
+    cutout.add_processing(cutout_crop)
+    cutout.add_processing(cutout_resize)
+
     db.save('cutout', cutout)
     cutouts.append(cutout)
 
