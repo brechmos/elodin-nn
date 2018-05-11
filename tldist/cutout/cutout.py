@@ -35,10 +35,7 @@ class Cutout:
         if uuid_in is None:
             self._uuid = str(uuid.uuid4())
         else:
-            if uuid_in in self._cutout_collection:
-                return self._cutout_collection[uuid_in]
             self._uuid = uuid_in
-
         self._data = data
         self._bounding_box = bounding_box
         self._generator_parameters = generator_parameters
