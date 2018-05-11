@@ -16,7 +16,7 @@ from astropy import units
 
 from ..tl_logging import get_logger
 import logging
-log = get_logger('display', '/tmp/mylog.log', level=logging.DEBUG)
+log = get_logger('display', '/tmp/mylog.log')
 
 
 class SimilarityDisplay(object):
@@ -84,21 +84,25 @@ class SimilarityDisplay(object):
             fingerprint_uuid = close_fingerprint_uuids[0]['fingerprint_uuid']
             if (not fingerprint_uuid == self._current_image_axis_fingerprint_uuid and
                 (now - self._current_image_axis_time_update) > 0.5):
-                self._current_image_axis_fingerprint_uuid = fingerprint_uuid
+                try:
+                    log.debug('going to show fingerprint {}'.format(fingerprint_uuid))
+                    self._current_image_axis_fingerprint_uuid = fingerprint_uuid
 
-                fingerprint = self._db.find('fingerprint', fingerprint_uuid)
+                    fingerprint = self._db.find('fingerprint', fingerprint_uuid)
 
-                # Get the data location
-                log.debug('Loading data {}'.format(fingerprint['data_uuid']))
-                data = self._db.find('data', fingerprint['data_uuid'])
-                d = Data.data_factory(data)
+                    # Get the data location
+                    log.debug('Loading data {}'.format(fingerprint['cutout_uuid']))
+                    cutout = self._db.find('cutout', fingerprint['cutout_uuid'])
+                    d = Data.data_factory(cutout['data'])
 
-                # Display the image
-                log.debug('Imshow on _current_image_axis')
-                self._current_image_axis.imshow(d.get_data())
+                    # Display the image
+                    log.debug('Imshow on _current_image_axis')
+                    self._current_image_axis.imshow(d.get_data())
 
-                # Display the location on the Aitoff plot
-                self._aitoff_axis.on_move(d.radec)
+                    # Display the location on the Aitoff plot
+                    self._aitoff_axis.on_move(d.radec)
+                except Exception as e:
+                    log.debug(e)
 
         self._move_callback_processing = False
 
