@@ -12,10 +12,7 @@ db = get_database(config['database']['type'], config['database']['hostname'])
 
 # Load the similarities
 similarities = db.find('similarity')
-similarities = [Similarity.similarity_factory(s) for s in similarities]
-
 print(similarities)
-
 similarity_tsne = similarities[0]
 
 fingerprints = db.find('fingerprint')

@@ -29,7 +29,7 @@ data = []
 for fileinfo in processing_dict[:20]:
     im = Data(location=fileinfo['location'], radec=fileinfo['radec'], meta=fileinfo['meta'])
     data.append(im)
-    tt = db.save('data', im.save())
+    tt = db.save('data', im)
     print(im.uuid, tt)
 
 #
@@ -54,15 +54,15 @@ fc_save = fresnet.save()
 print('Calculating the fingerprints')
 fingerprints = fingerprint_calculate(cutouts, fc_save)
 print([fp.uuid for fp in fingerprints])
-[db.save('fingerprint', x.save()) for x in fingerprints]
+[db.save('fingerprint', x) for x in fingerprints]
 
 #
 #  Comptue the similarity metrics
 #
 print('Calculating the tSNE similarity')
 similarity_tsne = similarity_calculate(fingerprints, 'tsne')
-db.save('similarity', similarity_tsne.save())
+db.save('similarity', similarity_tsne)
 
 print('Calculating the Jaccard similarity')
 similarity_jaccard = similarity_calculate(fingerprints, 'jaccard')
-db.save('similarity', similarity_jaccard.save())
+db.save('similarity', similarity_jaccard)
