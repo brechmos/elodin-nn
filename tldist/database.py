@@ -1,5 +1,10 @@
 import os
 
+from tldist.data import Data
+from tldist.cutout import Cutout
+from tldist.fingerprint import Fingerprint
+from tldist.similarity import Similarity
+
 # Mongo
 import pymongo
 from bson import ObjectId
@@ -14,7 +19,7 @@ import unqlite
 from .tl_logging import get_logger
 
 import logging
-log = get_logger('database', level=logging.DEBUG)
+log = get_logger('database', level=logging.INFO)
 
 
 def get_database(database_type, *args, **kwargs):
@@ -26,6 +31,15 @@ def get_database(database_type, *args, **kwargs):
             dbcls = db
     return dbcls(*args, **kwargs)
 
+def get_factory(table):
+    if table == 'data':
+        return Data.data_factory
+    elif table == 'cutout':
+        return Cutout.cutout_factory
+    elif table == 'fingerprint':
+        return Fingerprint.fingerprint_factory
+    elif table == 'similarity':
+        return Similarity.similarity_factory
 
 class Database:
     """
@@ -78,6 +92,11 @@ class Mongo(Database):
         self._database = self._mongo.database
 
     def save(self, table, data):
+
+        # Convert to dict if not one already
+        if not isinstance(data, dict):
+            data = data.save()
+        
         mongo_table = getattr(self._database, table)
         data.update({'_id': data['uuid']})
         tt = mongo_table.insert_one(data)
@@ -85,17 +104,20 @@ class Mongo(Database):
 
     def find(self, table, key=None):
         mongo_table = getattr(self._database, table)
+
+        factory = get_factory(table)
+
         if key is None:
             toreturn = mongo_table.find({})
-            return [self._convert_objectid(x) for x in toreturn]
+            return [factory(self._convert_objectid(x)) for x in toreturn]
         elif isinstance(key, list):
             data = mongo_table.find({'_id': {'$in': [ObjectId(x) for x in key]}})
-            return [self._convert_objectid(x) for x in data]
+            return [factory(self._convert_objectid(x)) for x in data]
         else:
             toreturn = mongo_table.find_one({'_id': ObjectId(key)})
             if toreturn is None:
                 toreturn = {}
-            return self._convert_objectid(toreturn)
+            return factory(self._convert_objectid(toreturn))
 
     def count(self, table):
         mongo_table = getattr(self._database, table)
@@ -147,6 +169,11 @@ class BlitzDB(Database):
         self._backend = FileBackend(self._filename)
 
     def save(self, table, data):
+
+        # Convert to dict if not one already
+        if not isinstance(data, dict):
+            data = data.save()
+        
         blitz_table = self._get_table(table)
         data.update({'pk': data['uuid']})
         save_id = self._backend.save(blitz_table(data))
@@ -155,12 +182,14 @@ class BlitzDB(Database):
 
     def find(self, table, key=None):
         blitz_table = self._get_table(table)
+        factory = get_factory(table)
+
         if key is None:
-            return [dict(x) for x in self._backend.filter(blitz_table, {})]
+            return [factory(dict(x)) for x in self._backend.filter(blitz_table, {})]
         elif isinstance(key, list):
-            return [dict(x) for x in self._backend.filter(blitz_table, {'pk': {'$in': key}})]
+            return [factory(dict(x)) for x in self._backend.filter(blitz_table, {'pk': {'$in': key}})]
         else:
-            return dict(self._backend.get(blitz_table, {'pk': key}))
+            return factory(dict(self._backend.get(blitz_table, {'pk': key})))
 
     def count(self, table):
         blitz_table = self._get_table(table)
@@ -256,6 +285,11 @@ class UnQLite(Database):
         :param table: string representation of the table/collection name
         """
         log.info('saving to {}'.format(table))
+
+        # Convert to dict if not one already
+        if not isinstance(data, dict):
+            data = data.save()
+        
         collection = self._get_table(table)
         with self._db.transaction():
             try:

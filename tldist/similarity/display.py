@@ -58,10 +58,9 @@ class SimilarityDisplay(object):
         # TODO: Fix this so it is the first and the actual similar ones
         fingerprints = self._db.find('fingerprint')
         for ii in range(9):
-            f = Fingerprint.fingerprint_factory(fingerprints[ii])
+            f = fingerprints[ii]
             cutout_uuid = f.cutout_uuid
-            cutout_dict = self._db.find('cutout', cutout_uuid)
-            cutout = Cutout.cutout_factory(cutout_dict)
+            cutout = self._db.find('cutout', cutout_uuid)
             d = cutout.data
             self._similar_images_axis.set_image(ii, d.get_data(), str(ii+1) + ') ' + os.path.basename(d.location), fingerprints[ii])
 
@@ -91,9 +90,9 @@ class SimilarityDisplay(object):
                     fingerprint = self._db.find('fingerprint', fingerprint_uuid)
 
                     # Get the data location
-                    log.debug('Loading data {}'.format(fingerprint['cutout_uuid']))
-                    cutout = self._db.find('cutout', fingerprint['cutout_uuid'])
-                    d = Data.data_factory(cutout['data'])
+                    log.debug('Loading data {}'.format(fingerprint.cutout_uuid))
+                    cutout = self._db.find('cutout', fingerprint.cutout_uuid)
+                    d = cutout.data
 
                     # Display the image
                     log.debug('Imshow on _current_image_axis')
@@ -117,11 +116,11 @@ class SimilarityDisplay(object):
                 self._similar_images_axis.set_images(close_fingerprints)
 
                 aitoff_fingerprints = []
-                for fp in close_fingerprints:
-                    fingerprint = self._db.find('fingerprint', fp['fingerprint_uuid'])
-                    cutout = self._db.find('cutout', fingerprint['cutout_uuid'])
-                    data = cutout['data']
-                    a = (fp['tsne_point'], fp['distance'], data['radec'], fingerprint)
+                for cfp in close_fingerprints:
+                    fingerprint = self._db.find('fingerprint', cfp['fingerprint_uuid'])
+                    cutout = self._db.find('cutout', fingerprint.cutout_uuid)
+                    data = cutout.data
+                    a = (cfp['tsne_point'], cfp['distance'], data['radec'], fingerprint)
                     aitoff_fingerprints.append(a)
                 self._aitoff_axis.on_click(aitoff_fingerprints)
             except Exception as e:
@@ -172,9 +171,7 @@ class SimilarImages(object):
             fingerprint = self._db.find('fingerprint', f_uuid)
 
             # Get the data location
-            fingerprint = Fingerprint.fingerprint_factory(fingerprint)
-            cutout_dict = self._db.find('cutout', fingerprint.cutout_uuid)
-            cutout = Cutout.cutout_factory(cutout_dict)
+            cutout = self._db.find('cutout', fingerprint.cutout_uuid)
             d = cutout.data
 
             self.set_image(ii, d.get_data(), fingerprint=fingerprint)
@@ -326,7 +323,6 @@ class Aitoff(object):
 if __name__ == '__main__':
     db = get_database('blitzdb', '/tmp/basic_notebook.db')
     similarities = db.find('similarity')
-    similarity_tsne = Similarity.similarity_factory(similarities[0])
+    similarity_tsne = similarities[0]
 
     simdisp = SimilarityDisplay(similarity_tsne, db)
-
