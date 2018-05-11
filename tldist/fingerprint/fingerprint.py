@@ -22,9 +22,9 @@ class Fingerprint:
         if uuid_in is None:
             self._uuid = str(uuid.uuid4())
         else:
+            self._uuid = uuid_in
             if self._uuid in self._fingerprint_collection:
                 return self._fingerprint_collection[self._uuid]
-            self._uuid = uuid_in
         self._cutout_uuid = cutout_uuid
         self._predictions = predictions
 

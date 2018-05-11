@@ -11,10 +11,9 @@ from ..tl_logging import get_logger
 log = get_logger('fingerprint task')
 
 
-def chunks(l, n):
-    """Yield successive n-sized chunks from l."""
-    for i in range(0, len(l), n):
-        yield l[i:i + n]
+def chunks(l, k):
+    n = len(l)
+    return [l[i * (n // k) + min(i, n % k):(i+1) * (n // k) + min(i+1, n % k)]   for i in range(k)]
 
 
 def calculate_celery(cutouts, fc_save):
@@ -25,7 +24,7 @@ def calculate_celery(cutouts, fc_save):
     # Queue up and run
     job = group([
                     calculate_task.s(tt, fc_save)
-                    for tt in chunks(cutouts, len(cutouts) // 8)
+                    for tt in chunks(cutouts, 3)
                 ])
     result = job.apply_async()
 

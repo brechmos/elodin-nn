@@ -8,6 +8,7 @@ from scipy.spatial import distance_matrix
 from tldist.database import get_database
 from tldist.similarity.similarity import Similarity
 from tldist.data import Data
+from tldist.cutout import Cutout
 from tldist.fingerprint import Fingerprint
 
 from astropy.coordinates import SkyCoord
@@ -57,9 +58,10 @@ class SimilarityDisplay(object):
         fingerprints = self._db.find('fingerprint')
         for ii in range(9):
             f = Fingerprint.fingerprint_factory(fingerprints[ii])
-            data_uuid = f.data_uuid
-            data = self._db.find('data', data_uuid)
-            d = Data.data_factory(data)
+            cutout_uuid = f.cutout_uuid
+            cutout_dict = self._db.find('cutout', cutout_uuid)
+            cutout = Cutout.cutout_factory(cutout_dict)
+            d = cutout.data
             self._similar_images_axis.set_image(ii, d.get_data(), str(ii+1) + ') ' + os.path.basename(d.location), fingerprints[ii])
 
         plt.show()
