@@ -13,7 +13,7 @@ from astropy import units
 
 from ..tl_logging import get_logger
 import logging
-log = get_logger('display', '/tmp/mylog.log', level=logging.DEBUG)
+log = get_logger('display', '/tmp/mylog.log', level=logging.WARNING)
 
 
 class SimilarityDisplay(object):
@@ -29,29 +29,29 @@ class SimilarityDisplay(object):
         self._figure = plt.figure(2, figsize=[10, 6])
 
         # The NxM set of similar images
-        self._similar_images_axis = SimilarImages([0.5, 0.25, 0.4, 0.5], [3, 3], db)
+        self._similar_images_axis = SimilarImages([0.4, 0.25, 0.5, 0.5], [3, 3], db)
         # TODO: this should be removed in the future
         self._similar_images_axis.set_db(db)
 
         # The current image displayed as one moves around the
         # similarity plot (e.g., tSNE)
-        self._current_image_axis = Image([0.5, 0.1, 0.2, 0.2])
+        self._current_image_axis = Image([0.4, 0.1, 0.2, 0.2])
         self._current_image_axis.imshow(np.zeros((224, 224)))
         self._current_image_axis_fingerprint_uuid = ''  # caching
         self._current_image_axis_time_update = 0
         self._move_processing_callback = False
 
         # The AITOFF plot
-        self._aitoff_axis = Aitoff([0.1, 0.55, 0.4, 0.4])
+        self._aitoff_axis = Aitoff([0.05, 0.55, 0.35, 0.4])
 
         # Display the similarity matrix based on display method in
         # the similarity subclass (e.g,. tSNE, Jaccard etc)
-        self._similarity_matrix = Image([0.1, 0.1, 0.4, 0.4])
+        self._similarity_matrix = Image([0.05, 0.1, 0.35, 0.4])
         self._similarity.display(self._similarity_matrix)
 
         # Connect the callbacks
-        self._figure.canvas.mpl_connect('button_press_event', self._click_callback)
-        self._figure.canvas.mpl_connect('motion_notify_event', self._move_callback)
+        self._ccid = self._figure.canvas.mpl_connect('button_press_event', self._click_callback)
+        self._mcid = self._figure.canvas.mpl_connect('motion_notify_event', self._move_callback)
 
         # Initialize the 9 similar images with the first 9 fingerprints
         # TODO: Fix this so it is the first and the actual similar ones
@@ -64,7 +64,6 @@ class SimilarityDisplay(object):
             self._similar_images_axis.set_image(ii, cutout.get_data(),
                                                 str(ii+1) + ') ' + os.path.basename(d.location), fingerprints[ii])
 
-        plt.show()
 
     def _move_callback(self, event):
         """
@@ -138,7 +137,7 @@ class SimilarityDisplay(object):
 
         # Click on one of the 9 similar images
         elif event.inaxes in [x._axes for x in self._similar_images_axis.axes]:
-            fingerprint_uuid = event.inaxes._imdata['uuid']
+            fingerprint_uuid = event.inaxes._imdata.uuid
 
             index = self._similarity.fingerprint_uuids.index(fingerprint_uuid)
 
@@ -156,7 +155,7 @@ class SimilarImages(object):
         # Meta data axis for when hovering over an image
         al = self._axes_limits
         # TODO:  why 0.15?
-        text_limits = [al[0]+al[2]+0.05, al[1]+0.15, 0.1, al[3]]
+        text_limits = [al[0]+al[2]+0.02, al[1]+0.15, 0.1, al[3]]
         log.debug('text axis will be at {}'.format(text_limits))
         self._text_axis = plt.axes(text_limits)
         self._text_axis.set_frame_on(False)
@@ -173,7 +172,7 @@ class SimilarImages(object):
             for ri in range(self._rows_cols[0]):
                 row_size = self._axes_limits[2] / rows_cols[0]
                 col_size = self._axes_limits[3] / rows_cols[1]
-                sub_limits = [self._axes_limits[0]+(row_size + 0.02)*ri,
+                sub_limits = [self._axes_limits[0]+(row_size + 0.01)*ri,
                               self._axes_limits[1]+axes_limits[3]-(col_size + 0.04)*ci,
                               row_size,
                               col_size]
@@ -192,7 +191,10 @@ class SimilarImages(object):
         """
         Check to see if the passed in axes is one we are repsonsible for.
         """
-        return [x._axes for x in self.axes].index(hover_axes)
+        if hover_axes is not None:
+            return [x._axes for x in self.axes].index(hover_axes)
+        else:
+            return None
 
     def show_fingerprint(self, hover_axes):
         """
@@ -211,11 +213,12 @@ class SimilarImages(object):
         self.axes[index].show_spines()
 
         # Draw the text
+        start =time.time()
         try:
             cutout = self._db.find('cutout', self._fingerprints[index].cutout_uuid)
 
             # Meta information
-            meta_text = ''
+            meta_text = os.path.basename(cutout.data.location) + '\n\n'
             for k, v in cutout.data.meta.items():
                 meta_text += '{}: {}\n'.format(k, v)
 
@@ -229,6 +232,7 @@ class SimilarImages(object):
             self._fingerprint_text.set_text(meta_text)
         except Exception as e:
             log.error(e)
+        log.debug('text drawing took {}'.format(time.time() - start))
 
     def set_images(self, fingerprints):
         self._fingerprints = fingerprints
@@ -275,6 +279,7 @@ class Image(object):
         if title:
             self._axes.set_title(title, fontsize=6)
 
+        self._axes.get_figure().canvas.draw()
         self._axes.get_figure().canvas.blit(self._axes.bbox)
 
         # This is definitely needed to update the image if we
@@ -294,14 +299,19 @@ class Image(object):
         self._axes.set_title(title)
 
     def show_spines(self):
+        start = time.time()
         for side in ['top', 'bottom', 'left', 'right']:
-            self._axes.spines[side].set_visible(True)
             self._axes.spines[side].set_lw(2)
             self._axes.spines[side].set_color('red')
+            self._axes.spines[side].set_visible(True)
+        log.debug('turning on splines took {}'.format(time.time() - start))
 
     def hide_spines(self):
+        start = time.time()
         for side in ['top', 'bottom', 'left', 'right']:
             self._axes.spines[side].set_visible(False)
+        log.debug('turning off splines took {}'.format(time.time() - start))
+
 
 class Aitoff(object):
 
