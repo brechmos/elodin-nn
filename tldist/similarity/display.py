@@ -6,9 +6,6 @@ import matplotlib
 from scipy.spatial import distance_matrix
 
 from tldist.database import get_database
-from tldist.similarity.similarity import Similarity
-from tldist.data import Data
-from tldist.cutout import Cutout
 from tldist.fingerprint import Fingerprint
 
 from astropy.coordinates import SkyCoord
@@ -16,7 +13,7 @@ from astropy import units
 
 from ..tl_logging import get_logger
 import logging
-log = get_logger('display', '/tmp/mylog.log')
+log = get_logger('display', '/tmp/mylog.log', level=logging.DEBUG)
 
 
 class SimilarityDisplay(object):
@@ -33,6 +30,8 @@ class SimilarityDisplay(object):
 
         # The NxM set of similar images
         self._similar_images_axis = SimilarImages([0.5, 0.25, 0.4, 0.5], [3, 3], db)
+        # TODO: this should be removed in the future
+        self._similar_images_axis.set_db(db)
 
         # The current image displayed as one moves around the
         # similarity plot (e.g., tSNE)
@@ -62,7 +61,8 @@ class SimilarityDisplay(object):
             cutout_uuid = f.cutout_uuid
             cutout = self._db.find('cutout', cutout_uuid)
             d = cutout.data
-            self._similar_images_axis.set_image(ii, d.get_data(), str(ii+1) + ') ' + os.path.basename(d.location), fingerprints[ii])
+            self._similar_images_axis.set_image(ii, cutout.get_data(),
+                                                str(ii+1) + ') ' + os.path.basename(d.location), fingerprints[ii])
 
         plt.show()
 
@@ -74,6 +74,7 @@ class SimilarityDisplay(object):
         """
         log.debug('---------------------------------------------')
 
+        # If we are hovering over the similarity plot
         if event.inaxes == self._similarity_matrix._axes:
             point = event.ydata, event.xdata
             close_fingerprint_uuids = self._similarity.find_similar(point, 1)
@@ -82,7 +83,7 @@ class SimilarityDisplay(object):
 
             fingerprint_uuid = close_fingerprint_uuids[0]['fingerprint_uuid']
             if (not fingerprint_uuid == self._current_image_axis_fingerprint_uuid and
-                (now - self._current_image_axis_time_update) > 0.5):
+               (now - self._current_image_axis_time_update) > 0.5):
                 try:
                     log.debug('going to show fingerprint {}'.format(fingerprint_uuid))
                     self._current_image_axis_fingerprint_uuid = fingerprint_uuid
@@ -96,12 +97,16 @@ class SimilarityDisplay(object):
 
                     # Display the image
                     log.debug('Imshow on _current_image_axis')
-                    self._current_image_axis.imshow(d.get_data())
+                    self._current_image_axis.imshow(cutout.get_data())
 
                     # Display the location on the Aitoff plot
                     self._aitoff_axis.on_move(d.radec)
                 except Exception as e:
                     log.debug(e)
+
+        # If we are hovering over one of the NxN similar images
+        elif self._similar_images_axis.hover_in(event.inaxes):
+            self._similar_images_axis.show_fingerprint(event.inaxes)
 
         self._move_callback_processing = False
 
@@ -120,7 +125,7 @@ class SimilarityDisplay(object):
                     fingerprint = self._db.find('fingerprint', cfp['fingerprint_uuid'])
                     cutout = self._db.find('cutout', fingerprint.cutout_uuid)
                     data = cutout.data
-                    a = (cfp['tsne_point'], cfp['distance'], data['radec'], fingerprint)
+                    a = (cfp['tsne_point'], cfp['distance'], data.radec, fingerprint)
                     aitoff_fingerprints.append(a)
                 self._aitoff_axis.on_click(aitoff_fingerprints)
             except Exception as e:
@@ -144,7 +149,19 @@ class SimilarityDisplay(object):
 
 class SimilarImages(object):
     def __init__(self, axes_limits, rows_cols, db):
-        self._axes_limits = axes_limits
+
+        # l b w h
+        self._axes_limits = np.array(axes_limits) - np.array([0, 0, 0.1, 0])
+
+        al = self._axes_limits
+        text_limits = [al[0]+al[2]+0.05, al[1], 0.1, al[2]]
+        log.debug('text axis limits are {}'.format(text_limits))
+        self._text_axis = plt.axes(text_limits)
+        self._text_axis.set_frame_on(False)
+        self._text_axis.set_xticks([])
+        self._text_axis.set_yticks([])
+        self._fingerprint_text = self._text_axis.text(0, 0, '', fontsize=8)
+
         self._rows_cols = rows_cols
         self._db = db
 
@@ -152,10 +169,10 @@ class SimilarImages(object):
         ii = 0
         for ci in range(self._rows_cols[1]):
             for ri in range(self._rows_cols[0]):
-                row_size = axes_limits[2] / rows_cols[0]
-                col_size = axes_limits[3] / rows_cols[1]
-                sub_limits = [axes_limits[0]+(row_size + 0.02)*ri,
-                              axes_limits[1]+axes_limits[3]-(col_size + 0.04)*ci,
+                row_size = self._axes_limits[2] / rows_cols[0]
+                col_size = self._axes_limits[3] / rows_cols[1]
+                sub_limits = [self._axes_limits[0]+(row_size + 0.02)*ri,
+                              self._axes_limits[1]+axes_limits[3]-(col_size + 0.04)*ci,
                               row_size,
                               col_size]
 
@@ -164,17 +181,67 @@ class SimilarImages(object):
                 self.axes.append(image)
                 ii = ii + 1
 
+        self._fingerprints = []
+
+    def set_db(self, db):
+        self._db = db
+
+    def hover_in(self, hover_axes):
+        """
+        Check to see if the passed in axes is one we are repsonsible for.
+        """
+        return [x._axes for x in self.axes].index(hover_axes)
+
+    def show_fingerprint(self, hover_axes):
+        """
+        Check to see if the passed in axes is one we are repsonsible for.
+        """
+        log.info('hover axis {}'.format(hover_axes))
+        index = [x._axes for x in self.axes].index(hover_axes)
+
+        # Unhighlight other axes
+        log.debug('Remove outline for subwindow')
+        for im in self.axes:
+            im.hide_spines()
+
+        # Highlight the axis
+        log.debug('Add outline for subwindow')
+        self.axes[index].show_spines()
+
+        # Draw the text
+        try:
+            cutout = self._db.find('cutout', self._fingerprints[index].cutout_uuid)
+
+            # Meta information
+            meta_text = ''
+            for k, v in cutout.data.meta.items():
+                meta_text += '{}: {}\n'.format(k, v)
+
+            # Fingerprint information
+            meta_text += '\n'
+            for ii in range(5):
+                meta_text += '{}: {:0.3}\n'.format(
+                        self._fingerprints[index].predictions[ii][1],
+                        self._fingerprints[index].predictions[ii][2])
+
+            self._fingerprint_text.set_text(meta_text)
+        except Exception as e:
+            log.error(e)
+
     def set_images(self, fingerprints):
+        self._fingerprints = fingerprints
+
+        self._fingerprints = []
         for ii, fp in enumerate(fingerprints):
             # Get the fingerprint
             f_uuid = fp['fingerprint_uuid']
             fingerprint = self._db.find('fingerprint', f_uuid)
+            self._fingerprints.append(fingerprint)
 
             # Get the data location
             cutout = self._db.find('cutout', fingerprint.cutout_uuid)
-            d = cutout.data
 
-            self.set_image(ii, d.get_data(), fingerprint=fingerprint)
+            self.set_image(ii, cutout.get_data(), fingerprint=fingerprint)
 
     def set_image(self, num, data, title='', fingerprint={}):
         # Display image
@@ -204,7 +271,7 @@ class Image(object):
         self._axes_data = self._axes.imshow(data, cmap=plt.gray())
 
         if title:
-            self._axes.set_title(title, fontsize=8)
+            self._axes.set_title(title, fontsize=6)
 
         self._axes.get_figure().canvas.blit(self._axes.bbox)
 
@@ -224,6 +291,15 @@ class Image(object):
     def set_title(self, title):
         self._axes.set_title(title)
 
+    def show_spines(self):
+        for side in ['top', 'bottom', 'left', 'right']:
+            self._axes.spines[side].set_visible(True)
+            self._axes.spines[side].set_lw(2)
+            self._axes.spines[side].set_color('red')
+
+    def hide_spines(self):
+        for side in ['top', 'bottom', 'left', 'right']:
+            self._axes.spines[side].set_visible(False)
 
 class Aitoff(object):
 
@@ -262,46 +338,49 @@ class Aitoff(object):
             log.error('Wrong thing passed to Aitoff on_click.  It must be a list of tuples where each tuple contains piont, distnace and fingerprint')
             raise Exception('Wrong thing passed to Aitoff')
 
-        for x in self._axis_aitoff_text_labels:
-            x.remove()
-        self._axis_aitoff_text_labels = []
+        try:
+            for x in self._axis_aitoff_text_labels:
+                x.remove()
+            self._axis_aitoff_text_labels = []
 
-        points = []
-        for ii, (fpoint, distance, radec, fingerprint) in enumerate(close_fingerprints):
+            points = []
+            for ii, (fpoint, distance, radec, fingerprint) in enumerate(close_fingerprints):
 
-            # Add point to Aitoff plot
-            ra, dec = self.convert_ra_dec(*radec)
-            if self._onclick_points and ii in self._onclick_points:
-                self._onclick_points[ii][0].set_data(ra, dec)
-            else:
-                self._onclick_points[ii] = self._axis.plot(ra, dec, 'bo', label=str(ii))
-            points.append([ra, dec])
+                # Add point to Aitoff plot
+                ra, dec = self.convert_ra_dec(*radec)
+                if self._onclick_points and ii in self._onclick_points:
+                    self._onclick_points[ii][0].set_data(ra, dec)
+                else:
+                    self._onclick_points[ii] = self._axis.plot(ra, dec, 'bo', label=str(ii))
+                points.append([ra, dec])
 
-        self._axis.get_figure().canvas.restore_region(self._axis_background)
+            self._axis.get_figure().canvas.restore_region(self._axis_background)
 
-        # annotate the points in the aitoff plot
-        points = np.array(points)
-        d = distance_matrix(points, points)
+            # annotate the points in the aitoff plot
+            points = np.array(points)
+            d = distance_matrix(points, points)
 
-        rows = set(range(points.shape[0]))
-        groups = {}
+            rows = set(range(points.shape[0]))
+            groups = {}
 
-        while len(rows) > 0:
-            row = rows.pop()
-            close = np.nonzero(d[row] < 0.01)[0]
-            rows = rows - set(list(close))
-            groups[row] = close
+            while len(rows) > 0:
+                row = rows.pop()
+                close = np.nonzero(d[row] < 0.01)[0]
+                rows = rows - set(list(close))
+                groups[row] = close
 
-        for k, v in groups.items():
-            tt = self._axis.text(points[k][0]+0.05, points[k][1]+0.05,
-                                 ','.join([str(x+1) for x in v]))
-            self._axis_aitoff_text_labels.append(tt)
-            self._axis.draw_artist(tt)
+            for k, v in groups.items():
+                tt = self._axis.text(points[k][0]+0.05, points[k][1]+0.05,
+                                     ','.join([str(x+1) for x in v]))
+                self._axis_aitoff_text_labels.append(tt)
+                self._axis.draw_artist(tt)
 
-        self._axis.get_figure().canvas.blit(self._axis.bbox)
+            self._axis.get_figure().canvas.blit(self._axis.bbox)
 
-        self._axis.get_figure().canvas.draw()
-        self._axis_background = self._axis.get_figure().canvas.copy_from_bbox(self._axis.bbox)
+            self._axis.get_figure().canvas.draw()
+            self._axis_background = self._axis.get_figure().canvas.copy_from_bbox(self._axis.bbox)
+        except Exception as e:
+            log.error(e)
 
     def on_move(self, radec):
         try:
