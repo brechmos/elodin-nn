@@ -6,4 +6,4 @@
 # This will also require access to a redis machine that is defined in 
 # the config.ini file.
 
-celery -A tldist.celery worker --loglevel=info -c 2
+celery -A tldist.celery worker --loglevel=info -c 1

@@ -30,7 +30,7 @@ processing_dict = pickle.load(open('../../data/hubble_acs.pck', 'rb'))
 
 print('Setting up the data structure required')
 data = []
-for fileinfo in processing_dict[:20]:
+for fileinfo in processing_dict[:200]:
     im = Data(location=fileinfo['location'], radec=fileinfo['radec'], meta=fileinfo['meta'])
     data.append(im)
     db.save('data', im)
@@ -41,7 +41,7 @@ for fileinfo in processing_dict[:20]:
 print('Creating the Full image cutout generator')
 full_cutout = FullImageCutoutGenerator(output_size=(224, 224))
 
-cutout_crop = CutoutCrop([10, -10, 10, -10])
+cutout_crop = CutoutCrop([15, -15, 15, -15])
 cutout_resize = CutoutResize([224, 224])
 
 print('Going to create the cutouts')
