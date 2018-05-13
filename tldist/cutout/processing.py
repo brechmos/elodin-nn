@@ -1,4 +1,4 @@
-import skimage
+from skimage.transform import resize as skimage_resize
 from ..tl_logging import get_logger
 log = get_logger('cutout processing')
 
@@ -52,7 +52,7 @@ class Resize(CutoutProcessing):
 
     def process(self, numpy_data):
         log.debug('resizing data to {}'.format(self._output_size))
-        return skimage.transform.resize(numpy_data, self._output_size)
+        return skimage_resize(numpy_data, self._output_size)
 
 
 class Crop(CutoutProcessing):
