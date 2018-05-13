@@ -153,14 +153,16 @@ class SimilarImages(object):
         # l b w h
         self._axes_limits = np.array(axes_limits) - np.array([0, 0, 0.1, 0])
 
+        # Meta data axis for when hovering over an image
         al = self._axes_limits
-        text_limits = [al[0]+al[2]+0.05, al[1], 0.1, al[2]]
-        log.debug('text axis limits are {}'.format(text_limits))
+        # TODO:  why 0.15?
+        text_limits = [al[0]+al[2]+0.05, al[1]+0.15, 0.1, al[3]]
+        log.debug('text axis will be at {}'.format(text_limits))
         self._text_axis = plt.axes(text_limits)
         self._text_axis.set_frame_on(False)
         self._text_axis.set_xticks([])
         self._text_axis.set_yticks([])
-        self._fingerprint_text = self._text_axis.text(0, 0, '', fontsize=8)
+        self._fingerprint_text = self._text_axis.text(0, 0, '', fontsize=8, va='top')
 
         self._rows_cols = rows_cols
         self._db = db
