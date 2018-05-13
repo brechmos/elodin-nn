@@ -10,35 +10,33 @@ import logging
 log = get_logger('cutout', level=logging.DEBUG)
 
 
-class Cutout:
+class Cutout(object):
     """
     This cutout class represents one cutout of an image.  Likely a fingerprint
     will be calculated from this cutout.
     """
 
     # Collection to confirm we have unique instances based on uuid
-    #_cutout_collection = weakref.WeakValueDictionary()
+    _cutout_collection = weakref.WeakValueDictionary()
 
-#    @staticmethod
-#    def cutout_factory(parameter):
-#        if isinstance(parameter, str):
-#            return Cutout._cutout_collection[parameter]
-#        else:
-#            data = Data.data_factory(parameter['data'])
-#            print("HEREHHERHEHREHRHEHRHRHE")
-#            return Cutout(data, parameter['bounding_box'], parameter['generator_parameters'],
-#                          cutout_processing=parameter['cutout_processing'],
-#                          uuid_in=parameter['uuid'])
-#
-    def __init__(self, data, bounding_box, generator_parameters, cutout_processing=[], uuid_in=None):
+    @staticmethod
+    def cutout_factory(parameter):
+        if isinstance(parameter, str):
+            return Cutout._cutout_collection[parameter]
+        else:
+            data = Data.data_factory(parameter['data'])
+            print("HEREHHERHEHREHRHEHRHRHE")
+            return Cutout(data, parameter['bounding_box'], parameter['generator_parameters'],
+                          cutout_processing=parameter['cutout_processing'],
+                          uuid_in=parameter['uuid'])
+
+    def __init__(self, data, bounding_box, generator_parameters, cutout_processing=None, uuid_in=None):
         """
         :param data: Data object
         :param bounding_box: [row_start, row_end, col_start, col_end]
         :param generator_parameters: parameters used to generate the cutout
         """
-        log.info('Creaing new cutout with data = {},  bounding_box = {}, generator_parameters = {}, cutout_rpcoessing = {}, uuid_in {}'.format(
-            data, bounding_box, generator_parameters, cutout_processing, uuid_in))
-
+        log.info(' calling with cutout_processing {}'.format(cutout_processing))
         if uuid_in is None:
             self._uuid = str(uuid.uuid4())
         else:
@@ -48,9 +46,7 @@ class Cutout:
         self._bounding_box = bounding_box
         self._generator_parameters = generator_parameters
 
-        if len(cutout_processing) > 0:
-            raise Exception('huh')
-        self._cutout_processing = cutout_processing
+        self._cutout_processing = [] if cutout_processing is None else cutout_processing
 
         bb = self._bounding_box
 
@@ -60,6 +56,10 @@ class Cutout:
         self._cached_output = None
 
         # self._cutout_collection[self._uuid] = self
+
+        log.info('Creaing new cutout with data = {},  bounding_box = {}, generator_parameters = {}, cutout_rpcoessing = {}, uuid_in {}'.format(
+            data, bounding_box, generator_parameters, cutout_processing, uuid_in))
+
 
     def __str__(self):
         return 'Cutout for data {} with box {} and processing {}'.format(
@@ -101,6 +101,10 @@ class Cutout:
     @property
     def cutout_processing(self):
         return self._cutout_processing
+
+    @cutout_processing.setter
+    def cutout_processing(self, value):
+        self._cutout_processing = value
 
     def add_processing(self, cutout_processing):
         log.info('Adding processing {}'.format(cutout_processing))
