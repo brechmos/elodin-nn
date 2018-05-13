@@ -103,9 +103,13 @@ class Data:
 
         # Distant dataset
         if 'http' in self.location:
-            response = requests.get(self.location)
+            success = True
+            try:
+                response = requests.get(self.location)
+            except requests.exceptions.RequestException as e:
+                success = False
 
-            if not response.status_code == 200:
+            if not response.status_code == 200 or not success:
                 log.error('Problem loading the data {}'.format(self.location))
                 raise Exception('Problem loading the data {}'.format(self.location))
 
