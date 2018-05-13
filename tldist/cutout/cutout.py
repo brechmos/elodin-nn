@@ -46,7 +46,7 @@ class Cutout(object):
         self._bounding_box = bounding_box
         self._generator_parameters = generator_parameters
 
-        self._cutout_processing = [] if cutout_processing is None else cutout_processing
+        self._cutout_processing = [] if cutout_processing is None else [CutoutProcessing.load(x) for x in cutout_processing]
 
         bb = self._bounding_box
 
