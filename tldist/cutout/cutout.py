@@ -7,7 +7,7 @@ from tldist.cutout.processing import CutoutProcessing
 
 from ..tl_logging import get_logger
 import logging
-log = get_logger('cutout', level=logging.DEBUG)
+log = get_logger('cutout', level=logging.INFO)
 
 
 class Cutout(object):
