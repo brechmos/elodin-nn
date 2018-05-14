@@ -406,6 +406,7 @@ class Aitoff(object):
             else:
                 self._onmove_point = self._axis.plot(ra, dec, 'o', color=self._onmove_color)
 
+            self._axis.draw_artist(self._onmove_point[0])
             self._axis.get_figure().canvas.blit(self._axis.bbox)
         except Exception as e:
             log.error('display point {}'.format(e))
