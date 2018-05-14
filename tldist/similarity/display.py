@@ -29,7 +29,7 @@ class SimilarityDisplay(object):
         self._figure = plt.figure(2, figsize=[10, 6])
 
         # The NxM set of similar images
-        self._similar_images_axis = SimilarImages([0.4, 0.25, 0.5, 0.5], [3, 3], db)
+        self._similar_images_axis = SimilarImages([0.4, 0.33, 0.5, 0.6], [3, 3], db)
         # TODO: this should be removed in the future
         self._similar_images_axis.set_db(db)
 
@@ -156,29 +156,37 @@ class SimilarImages(object):
         # Meta data axis for when hovering over an image
         al = self._axes_limits
         # TODO:  why 0.15?
-        text_limits = [al[0]+al[2]+0.02, al[1]+0.15, 0.1, al[3]]
+        log.debug('axes_limits {}'.format(self._axes_limits))
+        text_limits = [al[0]+al[2]+0.02, al[1], 0.1, al[3]]
         log.debug('text axis will be at {}'.format(text_limits))
         self._text_axis = plt.axes(text_limits)
-        self._text_axis.set_frame_on(False)
-        self._text_axis.set_xticks([])
-        self._text_axis.set_yticks([])
+        self._text_axis.set_ylim([1, 0])
+#        self._text_axis.set_frame_on(False)
+#        self._text_axis.set_xticks([])
+#        self._text_axis.set_yticks([])
         self._fingerprint_text = self._text_axis.text(0, 0, '', fontsize=8, va='top')
+
 
         self._rows_cols = rows_cols
         self._db = db
 
         self.axes = []
         ii = 0
-        for ci in range(self._rows_cols[1]):
-            for ri in range(self._rows_cols[0]):
-                row_size = self._axes_limits[2] / rows_cols[0]
-                col_size = self._axes_limits[3] / rows_cols[1]
-                sub_limits = [self._axes_limits[0]+(row_size + 0.01)*ri,
-                              self._axes_limits[1]+axes_limits[3]-(col_size + 0.04)*ci,
-                              row_size,
-                              col_size]
 
-                image = Image(sub_limits)
+        Nw, Nh = rows_cols
+        padding = 0.01
+        im_w = axes_limits[2] / Nw - 2*padding
+        im_h = axes_limits[3] / Nh - 2*padding
+
+        l, b, w, h = axes_limits
+
+        ii = 0
+        for ib in np.arange(Nh)[::-1]:
+            bottom = ib*(im_h + 2*padding) + padding + b
+            for il in np.arange(Nw):
+                left = il*(im_w + 2*padding) + padding + l
+                image = Image([left, bottom, im_w, im_h])
+
                 image.store({'type': 'similar', 'number': ii})
                 self.axes.append(image)
                 ii = ii + 1
