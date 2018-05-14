@@ -8,7 +8,8 @@ from tldist.fingerprint.fingerprint import Fingerprint
 from tldist.cutout import Cutout
 
 from ..tl_logging import get_logger
-log = get_logger('fingerprint processing')
+import logging
+log = get_logger('fingerprint processing', level=logging.WARNING)
 
 
 def calculate(cutouts, fc_save, task=None):

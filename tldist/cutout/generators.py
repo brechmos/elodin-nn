@@ -9,7 +9,8 @@ import skimage.transform
 from tldist.cutout import Cutout
 
 from ..tl_logging import get_logger
-log = get_logger('cutout generator')
+import logging
+log = get_logger('cutout generator', level=logging.WARNING)
 
 """
 The Cutout Generators should be instanciated and then run on a Data object in order

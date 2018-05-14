@@ -3,17 +3,19 @@ import time
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib
+import matplotlib.gridspec as gridspec
 from scipy.spatial import distance_matrix
 
 from tldist.database import get_database
 from tldist.fingerprint import Fingerprint
+from tldist.cutout import Cutout
 
 from astropy.coordinates import SkyCoord
 from astropy import units
 
 from ..tl_logging import get_logger
 import logging
-log = get_logger('display', '/tmp/mylog.log', level=logging.DEBUG)
+log = get_logger('display', '/tmp/mylog.log', level=logging.WARNING)
 
 
 class SimilarityDisplay(object):
@@ -26,27 +28,34 @@ class SimilarityDisplay(object):
         self._db = db
 
         # Setup the figure
-        self._figure = plt.figure(2, figsize=[10, 6])
+        self._figure = plt.figure(2, figsize=[16, 7.5])
+
+        # Left is aitoff and similarity, Right is similar images
+        main_grid = gridspec.GridSpec(1, 2)
+        left_grid = gridspec.GridSpecFromSubplotSpec(2, 1, subplot_spec=main_grid[0])
+        aitoff_grid = left_grid[0, 0]
+        similarity_main_grid = gridspec.GridSpecFromSubplotSpec(2, 4, left_grid[1, 0])
+
+        right_grid = main_grid[1]
 
         # The NxM set of similar images
-        self._similar_images_axis = SimilarImages([0.4, 0.33, 0.5, 0.6], [3, 3], db)
+        self._similar_images_axis = SimilarImages(right_grid, [3, 3], db)
         # TODO: this should be removed in the future
         self._similar_images_axis.set_db(db)
 
         # The current image displayed as one moves around the
         # similarity plot (e.g., tSNE)
-        self._current_image_axis = Image([0.4, 0.1, 0.2, 0.2])
-        self._current_image_axis.imshow(np.zeros((224, 224)))
+        self._current_image_axis = Image(similarity_main_grid[1, -1])
+        #self._current_image_axis.imshow(np.ones((224, 224)))
         self._current_image_axis_fingerprint_uuid = ''  # caching
         self._current_image_axis_time_update = 0
-        self._move_processing_callback = False
 
         # The AITOFF plot
-        self._aitoff_axis = Aitoff([0.05, 0.55, 0.35, 0.4])
+        self._aitoff_axis = Aitoff(aitoff_grid)
 
         # Display the similarity matrix based on display method in
         # the similarity subclass (e.g,. tSNE, Jaccard etc)
-        self._similarity_matrix = Image([0.05, 0.1, 0.35, 0.4])
+        self._similarity_matrix = Image(similarity_main_grid[:, :-1])
         self._similarity.display(self._similarity_matrix)
 
         # Connect the callbacks
@@ -59,11 +68,12 @@ class SimilarityDisplay(object):
         for ii in range(9):
             f = fingerprints[ii]
             cutout_uuid = f.cutout_uuid
-            cutout = self._db.find('cutout', cutout_uuid)
+            cutout = Cutout.factory(cutout_uuid, self._db)
             d = cutout.data
             self._similar_images_axis.set_image(ii, cutout.get_data(),
                                                 str(ii+1) + ') ' + os.path.basename(d.location), fingerprints[ii])
 
+        plt.tight_layout(pad=0.4, w_pad=0.5, h_pad=1.0)
 
     def _move_callback(self, event):
         """
@@ -87,19 +97,18 @@ class SimilarityDisplay(object):
                     log.debug('going to show fingerprint {}'.format(fingerprint_uuid))
                     self._current_image_axis_fingerprint_uuid = fingerprint_uuid
 
-                    fingerprint = self._db.find('fingerprint', fingerprint_uuid)
+                    fingerprint = Fingerprint.factory(fingerprint_uuid, self._db)
 
                     # Get the data location
                     log.debug('Loading data {}'.format(fingerprint.cutout_uuid))
-                    cutout = self._db.find('cutout', fingerprint.cutout_uuid)
-                    d = cutout.data
+                    cutout = Cutout.factory(fingerprint.cutout_uuid, self._db)
 
                     # Display the image
                     log.debug('Imshow on _current_image_axis')
                     self._current_image_axis.imshow(cutout.get_data())
 
                     # Display the location on the Aitoff plot
-                    self._aitoff_axis.on_move(d.radec)
+                    self._aitoff_axis.on_move(cutout.data.radec)
                 except Exception as e:
                     log.debug(e)
 
@@ -122,8 +131,8 @@ class SimilarityDisplay(object):
 
                 aitoff_fingerprints = []
                 for cfp in close_fingerprints:
-                    fingerprint = self._db.find('fingerprint', cfp['fingerprint_uuid'])
-                    cutout = self._db.find('cutout', fingerprint.cutout_uuid)
+                    fingerprint = Fingerprint.factory(cfp['fingerprint_uuid'], self._db)
+                    cutout = Cutout.factory(fingerprint.cutout_uuid, self._db)
                     data = cutout.data
                     a = (cfp['tsne_point'], cfp['distance'], data.radec, fingerprint)
                     aitoff_fingerprints.append(a)
@@ -148,50 +157,30 @@ class SimilarityDisplay(object):
 
 
 class SimilarImages(object):
-    def __init__(self, axes_limits, rows_cols, db):
+    def __init__(self, sub_gridspec, rows_cols, db):
 
-        # l b w h
-        self._axes_limits = np.array(axes_limits) - np.array([0, 0, 0.1, 0])
-
-        # Meta data axis for when hovering over an image
-        al = self._axes_limits
-        # TODO:  why 0.15?
-        log.debug('axes_limits {}'.format(self._axes_limits))
-        text_limits = [al[0]+al[2]+0.02, al[1], 0.1, al[3]]
-        log.debug('text axis will be at {}'.format(text_limits))
-        self._text_axis = plt.axes(text_limits)
-        self._text_axis.set_ylim([1, 0])
-#        self._text_axis.set_frame_on(False)
-#        self._text_axis.set_xticks([])
-#        self._text_axis.set_yticks([])
-        self._fingerprint_text = self._text_axis.text(0, 0, '', fontsize=8, va='top')
-
+        sim_images_grid = gridspec.GridSpecFromSubplotSpec(rows_cols[0], rows_cols[1]+1, subplot_spec=sub_gridspec)
 
         self._rows_cols = rows_cols
         self._db = db
 
+        self._fingerprints = []
         self.axes = []
-        ii = 0
-
-        Nw, Nh = rows_cols
-        padding = 0.01
-        im_w = axes_limits[2] / Nw - 2*padding
-        im_h = axes_limits[3] / Nh - 2*padding
-
-        l, b, w, h = axes_limits
 
         ii = 0
-        for ib in np.arange(Nh)[::-1]:
-            bottom = ib*(im_h + 2*padding) + padding + b
-            for il in np.arange(Nw):
-                left = il*(im_w + 2*padding) + padding + l
-                image = Image([left, bottom, im_w, im_h])
-
+        for row in range(rows_cols[0]):
+            for col in range(rows_cols[1]):
+                image = Image(sim_images_grid[row, col])
                 image.store({'type': 'similar', 'number': ii})
                 self.axes.append(image)
                 ii = ii + 1
 
-        self._fingerprints = []
+        self._text_axis = plt.subplot(sim_images_grid[:, -1])
+        self._text_axis.set_ylim((1, 0))
+        self._text_axis.set_frame_on(False)
+        self._text_axis.set_xticks([])
+        self._text_axis.set_yticks([])
+        self._fingerprint_text = self._text_axis.text(0, 0, '', fontsize=8, va='top')
 
     def set_db(self, db):
         self._db = db
@@ -215,9 +204,9 @@ class SimilarImages(object):
 
         try:
             # Draw the text
-            start =time.time()
+            start = time.time()
 
-            cutout = self._db.find('cutout', self._fingerprints[index].cutout_uuid)
+            cutout = Cutout.factory(self._fingerprints[index].cutout_uuid, self._db)
 
             # Meta information
             meta_text = os.path.basename(cutout.data.location) + '\n\n'
@@ -252,11 +241,11 @@ class SimilarImages(object):
         for ii, fp in enumerate(fingerprints):
             # Get the fingerprint
             f_uuid = fp['fingerprint_uuid']
-            fingerprint = self._db.find('fingerprint', f_uuid)
+            fingerprint = Fingerprint.factory(f_uuid, self._db)
             self._fingerprints.append(fingerprint)
 
             # Get the data location
-            cutout = self._db.find('cutout', fingerprint.cutout_uuid)
+            cutout = Cutout.factory(fingerprint.cutout_uuid, self._db)
 
             self.set_image(ii, cutout.get_data(), fingerprint=fingerprint)
 
@@ -269,8 +258,8 @@ class SimilarImages(object):
 
 
 class Image(object):
-    def __init__(self, axes_limits):
-        self._axes = plt.axes(axes_limits)
+    def __init__(self, grid_spec):
+        self._axes = plt.subplot(grid_spec)
         self._axes_data = None
         self._spines_visible = False
 
@@ -281,17 +270,19 @@ class Image(object):
         return self._axes._imdata
 
     def imshow(self, data, title=''):
-        self._axes.set_xticks([])
-        self._axes.set_yticks([])
-        self._axes.set_xlabel('')
-        self._axes.set_ylabel('')
-
-        self._axes_data = self._axes.imshow(data, cmap=plt.gray())
+        if self._axes_data is None:
+            self._axes_data = self._axes.imshow(data, cmap=plt.gray())
+            self._axes.set_xticks([])
+            self._axes.set_yticks([])
+            self._axes.set_xlabel('')
+            self._axes.set_ylabel('')
+            self._axes.get_figure().canvas.draw()
+        else:
+            self._axes_data.set_data(data)
 
         if title:
-            self._axes.set_title(title, fontsize=6)
+            self._axes.set_title(title, fontsize=8)
 
-        self._axes.get_figure().canvas.draw()
         self._axes.get_figure().canvas.blit(self._axes.bbox)
 
         # This is definitely needed to update the image if we
@@ -330,7 +321,7 @@ class Image(object):
 
     def hide_spines(self):
         log.info('')
-        
+
         if not self._spines_visible:
             return
 
@@ -347,11 +338,9 @@ class Image(object):
 
 class Aitoff(object):
 
-    def __init__(self, axes_limits):
-        self._axes_limits = axes_limits
-
+    def __init__(self, grid_spec):
         # If we have ra_dec then let's display the Aitoff projection axis
-        self._axis = plt.axes(self._axes_limits, projection="aitoff")
+        self._axis = plt.subplot(grid_spec, projection="aitoff")
         self._axis.grid('on')
         self._axis.set_xlabel('RA')
         self._axis.set_ylabel('DEC')

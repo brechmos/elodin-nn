@@ -1,6 +1,7 @@
 import skimage
 from ..tl_logging import get_logger
-log = get_logger('data processing', '/tmp/mylog.log')
+import logging
+log = get_logger('data processing', '/tmp/mylog.log', level=logging.WARNING)
 
 
 class DataProcessing(object):

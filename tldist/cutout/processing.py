@@ -1,6 +1,7 @@
 from skimage.transform import resize as skimage_resize
 from ..tl_logging import get_logger
-log = get_logger('cutout processing')
+import logging
+log = get_logger('cutout processing', level=logging.WARNING)
 
 
 class CutoutProcessing(object):

@@ -8,7 +8,8 @@ from tldist.celery import app
 from tldist.fingerprint.processing import calculate as processing_calculate
 
 from ..tl_logging import get_logger
-log = get_logger('fingerprint task')
+import logging
+log = get_logger('fingerprint task', logging.WARNING)
 
 
 def chunks(l, k):

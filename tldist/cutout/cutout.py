@@ -1,13 +1,12 @@
 import weakref
 import uuid
-import traceback
 
 from tldist.data import Data
 from tldist.cutout.processing import CutoutProcessing
 
 from ..tl_logging import get_logger
 import logging
-log = get_logger('cutout', level=logging.INFO)
+log = get_logger('cutout', level=logging.WARNING)
 
 
 class Cutout(object):
@@ -17,15 +16,22 @@ class Cutout(object):
     """
 
     # Collection to confirm we have unique instances based on uuid
-    _cutout_collection = weakref.WeakValueDictionary()
+    # _cutout_collection = weakref.WeakValueDictionary()
+    _cutout_collection = {}
 
     @staticmethod
-    def cutout_factory(parameter):
+    def factory(parameter, db=None):
         if isinstance(parameter, str):
-            return Cutout._cutout_collection[parameter]
-        else:
-            data = Data.data_factory(parameter['data'])
-            print("HEREHHERHEHREHRHEHRHRHE")
+            if parameter in Cutout._cutout_collection:
+                return Cutout._cutout_collection[parameter]
+            elif db is not None:
+                return db.find('cutout', parameter)
+        elif isinstance(parameter, dict):
+
+            if 'uuid' in parameter and parameter['uuid'] in Cutout._cutout_collection:
+                return Cutout._cutout_collection[parameter['uuid']]
+
+            data = Data.factory(parameter['data'], db)
             return Cutout(data, parameter['bounding_box'], parameter['generator_parameters'],
                           cutout_processing=parameter['cutout_processing'],
                           uuid_in=parameter['uuid'])
@@ -55,7 +61,7 @@ class Cutout(object):
 
         self._cached_output = None
 
-        # self._cutout_collection[self._uuid] = self
+        Cutout._cutout_collection[self._uuid] = self
 
         log.info('Creaing new cutout with data = {},  bounding_box = {}, generator_parameters = {}, cutout_rpcoessing = {}, uuid_in {}'.format(
             data, bounding_box, generator_parameters, cutout_processing, uuid_in))

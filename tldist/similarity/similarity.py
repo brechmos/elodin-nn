@@ -6,9 +6,11 @@ import numpy as np
 from sklearn.manifold import TSNE
 from scipy.sparse import csc_matrix
 from scipy.spatial.distance import pdist, squareform
+from tldist.fingerprint import Fingerprint
 
 from ..tl_logging import get_logger
-log = get_logger('similarity', '/tmp/mylog.log')
+import logging
+log = get_logger('similarity', '/tmp/mylog.log', level=logging.WARNING)
 
 
 def calculate(fingerprints, similarity_calculator, serialize_output=False):
@@ -45,7 +47,7 @@ class Similarity:
     _similarity_collection = weakref.WeakValueDictionary()
 
     @staticmethod
-    def similarity_factory(thedict):
+    def factory(thedict):
         if isinstance(thedict, str):
             return Similarity._similarity_collection[thedict]
         else:
@@ -209,7 +211,7 @@ class tSNE(Similarity):
             }
         }
 
-    def load(self, thedict):
+    def load(self, thedict, db=None):
         log.info('Loading the dictionary of information')
         self._uuid = thedict['uuid']
         self._similarity_type = thedict['similarity_type']
@@ -217,6 +219,10 @@ class tSNE(Similarity):
         self._fingerprint_uuids = thedict['fingerprint_uuids']
         self._parameters = thedict['parameters']
         self._distance_measure = self._parameters['distance_measure']
+
+
+        if db is not None:
+            self._fingerprints = [Fingerprint.factory(thedict['fingerprint_uuids'], db)]
 
     #
     #  Display methods

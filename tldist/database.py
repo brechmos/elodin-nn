@@ -19,7 +19,7 @@ import unqlite
 from .tl_logging import get_logger
 
 import logging
-log = get_logger('database', level=logging.INFO)
+log = get_logger('database', level=logging.WARNING)
 
 
 def get_database(database_type, *args, **kwargs):
@@ -31,15 +31,17 @@ def get_database(database_type, *args, **kwargs):
             dbcls = db
     return dbcls(*args, **kwargs)
 
+
 def get_factory(table):
     if table == 'data':
-        return Data.data_factory
+        return Data.factory
     elif table == 'cutout':
-        return Cutout.cutout_factory
+        return Cutout.factory
     elif table == 'fingerprint':
-        return Fingerprint.fingerprint_factory
+        return Fingerprint.factory
     elif table == 'similarity':
-        return Similarity.similarity_factory
+        return Similarity.factory
+
 
 class Database:
     """

@@ -10,7 +10,8 @@ import requests
 from .processing import DataProcessing
 
 from ..tl_logging import get_logger
-log = get_logger('cutout generator', '/tmp/mylog.log')
+import logging
+log = get_logger('data', '/tmp/mylog.log', level=logging.DEBUG)
 
 
 def stringify(dictionary):
@@ -20,18 +21,33 @@ def stringify(dictionary):
 class Data:
 
     # Collection to confirm we have unique instances based on uuid
-    _data_collection = weakref.WeakValueDictionary()
+    # _data_collection = weakref.WeakValueDictionary()
+    _data_collection = {}
 
     @staticmethod
-    def data_factory(parameter):
-
-        # If parameter is a UUID
+    def factory(parameter, db=None):
+        """
+        paramter: either a UUID or a dict describing the data
+        """
+        log.info('---------------------------------------------------------------------')
+        log.debug('parameter is {}'.format(parameter))
         if isinstance(parameter, str):
-            return Data._data_collection[parameter]
-        else:
+            if parameter in Data._data_collection:
+                return Data._data_collection[parameter]
+            elif db is not None:
+                return db.find('data', parameter)
+        elif isinstance(parameter, dict):
+
+            if 'uuid' in parameter and parameter['uuid'] in Data._data_collection:
+                log.debug('Found in collection and returning')
+                return Data._data_collection[parameter['uuid']]
+
+            log.debug('CREATING NEW DATA OBJECT #################################################')
             return Data(location=parameter['location'], processing=parameter['processing'],
                         radec=parameter['radec'], meta=parameter['meta'],
                         uuid_in=parameter['uuid'])
+        else:
+            raise Exception('Unknown parameter type to Data factory')
 
     def __init__(self, location='', processing=[], radec=[], meta={}, uuid_in=None):
         if uuid_in is None:
@@ -47,7 +63,7 @@ class Data:
         # 2D or 3D Numpy array
         self._cached_data = None
 
-        self._data_collection[self._uuid] = self
+        Data._data_collection[self._uuid] = self
 
     def __str__(self):
         return 'Data located {} at RA/DEC {}'.format(
@@ -95,6 +111,7 @@ class Data:
     def _load_and_process(self):
         # If we have the data already loaded then don't
         # need to reload all the data.
+
         if self._cached_data is not None:
             return self._cached_data
 
@@ -137,6 +154,7 @@ class Data:
         log.info('Data going to be returned')
 
         if self._cached_data is None:
+            log.debug('LOADING  DATA ******************************************')
             self._load_and_process()
 
         return self._cached_data

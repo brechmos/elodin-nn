@@ -2,18 +2,27 @@ import uuid
 import weakref
 
 from ..tl_logging import get_logger
-log = get_logger('fingerprint')
+from tldist.cutout import Cutout
+import logging
+log = get_logger('fingerprint', level=logging.WARNING)
 
 
 class Fingerprint:
 
-    _fingerprint_collection = weakref.WeakValueDictionary()
+    #_fingerprint_collection = weakref.WeakValueDictionary()
+    _fingerprint_collection = {}
 
     @staticmethod
-    def fingerprint_factory(parameter):
-        if isinstance(parameter, dict) and 'uuid' in parameter and parameter['uuid'] in Fingerprint._fingerprint_collection:
-            return Fingerprint._fingerprint_collection[parameter['uuid']]
-        else:
+    def factory(parameter, db=None):
+        if isinstance(parameter, str):
+            if parameter in Fingerprint._fingerprint_collection:
+                return Fingerprint._fingerprint_collection[parameter]
+            elif db is not None:
+                return db.find('fingerprint', parameter)
+        elif isinstance(parameter, dict):
+            if 'uuid' in parameter and parameter['uuid'] in Fingerprint._fingerprint_collection:
+                return Fingerprint._fingerprint_collection[parameter['uuid']]
+
             return Fingerprint(cutout_uuid=parameter['cutout_uuid'],
                                predictions=parameter['predictions'],
                                uuid_in=parameter['uuid'])
@@ -26,7 +35,7 @@ class Fingerprint:
         self._cutout_uuid = cutout_uuid
         self._predictions = predictions
 
-        self._fingerprint_collection[self._uuid] = self
+        Fingerprint._fingerprint_collection[self._uuid] = self
 
     def __str__(self):
         return 'Fingerprint {} based on cutout {} with predictions {}'.format(
@@ -56,10 +65,13 @@ class Fingerprint:
     def predictions(self, value):
         self._predictions = value
 
-    def load(self, thedict):
+    def load(self, thedict, db=None):
         self._uuid = thedict['uuid']
         self._cutout_uuid = thedict['cutout_uuid']
         self._predictions = thedict['predictions']
+
+        if db is not None:
+            self._cutout = Cutout.factory(self._cutout_uuid, db)
 
     def save(self):
         return {
