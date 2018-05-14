@@ -92,7 +92,7 @@ class SimilarityDisplay(object):
 
             fingerprint_uuid = close_fingerprint_uuids[0]['fingerprint_uuid']
             if (not fingerprint_uuid == self._current_image_axis_fingerprint_uuid and
-               (now - self._current_image_axis_time_update) > 0.5):
+               (now - self._current_image_axis_time_update) > 0.1):
                 try:
                     log.debug('going to show fingerprint {}'.format(fingerprint_uuid))
                     self._current_image_axis_fingerprint_uuid = fingerprint_uuid
@@ -220,15 +220,15 @@ class SimilarImages(object):
                         self._fingerprints[index].predictions[ii][1],
                         self._fingerprints[index].predictions[ii][2])
 
-            self._fingerprint_text.set_text(meta_text)
+            #self._fingerprint_text.set_text(meta_text)
 
             # Unhighlight other axes
             for im in list(set(self.axes) - set([self.axes[index]])):
-                im.hide_spines()
+                im.hide_outline()
 
             # Highlight the axis
             log.debug('Add outline for subwindow')
-            self.axes[index].show_spines()
+            self.axes[index].show_outline()
 
         except Exception as e:
             log.error('show_fingerprint {}'.format(e))
@@ -262,6 +262,7 @@ class Image(object):
         self._axes = plt.subplot(grid_spec)
         self._axes_data = None
         self._spines_visible = False
+        self._outline = None
 
     def store(self, thedict):
         self._axes._imdata = thedict
@@ -301,39 +302,33 @@ class Image(object):
     def set_title(self, title):
         self._axes.set_title(title)
 
-    def show_spines(self):
+    def show_outline(self):
         log.info('')
-
-        if self._spines_visible:
-            return
-
-        start = time.time()
         try:
-            for side in ['top', 'bottom', 'left', 'right']:
-                self._axes.spines[side].set_lw(2)
-                self._axes.spines[side].set_color('red')
-                self._axes.spines[side].set_visible(True)
-            self._spines_visible = True
-            plt.pause(0.01)
+            if self._outline is None:
+                self._outline = matplotlib.patches.Rectangle((0, 0), 225, 225, linewidth=4, edgecolor='#ff7777', facecolor='none')
+                self._axes.add_patch(self._outline)
+            else:
+                self._outline.set_visible(True)
+
+            self._axes.get_figure().canvas.blit(self._axes.bbox)
+            if not matplotlib.get_backend() == 'nbAgg':
+                self._axes.redraw_in_frame()
+            self._axes.draw_artist(self._outline)
         except Exception as e:
             log.error(e)
-        log.debug('turning on splines took {}'.format(time.time() - start))
 
-    def hide_spines(self):
+    def hide_outline(self):
         log.info('')
-
-        if not self._spines_visible:
-            return
-
-        start = time.time()
         try:
-            for side in ['top', 'bottom', 'left', 'right']:
-                self._axes.spines[side].set_visible(False)
-            plt.pause(0.01)
-            self._spines_visible = False
+            if self._outline is not None:
+                self._outline.set_visible(False)
+                self._axes.draw_artist(self._outline)
+                self._axes.get_figure().canvas.blit(self._axes.bbox)
+                if not matplotlib.get_backend() == 'nbAgg':
+                    self._axes.redraw_in_frame()
         except Exception as e:
             log.error(e)
-        log.debug('turning off splines took {}'.format(time.time() - start))
 
 
 class Aitoff(object):
