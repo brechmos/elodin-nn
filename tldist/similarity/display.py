@@ -13,7 +13,7 @@ from astropy import units
 
 from ..tl_logging import get_logger
 import logging
-log = get_logger('display', '/tmp/mylog.log', level=logging.WARNING)
+log = get_logger('display', '/tmp/mylog.log', level=logging.DEBUG)
 
 
 class SimilarityDisplay(object):
@@ -105,6 +105,7 @@ class SimilarityDisplay(object):
 
         # If we are hovering over one of the NxN similar images
         elif self._similar_images_axis.hover_in(event.inaxes):
+            log.debug('In one of the similar axes')
             self._similar_images_axis.show_fingerprint(event.inaxes)
 
         self._move_callback_processing = False
@@ -191,7 +192,8 @@ class SimilarImages(object):
         """
         Check to see if the passed in axes is one we are repsonsible for.
         """
-        if hover_axes is not None:
+        log.info('hover_axes {}'.format(hover_axes))
+        if hover_axes is not None and hover_axes in [x._axes for x in self.axes]:
             return [x._axes for x in self.axes].index(hover_axes)
         else:
             return None
@@ -203,18 +205,10 @@ class SimilarImages(object):
         log.info('hover axis {}'.format(hover_axes))
         index = [x._axes for x in self.axes].index(hover_axes)
 
-        # Unhighlight other axes
-        log.debug('Remove outline for subwindow')
-        for im in self.axes:
-            im.hide_spines()
-
-        # Highlight the axis
-        log.debug('Add outline for subwindow')
-        self.axes[index].show_spines()
-
-        # Draw the text
-        start =time.time()
         try:
+            # Draw the text
+            start =time.time()
+
             cutout = self._db.find('cutout', self._fingerprints[index].cutout_uuid)
 
             # Meta information
@@ -230,8 +224,17 @@ class SimilarImages(object):
                         self._fingerprints[index].predictions[ii][2])
 
             self._fingerprint_text.set_text(meta_text)
+
+            # Unhighlight other axes
+            for im in list(set(self.axes) - set([self.axes[index]])):
+                im.hide_spines()
+
+            # Highlight the axis
+            log.debug('Add outline for subwindow')
+            self.axes[index].show_spines()
+
         except Exception as e:
-            log.error(e)
+            log.error('show_fingerprint {}'.format(e))
         log.debug('text drawing took {}'.format(time.time() - start))
 
     def set_images(self, fingerprints):
@@ -261,6 +264,7 @@ class Image(object):
     def __init__(self, axes_limits):
         self._axes = plt.axes(axes_limits)
         self._axes_data = None
+        self._spines_visible = False
 
     def store(self, thedict):
         self._axes._imdata = thedict
@@ -299,17 +303,37 @@ class Image(object):
         self._axes.set_title(title)
 
     def show_spines(self):
+        log.info('')
+
+        if self._spines_visible:
+            return
+
         start = time.time()
-        for side in ['top', 'bottom', 'left', 'right']:
-            self._axes.spines[side].set_lw(2)
-            self._axes.spines[side].set_color('red')
-            self._axes.spines[side].set_visible(True)
+        try:
+            for side in ['top', 'bottom', 'left', 'right']:
+                self._axes.spines[side].set_lw(2)
+                self._axes.spines[side].set_color('red')
+                self._axes.spines[side].set_visible(True)
+            self._spines_visible = True
+            plt.pause(0.01)
+        except Exception as e:
+            log.error(e)
         log.debug('turning on splines took {}'.format(time.time() - start))
 
     def hide_spines(self):
+        log.info('')
+        
+        if not self._spines_visible:
+            return
+
         start = time.time()
-        for side in ['top', 'bottom', 'left', 'right']:
-            self._axes.spines[side].set_visible(False)
+        try:
+            for side in ['top', 'bottom', 'left', 'right']:
+                self._axes.spines[side].set_visible(False)
+            plt.pause(0.01)
+            self._spines_visible = False
+        except Exception as e:
+            log.error(e)
         log.debug('turning off splines took {}'.format(time.time() - start))
 
 
