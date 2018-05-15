@@ -30,7 +30,7 @@ processing_dict = pickle.load(open('../../data/hubble_acs.pck', 'rb'))
 
 print('Setting up the data structure required')
 data = []
-for fileinfo in processing_dict[:200]:
+for fileinfo in processing_dict[:600]:
     im = Data(location=fileinfo['location'], radec=fileinfo['radec'], meta=fileinfo['meta'])
     data.append(im)
     db.save('data', im)

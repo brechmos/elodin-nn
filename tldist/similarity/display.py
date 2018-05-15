@@ -113,7 +113,7 @@ class SimilarityDisplay(object):
                     log.debug(e)
 
         # If we are hovering over one of the NxN similar images
-        elif self._similar_images_axis.hover_in(event.inaxes):
+        elif self._similar_images_axis.hover_in(event.inaxes) is not None:
             log.debug('In one of the similar axes')
             self._similar_images_axis.show_fingerprint(event.inaxes)
 
@@ -220,7 +220,7 @@ class SimilarImages(object):
                         self._fingerprints[index].predictions[ii][1],
                         self._fingerprints[index].predictions[ii][2])
 
-            #self._fingerprint_text.set_text(meta_text)
+            self._fingerprint_text.set_text(meta_text)
 
             # Unhighlight other axes
             for im in list(set(self.axes) - set([self.axes[index]])):
