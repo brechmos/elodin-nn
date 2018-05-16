@@ -33,7 +33,7 @@ processing_dict = pickle.load(open('../../data/hubble_acs.pck', 'rb'))
 print('Setting up the data structure required')
 gray_scale = DataGrayScale()
 data = []
-for fileinfo in np.random.choice(processing_dict, 3000, replace=False):
+for fileinfo in np.random.choice(processing_dict, 300, replace=False):
     im = Data(location=fileinfo['location'], radec=fileinfo['radec'], meta=fileinfo['meta'])
     im.add_processing(gray_scale.save())
     data.append(im)
