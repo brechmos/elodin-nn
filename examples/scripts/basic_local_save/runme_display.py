@@ -20,6 +20,6 @@ similarities = db.find('similarity')
 print(similarities)
 
 # Grab the first on so we can work with it.
-similarity_tsne = similarities[0]
+similarity_tsne = similarities[1]
 
 sd = SimilarityDisplay(similarity_tsne, db)
