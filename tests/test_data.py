@@ -3,8 +3,6 @@ import numpy as np
 
 import imageio
 
-from transfer_learning.fingerprint import FingerprintResnet
-
 def load_jpg(filename):
     return np.array(imageio.imread(filename))
 

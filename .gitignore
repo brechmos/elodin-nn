@@ -1,7 +1,14 @@
 .gitignore
 .idea/
 __pycache__/
-*.swp
 *cache
 .ipynb_checkpoints
 transfer_learning.egg*
+__pycache__
+*egg-info
+.cache
+.pytest_cache
+*.swp
+*.swo
+.ipynb_checkpoints
+*.db
