@@ -7,12 +7,12 @@ c = ConfigParser()
 c.read('config.ini')
 
 
-app = Celery('tldist',
+app = Celery('transfer_learning',
              broker=c['processor']['celery_broker'],
              backend=c['processor']['celery_backend'],
              include=[
-                 'tldist.fingerprint.task',
-                 'tldist.similarity.task',
+                 'transfer_learning.fingerprint.task',
+                 'transfer_learning.similarity.task',
                  ]
             )
 

@@ -1,9 +1,9 @@
 import os
 
-from tldist.data import Data
-from tldist.cutout import Cutout
-from tldist.fingerprint import Fingerprint
-from tldist.similarity import Similarity
+from transfer_learning.data import Data
+from transfer_learning.cutout import Cutout
+from transfer_learning.fingerprint import Fingerprint
+from transfer_learning.similarity import Similarity
 
 # Mongo
 import pymongo
