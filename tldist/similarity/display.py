@@ -264,6 +264,17 @@ class Image(object):
         self._spines_visible = False
         self._outline = None
 
+    def _rgb2plot(self, data):
+        """
+        Convert the input data to RGB. This is basically clipping and cropping the intensity range for display
+
+        :param data:
+        :return:
+        """
+
+        mindata, maxdata = np.percentile(data[np.isfinite(data)], (0.01, 99.0))
+        return np.clip((data - mindata) / (maxdata-mindata) * 255, 0, 255).astype(np.uint8)
+
     def store(self, thedict):
         self._axes._imdata = thedict
 
@@ -271,6 +282,9 @@ class Image(object):
         return self._axes._imdata
 
     def imshow(self, data, title=''):
+
+        data = self._rgb2plot(data)
+
         if self._axes_data is None:
             self._axes_data = self._axes.imshow(data, cmap=plt.gray())
             self._axes.set_xticks([])

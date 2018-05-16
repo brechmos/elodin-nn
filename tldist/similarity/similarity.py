@@ -47,7 +47,7 @@ class Similarity:
     _similarity_collection = weakref.WeakValueDictionary()
 
     @staticmethod
-    def factory(thedict):
+    def factory(thedict, db=None):
         if isinstance(thedict, str):
             return Similarity._similarity_collection[thedict]
         else:
@@ -219,7 +219,6 @@ class tSNE(Similarity):
         self._fingerprint_uuids = thedict['fingerprint_uuids']
         self._parameters = thedict['parameters']
         self._distance_measure = self._parameters['distance_measure']
-
 
         if db is not None:
             self._fingerprints = [Fingerprint.factory(thedict['fingerprint_uuids'], db)]
@@ -450,9 +449,11 @@ class Jaccard(Similarity):
 
         # find the Main fingerprint for this point in the image
         distances = self._fingerprint_adjacency[row]
+        log.debug('length of dsistances is {}'.format(len(distances)))
 
         # Sort from highest to lowest.
         inds = np.argsort(distances)[::-1]
+        log.debug('length of inds is {}'.format(len(inds)))
 
         log.debug('Closest indexes are {}'.format(inds[:n]))
         log.debug('Size of the fingerprint list {}'.format(len(self._fingerprints)))

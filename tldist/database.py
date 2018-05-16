@@ -61,7 +61,7 @@ class Database:
     def save(self, table, data):
         raise NotImplementedError("Please Implement this method")
 
-    def find(self, table, key=None):
+    def find(self, table, key=None, db=None):
         raise NotImplementedError("Please Implement this method")
 
     def count(self, table):
@@ -175,7 +175,7 @@ class BlitzDB(Database):
         # Convert to dict if not one already
         if not isinstance(data, dict):
             data = data.save()
-        
+
         blitz_table = self._get_table(table)
         data.update({'pk': data['uuid']})
         save_id = self._backend.save(blitz_table(data))
@@ -187,11 +187,11 @@ class BlitzDB(Database):
         factory = get_factory(table)
 
         if key is None:
-            return [factory(dict(x)) for x in self._backend.filter(blitz_table, {})]
+            return [factory(dict(x), db=self) for x in self._backend.filter(blitz_table, {})]
         elif isinstance(key, list):
-            return [factory(dict(x)) for x in self._backend.filter(blitz_table, {'pk': {'$in': key}})]
+            return [factory(dict(x), db=self) for x in self._backend.filter(blitz_table, {'pk': {'$in': key}})]
         else:
-            return factory(dict(self._backend.get(blitz_table, {'pk': key})))
+            return factory(dict(self._backend.get(blitz_table, {'pk': key})), db=self)
 
     def count(self, table):
         blitz_table = self._get_table(table)
