@@ -4,6 +4,7 @@ import uuid
 from tldist.data import Data
 from tldist.cutout.processing import CutoutProcessing
 
+import numpy as np
 from ..tl_logging import get_logger
 import logging
 log = get_logger('cutout', level=logging.WARNING)
@@ -126,9 +127,23 @@ class Cutout(object):
             for processing in self._cutout_processing:
                 data = processing.process(data)
 
+            # TODO: only do if not "color"
             self._cached_output = data
 
         return self._cached_output
+
+    def _gray2rgb(self, data):
+        """
+        Convert 2D data set to 3D gray scale
+
+        :param data:
+        :return:
+        """
+        data_out = np.zeros((data.shape[0], data.shape[1], 3))
+        data_out[:, :, 0] = data
+        data_out[:, :, 1] = data
+        data_out[:, :, 2] = data
+        return data_out
 
     def save(self):
         log.info('')

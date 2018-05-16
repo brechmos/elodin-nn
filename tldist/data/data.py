@@ -11,7 +11,7 @@ from .processing import DataProcessing
 
 from ..tl_logging import get_logger
 import logging
-log = get_logger('data', '/tmp/mylog.log', level=logging.DEBUG)
+log = get_logger('data', '/tmp/mylog.log', level=logging.WARNING)
 
 
 def stringify(dictionary):
@@ -29,8 +29,6 @@ class Data:
         """
         paramter: either a UUID or a dict describing the data
         """
-        log.info('---------------------------------------------------------------------')
-        log.debug('parameter is {}'.format(parameter))
         if isinstance(parameter, str):
             if parameter in Data._data_collection:
                 return Data._data_collection[parameter]
@@ -42,7 +40,6 @@ class Data:
                 log.debug('Found in collection and returning')
                 return Data._data_collection[parameter['uuid']]
 
-            log.debug('CREATING NEW DATA OBJECT #################################################')
             return Data(location=parameter['location'], processing=parameter['processing'],
                         radec=parameter['radec'], meta=parameter['meta'],
                         uuid_in=parameter['uuid'])
@@ -141,9 +138,28 @@ class Data:
             log.error('Unknown file type of file {}'.format(self.location))
             raise Exception('Unknown type of file {}'.format(self.location))
 
+        # Apply the processing
         for x in self._processing:
             processor = DataProcessing.load(x)
             self._cached_data = processor.process(self._cached_data)
+
+        # If 2D, make 3D
+        if len(self._cached_data.shape) == 2:
+            self._cached_data = self._gray2rgb(self._cached_data)        
+
+
+    def _gray2rgb(self, data):
+        """
+        Convert 2D data set to 3D gray scale
+
+        :param data:
+        :return:
+        """
+        data_out = np.zeros((data.shape[0], data.shape[1], 3))
+        data_out[:, :, 0] = data
+        data_out[:, :, 1] = data
+        data_out[:, :, 2] = data
+        return data_out
 
     def get_data(self):
         """
@@ -151,10 +167,9 @@ class Data:
 
         :return: 2D or 3D data array
         """
-        log.info('Data going to be returned')
+        log.info('Retrieving data...')
 
         if self._cached_data is None:
-            log.debug('LOADING  DATA ******************************************')
             self._load_and_process()
 
         return self._cached_data

@@ -10,7 +10,7 @@ from tldist.fingerprint import Fingerprint
 
 from ..tl_logging import get_logger
 import logging
-log = get_logger('similarity', '/tmp/mylog.log', level=logging.WARNING)
+log = get_logger('similarity', '/tmp/mylog.log', level=logging.DEBUG)
 
 
 def calculate(fingerprints, similarity_calculator, serialize_output=False):
@@ -212,7 +212,7 @@ class tSNE(Similarity):
         }
 
     def load(self, thedict, db=None):
-        log.info('Loading the dictionary of information')
+        log.info('Loading the dictionary of information with database {}'.format(db))
         self._uuid = thedict['uuid']
         self._similarity_type = thedict['similarity_type']
         self._Y = np.array(thedict['similarity'])
@@ -321,8 +321,6 @@ class tSNE(Similarity):
         log.info('Searching based on point {}'.format(point))
         distances = self._distance_measures[self._distance_measure](self._Y, point)
         inds = np.argsort(distances)
-        log.debug('Closest indexes are {}'.format(inds[:n]))
-        log.debug('Size of the fingerprint list {}'.format(len(self._fingerprints)))
 
         return [{
                     'tsne_point': self._Y[ind],
@@ -359,6 +357,10 @@ class Jaccard(Similarity):
         self._fingerprint_adjacency = None
         self._predictions = []
 
+        # Top n_predictions to use in the jaccard comparison
+        # TODO: This might be good to be a funciton of # of fingerprints (?)
+        self._n_predictions = 10
+
     #
     # Calculation Methods
     #
@@ -379,7 +381,7 @@ class Jaccard(Similarity):
 
         self._fingerprints = fingerprints
 
-        self._predictions = [set([tt[1] for tt in fp.predictions]) for fp in fingerprints]
+        self._predictions = [set([tt[1] for tt in fp.predictions[:self._n_predictions]]) for fp in fingerprints]
 
         up = list(set(list(itertools.chain(*[list(x) for x in self._predictions]))))
 
@@ -429,9 +431,11 @@ class Jaccard(Similarity):
         :return:
         """
 
-        tsne_axis.imshow(self._fingerprint_adjacency, origin='upper')
+        tsne_axis.imshow(self._fingerprint_adjacency)#, origin='upper')
         tsne_axis.grid('on')
         tsne_axis.set_title('Jaccard')
+
+        tsne_axis._axes.get_figure().canvas.blit(tsne_axis._axes.bbox)
 
     def find_similar(self, point, n=9):
         """
@@ -470,14 +474,16 @@ class Jaccard(Similarity):
             }
         }
 
-    def load(self, thedict):
+    def load(self, thedict, db=None):
         log.info('Loading the dictionary of information')
         self._uuid = thedict['uuid']
-        self._fingerprint_adjacency = np.array(thedict['similarity_type'])
-        self._Y = np.array(thedict['similarity'])
+        self._similarity_type = thedict['similarity_type']
+        self._fingerprint_adjacency = np.array(thedict['similarity'])
         self._fingerprint_uuids = thedict['fingerprint_uuids']
         self._parameters = thedict['parameters']
 
+        if db is not None:
+            self._fingerprints = [Fingerprint.factory(thedict['fingerprint_uuids'], db)]
 
 class Distance(Similarity):
     """
@@ -591,7 +597,7 @@ class Distance(Similarity):
             }
         }
 
-    def load(self, thedict):
+    def load(self, thedict, db=None):
         log.info('Loading the dictionary of information')
         self._uuid = thedict['uuid']
         self._fingerprint_adjacency = np.array(thedict['similarity_type'])
@@ -599,3 +605,6 @@ class Distance(Similarity):
         self._fingerprint_uuids = thedict['fingerprint_uuids']
         self._parameters = thedict['parameters']
         self._metric = self._parameters['metric']
+
+        if db is not None:
+            self._fingerprints = [Fingerprint.factory(thedict['fingerprint_uuids'], db)]

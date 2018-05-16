@@ -1,7 +1,8 @@
 import skimage
+import numpy as np
 from ..tl_logging import get_logger
 import logging
-log = get_logger('data processing', '/tmp/mylog.log', level=logging.WARNING)
+log = get_logger('data processing')
 
 
 class DataProcessing(object):
@@ -12,6 +13,8 @@ class DataProcessing(object):
             return Resize(thedict)
         elif thedict['data_processing_type'] == 'crop':
             return Crop(thedict)
+        elif thedict['data_processing_type'] == 'gray_scale':
+            return GrayScale()
 
 
 class Resize(DataProcessing):
@@ -46,7 +49,16 @@ class Resize(DataProcessing):
         self._output_size = thedict['output_size']
 
     def process(self, data):
-        log.debug('resizeing data to {}'.format(self._output_size))
+        log.info('resizeing data to {}'.format(self._output_size))
+
+        for ii in range(self._output_size.shape[2]):
+            if ii == 0:
+                output = np.zeros((self._output_size[0], self._output_size[1], self.data.shape[2]))
+
+            output[:,:,ii] = skimage.transform.resize(data[:,:,ii], self._output_size)
+        return output
+
+
         return skimage.transform.resize(data, self._output_size)
 
 
@@ -81,6 +93,37 @@ class Crop(DataProcessing):
         self._output_size = thedict['output_size']
 
     def process(self, array):
-        log.debug('cropping data by {}'.format(self._output_size))
+        log.info('cropping data by {}'.format(self._output_size))
         rc = self._output_size
         return array[rc[0]:rc[1], rc[2]:rc[3]]
+
+
+class GrayScale(DataProcessing):
+    """
+    Convert color image to gray scale
+    """
+
+    def __init__(self):
+        """
+        :param output_size: a list or tuple of size 4 describing the start and stop rows and cols
+        """
+        pass
+
+    def save(self):
+        return {
+            'data_processing_type': 'gray_scale',
+            'parameters': {
+            }
+        }
+
+    def load(self, thedict):
+
+        if not thedict['data_processing_type'] == 'gray_scale':
+            raise Exception('wrong data processing type {} for crop')
+
+    def process(self, array):
+        log.info('')
+        if len(array.shape) == 3:
+            return np.dot(array[:, :, :3], [0.299, 0.587, 0.114])
+        else:
+            return array
