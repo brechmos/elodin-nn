@@ -13,4 +13,3 @@ scikit-image
 redis
 ipython
 jupyter
-unqlite

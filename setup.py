@@ -2,13 +2,6 @@
 # Licensed under a 3-clause BSD style license - see LICENSE.rst
 # -*- encoding: utf-8 -*-
 
-import io
-import re
-from glob import glob
-from os.path import basename
-from os.path import dirname
-from os.path import join
-from os.path import splitext
 from setuptools import setup, find_packages
 
 setup(
