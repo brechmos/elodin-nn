@@ -4,8 +4,8 @@ import itertools
 
 from celery import group
 
-from tldist.celery import app
-from tldist.fingerprint.processing import calculate as processing_calculate
+from transfer_learning.celery import app
+from transfer_learning.fingerprint.processing import calculate as processing_calculate
 
 from ..tl_logging import get_logger
 import logging

@@ -3,9 +3,9 @@ import time
 import numpy as np
 import weakref
 
-from tldist.utils import gray2rgb
-from tldist.fingerprint.fingerprint import Fingerprint
-from tldist.cutout import Cutout
+from transfer_learning.utils import gray2rgb
+from transfer_learning.fingerprint.fingerprint import Fingerprint
+from transfer_learning.cutout import Cutout
 
 from ..tl_logging import get_logger
 import logging

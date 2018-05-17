@@ -2,12 +2,12 @@ import os
 import shutil
 import pickle
 
-from tldist.fingerprint.processing import FingerprintCalculatorResnet
-from tldist.fingerprint.task import calculate_celery as calculate_fingerprints
-from tldist.similarity.task import similarity_celery as calculate_similarity
-from tldist.data import Data
-from tldist.cutout.generators import FullImageCutoutGenerator
-from tldist.database import get_database
+from transfer_learning.fingerprint.processing import FingerprintCalculatorResnet
+from transfer_learning.fingerprint.task import calculate_celery as calculate_fingerprints
+from transfer_learning.similarity.task import similarity_celery as calculate_similarity
+from transfer_learning.data import Data
+from transfer_learning.cutout.generators import FullImageCutoutGenerator
+from transfer_learning.database import get_database
 
 from configparser import ConfigParser
 config = ConfigParser()

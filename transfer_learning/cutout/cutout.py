@@ -1,8 +1,8 @@
 import weakref
 import uuid
 
-from tldist.data import Data
-from tldist.cutout.processing import CutoutProcessing
+from transfer_learning.data import Data
+from transfer_learning.cutout.processing import CutoutProcessing
 
 import numpy as np
 from ..tl_logging import get_logger

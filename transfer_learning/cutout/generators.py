@@ -6,7 +6,7 @@ from skimage import measure
 from skimage import filters
 import skimage.transform
 
-from tldist.cutout import Cutout
+from transfer_learning.cutout import Cutout
 
 from ..tl_logging import get_logger
 import logging

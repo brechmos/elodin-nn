@@ -1,11 +1,11 @@
 import uuid
 import pickle
 
-from tldist.fingerprint.processing import FingerprintCalculatorResnet
-from tldist.fingerprint.processing import calculate as fingerprint_calculate
-from tldist.similarity.similarity import calculate as similarity_calculate
-from tldist.cutout.generators import FullImageCutoutGenerator
-from tldist.data import Data, Crop, Resize
+from transfer_learning.fingerprint.processing import FingerprintCalculatorResnet
+from transfer_learning.fingerprint.processing import calculate as fingerprint_calculate
+from transfer_learning.similarity.similarity import calculate as similarity_calculate
+from transfer_learning.cutout.generators import FullImageCutoutGenerator
+from transfer_learning.data import Data, Crop, Resize
 
 
 fc_save = FingerprintCalculatorResnet().save()

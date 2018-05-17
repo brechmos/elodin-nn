@@ -1,6 +1,6 @@
-from tldist.cutout import Cutout
-from tldist.database import get_database
-from tldist.similarity.display import SimilarityDisplay
+from transfer_learning.cutout import Cutout
+from transfer_learning.database import get_database
+from transfer_learning.similarity.display import SimilarityDisplay
 
 from configparser import ConfigParser
 config = ConfigParser()
@@ -20,6 +20,6 @@ similarities = db.find('similarity')
 print(similarities)
 
 # Grab the first on so we can work with it.
-similarity_tsne = similarities[1]
+similarity_tsne = similarities[0]
 
 sd = SimilarityDisplay(similarity_tsne, db)

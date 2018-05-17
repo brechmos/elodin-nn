@@ -1,5 +1,5 @@
-from tldist.cutout import Cutout
-from tldist.database import get_database
+from transfer_learning.cutout import Cutout
+from transfer_learning.database import get_database
 
 from configparser import ConfigParser
 config = ConfigParser()

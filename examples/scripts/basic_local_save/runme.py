@@ -3,15 +3,15 @@ import os
 import shutil
 import numpy as np
 
-from tldist.fingerprint.processing import FingerprintCalculatorResnet
-from tldist.fingerprint.processing import calculate as fingerprint_calculate
-from tldist.similarity.similarity import calculate as similarity_calculate
-from tldist.data import Data
-from tldist.data.processing import GrayScale as DataGrayScale
-from tldist.cutout.generators import FullImageCutoutGenerator
-from tldist.cutout.processing import Resize as CutoutResize
-from tldist.cutout.processing import Crop as CutoutCrop
-from tldist.database import get_database
+from transfer_learning.fingerprint.processing import FingerprintCalculatorResnet
+from transfer_learning.fingerprint.processing import calculate as fingerprint_calculate
+from transfer_learning.similarity.similarity import calculate as similarity_calculate
+from transfer_learning.data import Data
+from transfer_learning.data.processing import GrayScale as DataGrayScale
+from transfer_learning.cutout.generators import FullImageCutoutGenerator
+from transfer_learning.cutout.processing import Resize as CutoutResize
+from transfer_learning.cutout.processing import Crop as CutoutCrop
+from transfer_learning.database import get_database
 
 from configparser import ConfigParser
 
@@ -33,7 +33,8 @@ processing_dict = pickle.load(open('../../data/hubble_acs.pck', 'rb'))
 print('Setting up the data structure required')
 gray_scale = DataGrayScale()
 data = []
-for fileinfo in np.random.choice(processing_dict, 300, replace=False):
+np.random.seed(12)
+for fileinfo in np.random.choice(processing_dict, 10, replace=False):
     im = Data(location=fileinfo['location'], radec=fileinfo['radec'], meta=fileinfo['meta'])
     im.add_processing(gray_scale.save())
     data.append(im)
@@ -73,10 +74,10 @@ print('Calculating the tSNE similarity')
 similarity_tsne = similarity_calculate(fingerprints, 'tsne')
 db.save('similarity', similarity_tsne)
 
-print('Calculating the Jaccard similarity')
-similarity_jaccard = similarity_calculate(fingerprints, 'jaccard')
-db.save('similarity', similarity_jaccard)
-
-print('Calculating the Distance similarity')
-similarity_distance = similarity_calculate(fingerprints, 'distance')
-db.save('similarity', similarity_distance)
+#print('Calculating the Jaccard similarity')
+#similarity_jaccard = similarity_calculate(fingerprints, 'jaccard')
+#db.save('similarity', similarity_jaccard)
+#
+#print('Calculating the Distance similarity')
+#similarity_distance = similarity_calculate(fingerprints, 'distance')
+#db.save('similarity', similarity_distance)

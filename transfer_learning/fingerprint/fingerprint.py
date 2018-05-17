@@ -2,7 +2,7 @@ import uuid
 import weakref
 
 from ..tl_logging import get_logger
-from tldist.cutout import Cutout
+from transfer_learning.cutout import Cutout
 import logging
 log = get_logger('fingerprint', level=logging.WARNING)
 

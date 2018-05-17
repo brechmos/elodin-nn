@@ -1,6 +1,6 @@
 from collections import OrderedDict
 
-from tldist.celery import app
+from transfer_learning.celery import app
 from celery import group
 import time
 

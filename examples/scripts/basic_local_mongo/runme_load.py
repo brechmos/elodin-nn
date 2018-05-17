@@ -1,5 +1,5 @@
-from tldist.similarity.similarity import Similarity
-from tldist.database import get_database
+from transfer_learning.similarity.similarity import Similarity
+from transfer_learning.database import get_database
 
 from configparser import ConfigParser
 config = ConfigParser()

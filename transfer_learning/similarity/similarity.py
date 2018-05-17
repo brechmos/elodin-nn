@@ -6,7 +6,7 @@ import numpy as np
 from sklearn.manifold import TSNE
 from scipy.sparse import csc_matrix
 from scipy.spatial.distance import pdist, squareform
-from tldist.fingerprint import Fingerprint
+from transfer_learning.fingerprint import Fingerprint
 
 from ..tl_logging import get_logger
 import logging
@@ -319,7 +319,9 @@ class tSNE(Similarity):
     def find_similar(self, point, n=9):
         log.info('Searching based on point {}'.format(point))
         distances = self._distance_measures[self._distance_measure](self._Y, point)
+        log.debug('{}'.format([x for x in zip(self._Y, distances)]))
         inds = np.argsort(distances)
+        log.debug(inds)
 
         return [{
                     'tsne_point': self._Y[ind],
@@ -430,7 +432,7 @@ class Jaccard(Similarity):
         :return:
         """
 
-        tsne_axis.imshow(self._fingerprint_adjacency)#, origin='upper')
+        tsne_axis.imshow(self._fingerprint_adjacency, origin='upper')
         tsne_axis.grid('on')
         tsne_axis.set_title('Jaccard')
 
