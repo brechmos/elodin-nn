@@ -6,16 +6,16 @@ import matplotlib
 import matplotlib.gridspec as gridspec
 from scipy.spatial import distance_matrix
 
-from tldist.database import get_database
-from tldist.fingerprint import Fingerprint
-from tldist.cutout import Cutout
+from transfer_learning.database import get_database
+from transfer_learning.fingerprint import Fingerprint
+from transfer_learning.cutout import Cutout
 
 from astropy.coordinates import SkyCoord
 from astropy import units
 
 from ..tl_logging import get_logger
 import logging
-log = get_logger('display', '/tmp/mylog.log', level=logging.WARNING)
+log = get_logger('display', '/tmp/mylog.log', level=logging.DEBUG)
 
 
 class SimilarityDisplay(object):
@@ -85,7 +85,7 @@ class SimilarityDisplay(object):
 
         # If we are hovering over the similarity plot
         if event.inaxes == self._similarity_matrix._axes:
-            point = event.ydata, event.xdata
+            point = event.xdata, event.ydata
             close_fingerprint_uuids = self._similarity.find_similar(point, 1)
 
             now = time.time()
@@ -104,8 +104,9 @@ class SimilarityDisplay(object):
                     cutout = Cutout.factory(fingerprint.cutout_uuid, self._db)
 
                     # Display the image
-                    log.debug('Imshow on _current_image_axis')
-                    self._current_image_axis.imshow(cutout.get_data())
+                    log.debug('Imshow on _current_image_axis with title {}'.format(cutout.data.location))
+                    filename = os.path.basename(cutout.data.location)
+                    self._current_image_axis.imshow(cutout.get_data(), title=filename)
 
                     # Display the location on the Aitoff plot
                     self._aitoff_axis.on_move(cutout.data.radec)
@@ -124,7 +125,7 @@ class SimilarityDisplay(object):
         # Click in the simiarlity matrix axis
         if event.inaxes == self._similarity_matrix._axes:
             try:
-                point = event.ydata, event.xdata
+                point = event.xdata, event.ydata
                 close_fingerprints = self._similarity.find_similar(point, n=9)
                 close_fingerprint_uuids = [fp['fingerprint_uuid'] for fp in close_fingerprints]
                 self._similar_images_axis.set_images(close_fingerprints)
@@ -134,6 +135,7 @@ class SimilarityDisplay(object):
                     fingerprint = Fingerprint.factory(cfp['fingerprint_uuid'], self._db)
                     cutout = Cutout.factory(fingerprint.cutout_uuid, self._db)
                     data = cutout.data
+                    log.debug('{} {}'.format(cfp, data.location))
                     a = (cfp['tsne_point'], cfp['distance'], data.radec, fingerprint)
                     aitoff_fingerprints.append(a)
                 self._aitoff_axis.on_click(aitoff_fingerprints)
@@ -180,7 +182,7 @@ class SimilarImages(object):
         self._text_axis.set_frame_on(False)
         self._text_axis.set_xticks([])
         self._text_axis.set_yticks([])
-        self._fingerprint_text = self._text_axis.text(0, 0, '', fontsize=8, va='top')
+        self._fingerprint_text = self._text_axis.text(0, 0, 'here', fontsize=8, va='top')
 
     def set_db(self, db):
         self._db = db
@@ -206,7 +208,7 @@ class SimilarImages(object):
             # Draw the text
             start = time.time()
 
-            cutout = Cutout.factory(self._fingerprints[index].cutout_uuid, self._db)
+            cutout = Cutout.factory(self.axes[index].get().cutout_uuid, self._db)
 
             # Meta information
             meta_text = os.path.basename(cutout.data.location) + '\n\n'
@@ -220,7 +222,9 @@ class SimilarImages(object):
                         self._fingerprints[index].predictions[ii][1],
                         self._fingerprints[index].predictions[ii][2])
 
+            log.debug('GOing to display meta {}'.format(meta_text[:20]))
             self._fingerprint_text.set_text(meta_text)
+            plt.draw()
 
             # Unhighlight other axes
             for im in list(set(self.axes) - set([self.axes[index]])):
@@ -247,7 +251,8 @@ class SimilarImages(object):
             # Get the data location
             cutout = Cutout.factory(fingerprint.cutout_uuid, self._db)
 
-            self.set_image(ii, cutout.get_data(), fingerprint=fingerprint)
+            base_file = os.path.basename(cutout.data.location)
+            self.set_image(ii, cutout.get_data(), title=base_file, fingerprint=fingerprint)
 
     def set_image(self, num, data, title='', fingerprint={}):
         # Display image
@@ -281,12 +286,12 @@ class Image(object):
     def get(self):
         return self._axes._imdata
 
-    def imshow(self, data, title=''):
+    def imshow(self, data, title=None, origin='lower'):
 
         data = self._rgb2plot(data)
 
         if self._axes_data is None:
-            self._axes_data = self._axes.imshow(data, cmap=plt.gray())
+            self._axes_data = self._axes.imshow(data, cmap=plt.gray(), origin=origin)
             self._axes.set_xticks([])
             self._axes.set_yticks([])
             self._axes.set_xlabel('')
@@ -295,7 +300,8 @@ class Image(object):
         else:
             self._axes_data.set_data(data)
 
-        if title:
+        if title is not None:
+            log.debug('setting title to {}'.format(title))
             self._axes.set_title(title, fontsize=8)
 
         self._axes.get_figure().canvas.blit(self._axes.bbox)
