@@ -50,6 +50,14 @@ class SimilarityDisplay(object):
         self._current_image_axis_fingerprint_uuid = ''  # caching
         self._current_image_axis_time_update = 0
 
+        self._current_image_text_axis = plt.subplot(similarity_main_grid[0, -1])
+        self._current_image_text_axis.set_ylim((1,0))
+        self._current_image_text_axis.set_frame_on(False)
+        self._current_image_text_axis.set_xticks([])
+        self._current_image_text_axis.set_yticks([])
+        self._current_image_text_axis_text = self._current_image_text_axis.text(0, 0, '', fontsize=8, va='top')
+        plt.draw()
+
         # The AITOFF plot
         self._aitoff_axis = Aitoff(aitoff_grid)
 
@@ -105,8 +113,14 @@ class SimilarityDisplay(object):
 
                     # Display the image
                     log.debug('Imshow on _current_image_axis with title {}'.format(cutout.data.location))
-                    filename = os.path.basename(cutout.data.location)
-                    self._current_image_axis.imshow(cutout.get_data(), title=filename)
+                    # Set the text above the "on move" image
+                    current_text_display = os.path.basename(cutout.data.location) +'\n\n'
+                    for p in fingerprint.predictions[:5]:
+                        current_text_display += '{} {:.3}\n'.format(p[1], p[2])
+                    self._current_image_text_axis_text.set_text(current_text_display)
+
+                    self._current_image_axis.imshow(cutout.get_data())
+                    plt.draw()
 
                     # Display the location on the Aitoff plot
                     self._aitoff_axis.on_move(cutout.data.radec)
