@@ -34,7 +34,7 @@ print('Setting up the data structure required')
 gray_scale = DataGrayScale()
 data = []
 np.random.seed(12)
-for fileinfo in np.random.choice(processing_dict, 10, replace=False):
+for fileinfo in np.random.choice(processing_dict, 800, replace=False):
     im = Data(location=fileinfo['location'], radec=fileinfo['radec'], meta=fileinfo['meta'])
     im.add_processing(gray_scale.save())
     data.append(im)

@@ -25,9 +25,7 @@ log = get_logger('database', level=logging.WARNING)
 def get_database(database_type, *args, **kwargs):
     dbcls = None
     for db in Database.__subclasses__():
-        log.debug('comparing {} to {}'.format(db._database_type, database_type))
         if db._database_type == database_type:
-            log.debug('   ...same')
             dbcls = db
     return dbcls(*args, **kwargs)
 
