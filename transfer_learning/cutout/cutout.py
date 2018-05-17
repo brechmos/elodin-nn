@@ -84,6 +84,10 @@ class Cutout(object):
     def data(self):
         return self._data
 
+    @property
+    def generator_parameters(self):
+        return self._generator_parameters
+
     @data.setter
     def data(self, value):
         if not isinstance(Data, value):

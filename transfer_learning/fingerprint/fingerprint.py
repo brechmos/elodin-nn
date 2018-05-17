@@ -18,7 +18,9 @@ class Fingerprint:
             if parameter in Fingerprint._fingerprint_collection:
                 return Fingerprint._fingerprint_collection[parameter]
             elif db is not None:
-                return db.find('fingerprint', parameter)
+                fingerprint = db.find('fingerprint', parameter)
+                fingerprint._cutout = db.find('cutout', fingerprint.cutout_uuid)
+                return fingerprint
         elif isinstance(parameter, dict):
             if 'uuid' in parameter and parameter['uuid'] in Fingerprint._fingerprint_collection:
                 return Fingerprint._fingerprint_collection[parameter['uuid']]
@@ -34,6 +36,7 @@ class Fingerprint:
             self._uuid = str(uuid.uuid4())
         self._cutout_uuid = cutout_uuid
         self._predictions = predictions
+        self._cutout = None
 
         Fingerprint._fingerprint_collection[self._uuid] = self
 
@@ -48,6 +51,10 @@ class Fingerprint:
     @uuid.setter
     def uuid(self, value):
         self._uuid = value
+
+    @property
+    def cutout(self):
+        return self._cutout
 
     @property
     def cutout_uuid(self):
@@ -68,6 +75,7 @@ class Fingerprint:
     def load(self, thedict, db=None):
         self._uuid = thedict['uuid']
         self._cutout_uuid = thedict['cutout_uuid']
+        self._cutout = db.find('cutout', self._cutout_uuid)
         self._predictions = thedict['predictions']
 
         if db is not None:

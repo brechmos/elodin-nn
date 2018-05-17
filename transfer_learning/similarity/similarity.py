@@ -57,7 +57,7 @@ class Similarity:
                 sim = Jaccard()
             elif thedict['similarity_type'] == 'distance':
                 sim = Distance()
-            sim.load(thedict)
+            sim.load(thedict, db)
             return sim
 
     def __init__(self, similarity_type=None, similarity=None, fingerprint_uuids=[], uuid_in=None):

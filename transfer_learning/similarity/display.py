@@ -15,7 +15,7 @@ from astropy import units
 
 from ..tl_logging import get_logger
 import logging
-log = get_logger('display')#, '/tmp/mylog.log', level=logging.DEBUG)
+log = get_logger('display', '/tmp/mylog.log', level=logging.DEBUG)
 
 
 class SimilarityDisplay(object):
@@ -28,7 +28,7 @@ class SimilarityDisplay(object):
         self._db = db
 
         # Setup the figure
-        self._figure = plt.figure(2, figsize=[16, 7.5])
+        self._figure = plt.figure(2, figsize=[14, 6.5])
 
         # Left is aitoff and similarity, Right is similar images
         main_grid = gridspec.GridSpec(1, 2)
@@ -39,7 +39,7 @@ class SimilarityDisplay(object):
         right_grid = main_grid[1]
 
         # The NxM set of similar images
-        self._similar_images_axis = SimilarImages(right_grid, [3, 3], db)
+        self._similar_images_axis = SimilarImages(right_grid, db)
         # TODO: this should be removed in the future
         self._similar_images_axis.set_db(db)
 
@@ -51,7 +51,7 @@ class SimilarityDisplay(object):
         self._current_image_axis_time_update = 0
 
         self._current_image_text_axis = plt.subplot(similarity_main_grid[0, -1])
-        self._current_image_text_axis.set_ylim((1,0))
+        self._current_image_text_axis.set_ylim((1, 0))
         self._current_image_text_axis.set_frame_on(False)
         self._current_image_text_axis.set_xticks([])
         self._current_image_text_axis.set_yticks([])
@@ -70,16 +70,11 @@ class SimilarityDisplay(object):
         self._ccid = self._figure.canvas.mpl_connect('button_press_event', self._click_callback)
         self._mcid = self._figure.canvas.mpl_connect('motion_notify_event', self._move_callback)
 
-        # Initialize the 9 similar images with the first 9 fingerprints
-        # TODO: Fix this so it is the first and the actual similar ones
-        fingerprints = self._db.find('fingerprint')
-        for ii in range(9):
-            f = fingerprints[ii]
-            cutout_uuid = f.cutout_uuid
-            cutout = Cutout.factory(cutout_uuid, self._db)
-            d = cutout.data
-            self._similar_images_axis.set_image(ii, cutout.get_data(),
-                                                str(ii+1) + ') ' + os.path.basename(d.location), fingerprints[ii])
+        # Initialize the similar images with the fingerprints closest to the
+        # (0,0) of the similarity plot
+        close_fingerprints = self._similarity.find_similar((0, 0), 9)
+        self._similar_images_axis.set_images([Fingerprint.factory(x['fingerprint_uuid'], db)
+                                              for x in close_fingerprints])
 
         plt.tight_layout(pad=0.4, w_pad=0.5, h_pad=1.0)
 
@@ -119,7 +114,7 @@ class SimilarityDisplay(object):
                         current_text_display += '{} {:.3}\n'.format(p[1], p[2])
                     self._current_image_text_axis_text.set_text(current_text_display)
 
-                    self._current_image_axis.imshow(cutout.get_data())
+                    self._current_image_axis.imshow_cutout(cutout)
                     plt.draw()
 
                     # Display the location on the Aitoff plot
@@ -141,9 +136,13 @@ class SimilarityDisplay(object):
             try:
                 point = event.xdata, event.ydata
                 close_fingerprints = self._similarity.find_similar(point, n=9)
-                close_fingerprint_uuids = [fp['fingerprint_uuid'] for fp in close_fingerprints]
-                self._similar_images_axis.set_images(close_fingerprints)
+                self._similar_images_axis.set_images([
+                        Fingerprint.factory(fp['fingerprint_uuid'], self._db)
+                        for fp in close_fingerprints
+                        ])
 
+                # Need some logic to choose between showing the whole image with borders
+                # or the cutouts
                 aitoff_fingerprints = []
                 for cfp in close_fingerprints:
                     fingerprint = Fingerprint.factory(cfp['fingerprint_uuid'], self._db)
@@ -173,25 +172,46 @@ class SimilarityDisplay(object):
 
 
 class SimilarImages(object):
-    def __init__(self, sub_gridspec, rows_cols, db):
+    """
+    Interested in 9 similar
 
-        sim_images_grid = gridspec.GridSpecFromSubplotSpec(rows_cols[0], rows_cols[1]+1, subplot_spec=sub_gridspec)
+    1. Carina image (1 image, multiple cutouts on image)
 
-        self._rows_cols = rows_cols
+       - one large image
+       - show all the cutouts on the one image
+
+    2. Color Hubble images (many images, many cutouts from each image)
+
+       - show up to 9 images
+       - show cutout on each image
+
+    3. B/W Hubble images (many images, 1 cutout from each image)
+
+       - show 9 images
+       - don't really need to show the cutout border on the image
+
+
+    pass the fingerprints into SimilarImages
+
+    determine the number of unique datasets
+
+    create a grid based on the number of unique datasets
+
+    Loop through the fignerprints and display the underlying image and cutout
+    """
+
+    def __init__(self, sub_gridspec, db):
+        self._grid = sub_gridspec
         self._db = db
 
         self._fingerprints = []
         self.axes = []
 
-        ii = 0
-        for row in range(rows_cols[0]):
-            for col in range(rows_cols[1]):
-                image = Image(sim_images_grid[row, col])
-                image.store({'type': 'similar', 'number': ii})
-                self.axes.append(image)
-                ii = ii + 1
+        # Grid for the similar images.
+        self._sim_images_and_text_grid = gridspec.GridSpecFromSubplotSpec(1, 4, subplot_spec=sub_gridspec)
 
-        self._text_axis = plt.subplot(sim_images_grid[:, -1])
+        # Text grid.
+        self._text_axis = plt.subplot(self._sim_images_and_text_grid[:, -1])
         self._text_axis.set_ylim((1, 0))
         self._text_axis.set_frame_on(False)
         self._text_axis.set_xticks([])
@@ -252,28 +272,34 @@ class SimilarImages(object):
             log.error('show_fingerprint {}'.format(e))
         log.debug('text drawing took {}'.format(time.time() - start))
 
+    def _uniquify(self, thelist):
+        seen = set()
+        return [x for x in thelist if not (x in seen or seen.add(x))]
+
     def set_images(self, fingerprints):
-        self._fingerprints = fingerprints
 
-        self._fingerprints = []
-        for ii, fp in enumerate(fingerprints):
-            # Get the fingerprint
-            f_uuid = fp['fingerprint_uuid']
-            fingerprint = Fingerprint.factory(f_uuid, self._db)
-            self._fingerprints.append(fingerprint)
+        # Determine the number of unqiue data locations and
+        # therefore the number of images we need to display
+        locations = self._uniquify([x.cutout.data.location for x in fingerprints])
+        log.debug('locations {}'.format(locations))
 
-            # Get the data location
-            cutout = Cutout.factory(fingerprint.cutout_uuid, self._db)
+        # Create the grid of axes for each unique data location
+        n_unique = len(locations)
+        n_sqrt = np.sqrt(n_unique)
+        nrows = int(np.ceil(n_sqrt))
+        ncols = int(np.ceil(n_unique/nrows))
+        log.debug('nrows, ncols {} {}'.format(nrows, ncols))
+        self._sim_images_grid = gridspec.GridSpecFromSubplotSpec(
+                nrows, ncols,
+                subplot_spec=self._sim_images_and_text_grid[0, :-1])
 
-            base_file = os.path.basename(cutout.data.location)
-            self.set_image(ii, cutout.get_data(), title=base_file, fingerprint=fingerprint)
-
-    def set_image(self, num, data, title='', fingerprint={}):
-        # Display image
-        self.axes[num].imshow(data, title=title)
-
-        self.axes[num].store(fingerprint)
-        # Show on Aitoff
+        # Loop through each fingerprint
+        for ii, fingerprint in enumerate(fingerprints):
+            ilocation = locations.index(fingerprint.cutout.data.location)
+            row, col = ilocation // ncols, ilocation % ncols
+            im = Image(self._sim_images_grid[row, col])
+            im.imshow(fingerprints[ii])
+            self.axes.append(im)
 
 
 class Image(object):
@@ -282,6 +308,7 @@ class Image(object):
         self._axes_data = None
         self._spines_visible = False
         self._outline = None
+        self._fingerprint = None 
 
     def _rgb2plot(self, data):
         """
@@ -300,8 +327,9 @@ class Image(object):
     def get(self):
         return self._axes._imdata
 
-    def imshow(self, data, title=None, origin='lower'):
+    def imshow_cutout(self, cutout, title=None, origin='lower'):
 
+        data = cutout.get_data()
         data = self._rgb2plot(data)
 
         if self._axes_data is None:
@@ -313,6 +341,45 @@ class Image(object):
             self._axes.get_figure().canvas.draw()
         else:
             self._axes_data.set_data(data)
+
+        if title is not None:
+            self._axes.set_title(title, fontsize=8)
+
+        self._axes.get_figure().canvas.blit(self._axes.bbox)
+
+    def imshow(self, fingerprint, title=None, origin='lower'):
+        log.info('')
+
+        if self._fingerprint is None or not fingerprint.cutout.data.location == self._fingerprint.cutout.data.location:
+            self._fingerprint = fingerprint
+            if 'Full' in fingerprint.cutout.generator_parameters['cutout_type']:
+                data = fingerprint.cutout.get_data()
+                border = None
+            else:
+                data = fingerprint.cutout.data.get_data()
+                border = fingerprint.cutout.bounding_box
+
+            data = self._rgb2plot(data)
+
+            if self._axes_data is None:
+                self._axes_data = self._axes.imshow(data, cmap=plt.gray(), origin=origin)
+                self._axes.set_xticks([])
+                self._axes.set_yticks([])
+                self._axes.set_xlabel('')
+                self._axes.set_ylabel('')
+                self._axes.get_figure().canvas.draw()
+            else:
+                self._axes_data.set_data(data)
+
+        # Draw a border around the cutout in the image if the cutout
+        # is a subset of the actual image (as opposed to the full image
+        # itself.
+        if border is not None:
+            log.debug('border is {}'.format(border))
+            self._border = matplotlib.patches.Rectangle(
+                    (border[0], border[2]), border[1]-border[0], border[3]-border[2],
+                    linewidth=1, edgecolor='#ffff77', facecolor='none')
+            self._axes.add_patch(self._border)
 
         if title is not None:
             log.debug('setting title to {}'.format(title))
