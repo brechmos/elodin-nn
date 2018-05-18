@@ -3,12 +3,16 @@ import uuid
 
 from transfer_learning.data import Data
 from transfer_learning.cutout.processing import CutoutProcessing
+from transfer_learning.image import Image
 
 import numpy as np
 from ..tl_logging import get_logger
 import logging
 log = get_logger('cutout', level=logging.WARNING)
 
+class CutoutImage(Image):
+    def __init__(self, cutout):
+        self._cutout = cutout
 
 class Cutout(object):
     """

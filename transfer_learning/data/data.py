@@ -9,6 +9,7 @@ import requests
 
 from .processing import DataProcessing
 
+from transfer_learning.image import Image
 from ..tl_logging import get_logger
 import logging
 log = get_logger('data', '/tmp/mylog.log', level=logging.WARNING)
@@ -16,6 +17,12 @@ log = get_logger('data', '/tmp/mylog.log', level=logging.WARNING)
 
 def stringify(dictionary):
     return {k: str(v) for k, v in dictionary.items()}
+
+
+class DataImage(Image):
+
+    def __init__(self, data):
+        self._data = data
 
 
 class Data:

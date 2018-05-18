@@ -39,9 +39,7 @@ class SimilarityDisplay(object):
         right_grid = main_grid[1]
 
         # The NxM set of similar images
-        self._similar_images_axis = SimilarImages(right_grid, db)
-        # TODO: this should be removed in the future
-        self._similar_images_axis.set_db(db)
+        self._similar_images = SimilarImages(right_grid, db)
 
         # The current image displayed as one moves around the
         # similarity plot (e.g., tSNE)
@@ -73,7 +71,7 @@ class SimilarityDisplay(object):
         # Initialize the similar images with the fingerprints closest to the
         # (0,0) of the similarity plot
         close_fingerprints = self._similarity.find_similar((0, 0), 9)
-        self._similar_images_axis.set_images([Fingerprint.factory(x['fingerprint_uuid'], db)
+        self._similar_images.set_images([Fingerprint.factory(x['fingerprint_uuid'], db)
                                               for x in close_fingerprints])
 
         plt.tight_layout(pad=0.4, w_pad=0.5, h_pad=1.0)
@@ -123,52 +121,56 @@ class SimilarityDisplay(object):
                     log.debug(e)
 
         # If we are hovering over one of the NxN similar images
-        elif self._similar_images_axis.hover_in(event.inaxes) is not None:
+        elif self._similar_images.hover_in(event.inaxes) is not None:
             log.debug('In one of the similar axes')
-            self._similar_images_axis.show_fingerprint(event.inaxes)
+            self._similar_images.show_fingerprint(event.inaxes)
 
         self._move_callback_processing = False
+
+    def _update_from_similarity(self, point):
+        try:
+            close_fingerprints = self._similarity.find_similar(point, n=9)
+            self._similar_images.set_images([
+                    Fingerprint.factory(fp['fingerprint_uuid'], self._db)
+                    for fp in close_fingerprints
+                    ])
+
+            # Need some logic to choose between showing the whole image with borders
+            # or the cutouts
+            aitoff_fingerprints = []
+            for cfp in close_fingerprints:
+                fingerprint = Fingerprint.factory(cfp['fingerprint_uuid'], self._db)
+                cutout = Cutout.factory(fingerprint.cutout_uuid, self._db)
+                data = cutout.data
+                log.debug('{} {}'.format(cfp, data.location))
+                a = (cfp['tsne_point'], cfp['distance'], data.radec, fingerprint)
+                aitoff_fingerprints.append(a)
+            self._aitoff_axis.on_click(aitoff_fingerprints)
+        except Exception as e:
+            log.debug('EXCEPTION {}'.format(e), exc_info=True)
 
     def _click_callback(self, event):
 
         # Click in the simiarlity matrix axis
         if event.inaxes == self._similarity_matrix._axes:
-            try:
-                point = event.xdata, event.ydata
-                close_fingerprints = self._similarity.find_similar(point, n=9)
-                self._similar_images_axis.set_images([
-                        Fingerprint.factory(fp['fingerprint_uuid'], self._db)
-                        for fp in close_fingerprints
-                        ])
-
-                # Need some logic to choose between showing the whole image with borders
-                # or the cutouts
-                aitoff_fingerprints = []
-                for cfp in close_fingerprints:
-                    fingerprint = Fingerprint.factory(cfp['fingerprint_uuid'], self._db)
-                    cutout = Cutout.factory(fingerprint.cutout_uuid, self._db)
-                    data = cutout.data
-                    log.debug('{} {}'.format(cfp, data.location))
-                    a = (cfp['tsne_point'], cfp['distance'], data.radec, fingerprint)
-                    aitoff_fingerprints.append(a)
-                self._aitoff_axis.on_click(aitoff_fingerprints)
-            except Exception as e:
-                log.debug('EXCEPTION {}'.format(e), exc_info=True)
+            self._update_from_similarity(event.point)
 
         # Click in the aitoff axis
         elif event.inaxes == self._aitoff_axis._axis:
             # TODO: This is wrong, need inverse
             ra, dec = self._aitoff_axis.convert_ra_dec(event.ydata, event.xdata)
 
-        # Click on one of the 9 similar images
-        elif event.inaxes in [x._axes for x in self._similar_images_axis.axes]:
-            fingerprint_uuid = event.inaxes._imdata.uuid
+        # Click on one of the "9" similar images
+        elif event.inaxes in [image.axis for image in self._similar_images.images]:
+            # Determine the cutout which was click on (might be the actual image
+            # or might be a sub part of the displayed image)
+            cutout = self._similar_images.find_cutout((event.xdata, event.ydata), event.inaxes)
+            log.debug('closest cutout is {}'.format(cutout))
 
-            index = self._similarity.fingerprint_uuids.index(fingerprint_uuid)
+            sim_point = self._similarity.cutout_point(cutout)
+            log.debug('sim_point is {}'.format(sim_point))
 
-            point = similarity_tsne._Y[index]
-            close_fingerprint_uuids = self._similarity.find_similar(point)
-            self._similar_images_axis.set_images(close_fingerprint_uuids)
+            self._update_from_similarity(sim_point)
 
 
 class SimilarImages(object):
@@ -205,7 +207,7 @@ class SimilarImages(object):
         self._db = db
 
         self._fingerprints = []
-        self.axes = []
+        self._images = []
 
         # Grid for the similar images.
         self._sim_images_and_text_grid = gridspec.GridSpecFromSubplotSpec(1, 4, subplot_spec=sub_gridspec)
@@ -218,6 +220,10 @@ class SimilarImages(object):
         self._text_axis.set_yticks([])
         self._fingerprint_text = self._text_axis.text(0, 0, 'here', fontsize=8, va='top')
 
+    @property
+    def images(self):
+        return self._images
+
     def set_db(self, db):
         self._db = db
 
@@ -226,23 +232,33 @@ class SimilarImages(object):
         Check to see if the passed in axes is one we are repsonsible for.
         """
         log.info('hover_axes {}'.format(hover_axes))
-        if hover_axes is not None and hover_axes in [x._axes for x in self.axes]:
-            return [x._axes for x in self.axes].index(hover_axes)
+        if hover_axes is not None and hover_axes in [x._axes for x in self._images]:
+            return [image.axis for image in self._images].index(hover_axes)
         else:
             return None
+
+    def find_cutout(self, point, axis):
+        # find the Image that was clicked on
+        image = [image for image in self._images if image.axis == axis][0]
+        log.debug('Clicked on {}'.format(image))
+
+        cutout = image.find_cutout(point, self._db)
+        log.debug('cutout was {}'.format(cutout))
+
+        return cutout
 
     def show_fingerprint(self, hover_axes):
         """
         Check to see if the passed in axes is one we are repsonsible for.
         """
         log.info('hover axis {}'.format(hover_axes))
-        index = [x._axes for x in self.axes].index(hover_axes)
+        index = [image.axis for image in self._images].index(hover_axes)
 
         try:
             # Draw the text
             start = time.time()
 
-            cutout = Cutout.factory(self.axes[index].get().cutout_uuid, self._db)
+            cutout = Cutout.factory(self._images[index].get().cutout_uuid, self._db)
 
             # Meta information
             meta_text = os.path.basename(cutout.data.location) + '\n\n'
@@ -261,12 +277,12 @@ class SimilarImages(object):
             plt.draw()
 
             # Unhighlight other axes
-            for im in list(set(self.axes) - set([self.axes[index]])):
+            for im in list(set(self._images) - set([self._images[index]])):
                 im.hide_outline()
 
             # Highlight the axis
             log.debug('Add outline for subwindow')
-            self.axes[index].show_outline()
+            self._images[index].show_outline()
 
         except Exception as e:
             log.error('show_fingerprint {}'.format(e))
@@ -299,7 +315,7 @@ class SimilarImages(object):
             row, col = ilocation // ncols, ilocation % ncols
             im = Image(self._sim_images_grid[row, col])
             im.imshow(fingerprints[ii])
-            self.axes.append(im)
+            self._images.append(im)
 
 
 class Image(object):
@@ -321,11 +337,38 @@ class Image(object):
         mindata, maxdata = np.percentile(data[np.isfinite(data)], (0.01, 99.0))
         return np.clip((data - mindata) / (maxdata-mindata) * 255, 0, 255).astype(np.uint8)
 
+    @property 
+    def axis(self):
+        return self._axes
+
+    @property
+    def cutout(self):
+        return self._fingerprint.cutout
+
+    @property
+    def location(self):
+        return self._fingerprint.cutout.data.location
+
     def store(self, thedict):
         self._axes._imdata = thedict
 
     def get(self):
         return self._axes._imdata
+
+    def _dist(self, point, bounding_box):
+        bb_center = ((bounding_box[3]+bounding_box[2])/2.0, (bounding_box[0]+bounding_box[1])/2.0)
+        return (point[1]-bb_center[0])**2 + (point[0]-bb_center[1])**2
+
+    def find_cutout(self, point, db):
+        log.info('Find cutout closest to {}'.format(point))
+
+        # Find all cutouts for this data
+        cutouts = [c for c in db.find('cutout') if c.data.uuid == self._fingerprint.cutout.data.uuid]
+
+        distances = [self._dist(point, cutout.bounding_box) for cutout in cutouts]
+        inds = np.argsort(distances)
+
+        return cutouts[inds[0]]
 
     def imshow_cutout(self, cutout, title=None, origin='lower'):
 

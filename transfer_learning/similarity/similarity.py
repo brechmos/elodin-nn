@@ -10,7 +10,7 @@ from transfer_learning.fingerprint import Fingerprint
 
 from ..tl_logging import get_logger
 import logging
-log = get_logger('similarity')
+log = get_logger('similarity', level=logging.DEBUG)
 
 
 def calculate(fingerprints, similarity_calculator, serialize_output=False):
@@ -47,7 +47,7 @@ class Similarity:
     _similarity_collection = weakref.WeakValueDictionary()
 
     @staticmethod
-    def factory(thedict, db=None):
+    def factory(thedict, db):
         if isinstance(thedict, str):
             return Similarity._similarity_collection[thedict]
         else:
@@ -221,7 +221,10 @@ class tSNE(Similarity):
         self._distance_measure = self._parameters['distance_measure']
 
         if db is not None:
-            self._fingerprints = [Fingerprint.factory(thedict['fingerprint_uuids'], db)]
+            self._fingerprints = [Fingerprint.factory(x, db) for x in thedict['fingerprint_uuids']]
+
+        log.debug('There are {} fingerprint uuids'.format(self._fingerprint_uuids))
+        log.debug('There are nwo {} fingerprints loaded'.format(self._fingerprints))
 
     #
     #  Display methods
@@ -329,6 +332,14 @@ class tSNE(Similarity):
                     'fingerprint_uuid': self._fingerprint_uuids[ind]
                 } for ind in inds[:n]]
 
+    def cutout_point(self, cutout):
+        log.info('')
+
+        log.debug('There are {} fingerprints to check'.format(len(self._fingerprints)))
+        index = [fingerprint.cutout.uuid for fingerprint in self._fingerprints].index(cutout.uuid)
+        log.debug('The index is {}'.format(index))
+
+        return self._Y[index]
 
 class Jaccard(Similarity):
     """
