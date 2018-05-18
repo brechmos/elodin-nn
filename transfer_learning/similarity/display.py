@@ -164,7 +164,7 @@ class SimilarityDisplay(object):
         elif event.inaxes in [image.axis for image in self._similar_images.images]:
             # Determine the cutout which was click on (might be the actual image
             # or might be a sub part of the displayed image)
-            cutout = self._similar_images.find_cutout((event.xdata, event.ydata), event.inaxes)
+            cutout = self._similar_images.find_cutout((event.ydata, event.xdata), event.inaxes)
             log.debug('closest cutout is {}'.format(cutout))
 
             sim_point = self._similarity.cutout_point(cutout)
