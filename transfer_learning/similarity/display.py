@@ -86,7 +86,7 @@ class SimilarityDisplay(object):
 
         # If we are hovering over the similarity plot
         if event.inaxes == self._similarity_matrix._axes:
-            point = event.xdata, event.ydata
+            point = event.ydata, event.xdata
             close_fingerprint_uuids = self._similarity.find_similar(point, 1)
 
             now = time.time()
@@ -113,7 +113,7 @@ class SimilarityDisplay(object):
                     self._current_image_text_axis_text.set_text(current_text_display)
 
                     self._current_image_axis.imshow_cutout(cutout)
-                    plt.draw()
+                    #plt.draw()
 
                     # Display the location on the Aitoff plot
                     self._aitoff_axis.on_move(cutout.data.radec)
@@ -153,7 +153,7 @@ class SimilarityDisplay(object):
 
         # Click in the simiarlity matrix axis
         if event.inaxes == self._similarity_matrix._axes:
-            self._update_from_similarity(event.point)
+            self._update_from_similarity((event.ydata, event.xdata))
 
         # Click in the aitoff axis
         elif event.inaxes == self._aitoff_axis._axis:
@@ -389,6 +389,12 @@ class Image(object):
             self._axes.set_title(title, fontsize=8)
 
         self._axes.get_figure().canvas.blit(self._axes.bbox)
+
+        # This is definitely needed to update the image if we
+        # are calling this from a script.
+        if not matplotlib.get_backend() == 'nbAgg':
+            self._axes.redraw_in_frame()
+
 
     def imshow(self, fingerprint, title=None, origin='lower'):
         log.info('')
