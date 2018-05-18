@@ -376,8 +376,10 @@ class Image(object):
         # itself.
         if border is not None:
             log.debug('border is {}'.format(border))
+
+            # row, col <-> y, x
             self._border = matplotlib.patches.Rectangle(
-                    (border[0], border[2]), border[1]-border[0], border[3]-border[2],
+                    (border[2], border[0]), border[3]-border[2], border[1]-border[0],
                     linewidth=1, edgecolor='#ffff77', facecolor='none')
             self._axes.add_patch(self._border)
 
