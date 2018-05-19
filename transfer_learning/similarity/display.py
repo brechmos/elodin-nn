@@ -113,7 +113,6 @@ class SimilarityDisplay(object):
                     self._current_image_text_axis_text.set_text(current_text_display)
 
                     self._current_image_axis.imshow_cutout(cutout)
-                    #plt.draw()
 
                     # Display the location on the Aitoff plot
                     self._aitoff_axis.on_move(cutout.data.radec)
@@ -218,7 +217,7 @@ class SimilarImages(object):
         self._text_axis.set_frame_on(False)
         self._text_axis.set_xticks([])
         self._text_axis.set_yticks([])
-        self._fingerprint_text = self._text_axis.text(0, 0, 'here', fontsize=8, va='top')
+        self._fingerprint_text = self._text_axis.text(0, 0, '', fontsize=8, va='top')
 
     @property
     def images(self):
@@ -299,6 +298,9 @@ class SimilarImages(object):
         locations = self._uniquify([x.cutout.data.location for x in fingerprints])
         log.debug('locations {}'.format(locations))
 
+
+# TODO:  NEED SOMETHING SMARTER HERE AS IT IS REDRAWING THE IMAGE FOR EVERY CUTOUT
+
         # Create the grid of axes for each unique data location
         n_unique = len(locations)
         n_sqrt = np.sqrt(n_unique)
@@ -314,7 +316,7 @@ class SimilarImages(object):
             ilocation = locations.index(fingerprint.cutout.data.location)
             row, col = ilocation // ncols, ilocation % ncols
             im = Image(self._sim_images_grid[row, col])
-            im.imshow(fingerprints[ii])
+            im.imshow(fingerprints[ii], cutout_number=(ii+1))
             self._images.append(im)
 
 
@@ -395,11 +397,12 @@ class Image(object):
         if not matplotlib.get_backend() == 'nbAgg':
             self._axes.redraw_in_frame()
 
-
-    def imshow(self, fingerprint, title=None, origin='lower'):
+    def imshow(self, fingerprint, title=None, origin='lower', cutout_number=None):
         log.info('')
 
+        start = time.time()
         if self._fingerprint is None or not fingerprint.cutout.data.location == self._fingerprint.cutout.data.location:
+            log.debug('appears to need to update the image')
             self._fingerprint = fingerprint
             if 'Full' in fingerprint.cutout.generator_parameters['cutout_type']:
                 data = fingerprint.cutout.get_data()
@@ -411,6 +414,7 @@ class Image(object):
             data = self._rgb2plot(data)
 
             if self._axes_data is None:
+                log.debug('do imshow')
                 self._axes_data = self._axes.imshow(data, cmap=plt.gray(), origin=origin)
                 self._axes.set_xticks([])
                 self._axes.set_yticks([])
@@ -418,11 +422,14 @@ class Image(object):
                 self._axes.set_ylabel('')
                 self._axes.get_figure().canvas.draw()
             else:
+                log.debug('setting data')
                 self._axes_data.set_data(data)
+        log.debug('A Took {}s'.format(time.time() - start))
 
         # Draw a border around the cutout in the image if the cutout
         # is a subset of the actual image (as opposed to the full image
         # itself.
+        start = time.time()
         if border is not None:
             log.debug('border is {}'.format(border))
 
@@ -432,16 +439,25 @@ class Image(object):
                     linewidth=1, edgecolor='#ffff77', facecolor='none')
             self._axes.add_patch(self._border)
 
+            if cutout_number is not None:
+                self._axes.text(border[2], border[0], '{}'.format(cutout_number), color='#ffff77')
+
+        log.debug('B Took {}s'.format(time.time() - start))
+
+        start = time.time()
         if title is not None:
             log.debug('setting title to {}'.format(title))
             self._axes.set_title(title, fontsize=8)
+        log.debug('C Took {}s'.format(time.time() - start))
 
+        start = time.time()
         self._axes.get_figure().canvas.blit(self._axes.bbox)
 
         # This is definitely needed to update the image if we
         # are calling this from a script.
         if not matplotlib.get_backend() == 'nbAgg':
             self._axes.redraw_in_frame()
+        log.debug('D Took {}s'.format(time.time() - start))
 
     def plot(self, x, y, title=''):
         self._axes.plot(x, y, '.')
