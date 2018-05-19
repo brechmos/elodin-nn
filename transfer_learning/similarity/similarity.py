@@ -322,7 +322,6 @@ class tSNE(Similarity):
     def find_similar(self, point, n=9):
         log.info('Searching based on point {}'.format(point))
         distances = self._distance_measures[self._distance_measure](self._Y, point)
-        log.debug('{}'.format([x for x in zip(self._Y, distances)]))
         inds = np.argsort(distances)
         log.debug(inds)
 
