@@ -6,7 +6,9 @@ The general idea is given a Hubble image (for example a thumbnail), create a cut
 
 ![](https://github.com/brechmos-stsci/transfer-learning/raw/master/images/screenshot1.jpg)
 
-![](https://github.com/brechmos-stsci/transfer-learning/raw/master/images/screenshot2.jpg)
+![](https://github.com/brechmos-stsci/transfer-learning/raw/master/images/hubble_carina.jpg)
+
+![](https://github.com/brechmos-stsci/transfer-learning/raw/master/images/hubble_heritage.jpg)
 
 ## Simple example of the code
 
