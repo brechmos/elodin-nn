@@ -9,7 +9,7 @@ from transfer_learning.cutout import Cutout
 
 from ..tl_logging import get_logger
 import logging
-log = get_logger('fingerprint processing', level=logging.WARNING)
+log = get_logger('fingerprint processing')
 
 
 def calculate(cutouts, fc_save, task=None):

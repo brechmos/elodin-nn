@@ -9,7 +9,7 @@ from transfer_learning.fingerprint.processing import calculate as processing_cal
 
 from ..tl_logging import get_logger
 import logging
-log = get_logger('fingerprint task', logging.WARNING)
+log = get_logger('fingerprint task')
 
 
 def chunks(l, k):

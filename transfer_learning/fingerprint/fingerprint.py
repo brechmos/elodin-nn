@@ -4,7 +4,7 @@ import weakref
 from ..tl_logging import get_logger
 from transfer_learning.cutout import Cutout
 import logging
-log = get_logger('fingerprint', level=logging.WARNING)
+log = get_logger('fingerprint')
 
 
 class Fingerprint:

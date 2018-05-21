@@ -9,7 +9,7 @@ from .similarity import tSNE, Jaccard, Distance
 
 from ..tl_logging import get_logger
 import logging
-log = get_logger('similarity task', level=logging.WARNING)
+log = get_logger('similarity task')
 
 
 def similarity_celery(fingerprints, sim):

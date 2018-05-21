@@ -10,7 +10,7 @@ from transfer_learning.fingerprint import Fingerprint
 
 from ..tl_logging import get_logger
 import logging
-log = get_logger('similarity', level=logging.DEBUG)
+log = get_logger('similarity')
 
 
 def calculate(fingerprints, similarity_calculator, serialize_output=False):

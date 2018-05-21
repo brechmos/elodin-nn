@@ -15,7 +15,7 @@ from astropy import units
 
 from ..tl_logging import get_logger
 import logging
-log = get_logger('display', '/tmp/mylog.log', level=logging.DEBUG)
+log = get_logger('display')
 
 
 class SimilarityDisplay(object):

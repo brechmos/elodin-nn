@@ -12,7 +12,7 @@ from .processing import DataProcessing
 from transfer_learning.image import Image
 from ..tl_logging import get_logger
 import logging
-log = get_logger('data', '/tmp/mylog.log', level=logging.WARNING)
+log = get_logger('data')
 
 
 def stringify(dictionary):

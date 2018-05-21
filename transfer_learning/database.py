@@ -19,7 +19,7 @@ import unqlite
 from .tl_logging import get_logger
 
 import logging
-log = get_logger('database', level=logging.WARNING)
+log = get_logger('database')
 
 
 def get_database(database_type, *args, **kwargs):

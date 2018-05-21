@@ -10,7 +10,7 @@ from transfer_learning.cutout import Cutout
 
 from ..tl_logging import get_logger
 import logging
-log = get_logger('cutout generator', level=logging.WARNING)
+log = get_logger('cutout generator')
 
 """
 The Cutout Generators should be instanciated and then run on a Data object in order
