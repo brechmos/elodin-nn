@@ -279,7 +279,7 @@ class tSNE(Similarity):
                 self._distance_measure = distance_measure
             else:
                 self._distance_measure = self._distance_measures.keys()[0]
-                print('ERROR: No definition for {} so using {} instead.'.format(distance_measure, self._distance_measure))
+                log.error('ERROR: No definition for {} so using {} instead.'.format(distance_measure, self._distance_measure))
 
     def display(self, tsne_axis):
         """

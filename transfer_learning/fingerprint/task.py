@@ -39,7 +39,7 @@ def calculate_celery(cutouts, fc_save):
                 counts[x.id] = x.info['progress']
 
         states_complete = [int(v) for k, v in counts.items()]
-        print('\rCalculating fingerprints: {} {:.1f}%'.format(
+        log.info('\rCalculating fingerprints: {} {:.1f}%'.format(
             states_complete, sum(states_complete)/len(cutouts)*100), end='')
 
     # Get the results (is a list of lists so need to compress them)

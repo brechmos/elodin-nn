@@ -54,7 +54,7 @@ def calculate(cutouts, fc_save, task=None):
         # Clean the predictions so the json conversion is happy
         cleaned_predictions = [(x[0], x[1], float(x[2])) for x in predictions]
 
-        log.warning('calculated fingerprints {}'.format(cleaned_predictions[:10]))
+        log.info('calculated fingerprints {}'.format(cleaned_predictions[:10]))
 
         # Load up the return list.
         fingerprints_return.append(Fingerprint(cutout_uuid=cutout.uuid, predictions=cleaned_predictions))
