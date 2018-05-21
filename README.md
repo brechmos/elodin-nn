@@ -2,18 +2,11 @@
 
 This code will read in a set of images, create cutouts, calculate "fingerprints" for each cutout and then do similarity data reduction.
 
+## Processing
+
 The general idea is given a Hubble image (for example a thumbnail), create a cutout of it. Then this cutout image is passed through the Resnet50 calculator in order to determine the probability information based on ImageNet images.  Then, given all the fingerprints, use the tSNE data reduction method (or other method) in order to calculate the similarity between the fingerprints, and therefore the similarity between the cutouts.
 
-## Hubble ACS Thumbnail Images
-![](https://github.com/brechmos-stsci/transfer-learning/raw/master/images/hubble_thumbnails.jpeg)
-
-## Hubble Carina Image
-![](https://github.com/brechmos-stsci/transfer-learning/raw/master/images/hubble_carina.jpeg)
-
-## Hubble Heritage Images
-![](https://github.com/brechmos-stsci/transfer-learning/raw/master/images/hubble_heritage.jpeg)
-
-## Simple example of the code
+### Simple example of the code
 
 ```
 print('Setting up the data structure required')
@@ -61,6 +54,21 @@ similarity_tsne = similarity_calculate(fingerprints, 'tsne')
 db.save('similarity', similarity_tsne)
 
 ```
+
+
+## Display and Interaction
+
+Given a set of processed data there is a display method that will show the similarity plot and N similar images.  Each point in the tSNE plot is a cutout and one can click on the point in the tSNE plot. Then the 9 similar images (though configurable) will be displayed to the right along with their sky location if that is available. 
+
+### Hubble ACS Thumbnail Images
+![](https://github.com/brechmos-stsci/transfer-learning/raw/master/images/hubble_thumbnails.jpeg)
+
+### Hubble Carina Image
+![](https://github.com/brechmos-stsci/transfer-learning/raw/master/images/hubble_carina.jpeg)
+
+### Hubble Heritage Images
+![](https://github.com/brechmos-stsci/transfer-learning/raw/master/images/hubble_heritage.jpeg)
+
 
 ## Current Status
 
