@@ -27,7 +27,7 @@ db = get_database(config['database']['type'], config['database']['filename'])
 #
 
 print('Going to calculate the sliding window cutouts')
-sliding_window_cutouts = BasicCutoutGenerator(output_size=224, step_size=200)
+sliding_window_cutouts = BasicCutoutGenerator(output_size=224, step_size=400)
 
 print('Going to load the HST Heritage data')
 all_cutouts = []

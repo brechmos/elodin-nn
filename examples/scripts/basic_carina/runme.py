@@ -26,7 +26,7 @@ if os.path.isdir(config['database']['filename']):
 #
 
 print('Going to load the carina data')
-image_data = Data(location='../../data/carina.tiff', radec=(-32, 12), meta={})
+image_data = Data(location='../../data/carina.tiff', radec=(-0.8542, 287.6099), meta={})
 image_data.get_data()
 db.save('data', image_data)
 
@@ -34,7 +34,7 @@ db.save('data', image_data)
 #  Create the cutouts
 #
 print('Going to calculate the sliding window cutouts')
-sliding_window_cutouts = BasicCutoutGenerator(output_size=224, step_size=600)
+sliding_window_cutouts = BasicCutoutGenerator(output_size=224, step_size=150)
 cutouts = sliding_window_cutouts.create_cutouts(image_data)
 [db.save('cutout', cutout) for cutout in cutouts]
 
