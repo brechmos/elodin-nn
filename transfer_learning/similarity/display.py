@@ -508,7 +508,7 @@ class Image(object):
         index = self._fingerprints.index(fingerprint)
 
         # Set that one to red
-        self._outlines[index].set_edgecolor('#ff7777')
+        self._outlines[index].set_edgecolor('#77ff77')
 
         # Set all others to yellow
         for ind in set(range(len(self._outlines))) - set([index]):
