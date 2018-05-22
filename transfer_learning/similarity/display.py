@@ -1,4 +1,5 @@
 import os
+import traceback
 import time
 import numpy as np
 import matplotlib.pyplot as plt
@@ -251,12 +252,14 @@ class SimilarImages(object):
         """
         Check to see if the passed in axes is one we are repsonsible for.
         """
+        log.info(event)
 
         hover_axes = event.inaxes
 
         index = [image.axis for image in self._images].index(hover_axes)
         fingerprint = self._images[index].find_fingerprint((event.xdata, event.ydata), self._db)
         image_number = self._fingerprints.index(fingerprint) + 1
+        log.debug('image_number {}'.format(image_number))
 
         try:
             # Draw the text
@@ -277,16 +280,14 @@ class SimilarImages(object):
             self._fingerprint_text.set_text(meta_text)
             plt.draw()
 
-            # Unhighlight other axes
-            for im in list(set(self._images) - set([self._images[index]])):
-                im.hide_outline()
-
             # Highlight the axis
             log.debug('Add outline for subwindow')
-            self._images[index].show_outline()
+            self._images[index].show_outline(fingerprint)
 
         except Exception as e:
             log.error('show_fingerprint {}'.format(e))
+            print(traceback.format_exc())
+
         log.debug('text drawing took {}'.format(time.time() - start))
 
     def _uniquify(self, thelist):
@@ -331,7 +332,7 @@ class Image(object):
         self._axes = plt.subplot(grid_spec)
         self._axes_data = None
         self._spines_visible = False
-        self._outline = None
+        self._outlines = None
         self._fingerprints = None
 
     def _rgb2plot(self, data):
@@ -447,6 +448,7 @@ class Image(object):
         self.store(fingerprints)
         log.debug('A Took {}s'.format(time.time() - start))
 
+        self._outlines = []
         for ii, fingerprint in enumerate(self._fingerprints):
             border = fingerprint.cutout.bounding_box
 
@@ -458,10 +460,11 @@ class Image(object):
                 log.debug('border is {}'.format(border))
 
                 # row, col <-> y, x
-                self._border = matplotlib.patches.Rectangle(
+                outline = matplotlib.patches.Rectangle(
                         (border[2], border[0]), border[3]-border[2], border[1]-border[0],
                         linewidth=1, edgecolor='#ffff77', facecolor='none')
-                self._axes.add_patch(self._border)
+                self._axes.add_patch(outline)
+                self._outlines.append(outline)
 
                 if cutout_numbers is not None:
                     self._axes.text(border[2], border[0], '{}'.format(cutout_numbers[ii]), color='#ffff77')
@@ -494,19 +497,29 @@ class Image(object):
     def set_title(self, title):
         self._axes.set_title(title)
 
-    def show_outline(self):
+    def show_outline(self, fingerprint):
+        """
+        We need to show the outline of the cutout referred to by
+        the fingerprint.
+        """
         log.info('')
-        try:
-            if self._outline is None:
-                self._outline = matplotlib.patches.Rectangle((0, 0), 225, 225, linewidth=4, edgecolor='#ff7777', facecolor='none')
-                self._axes.add_patch(self._outline)
-            else:
-                self._outline.set_visible(True)
 
+        # Determine the outline number from the fingerprint
+        index = self._fingerprints.index(fingerprint)
+
+        # Set that one to red
+        self._outlines[index].set_edgecolor('#ff7777')
+
+        # Set all others to yellow
+        for ind in set(range(len(self._outlines))) - set([index]):
+            self._outlines[ind].set_edgecolor('#ffff77')
+
+        try:
             self._axes.get_figure().canvas.blit(self._axes.bbox)
             if not matplotlib.get_backend() == 'nbAgg':
                 self._axes.redraw_in_frame()
-            self._axes.draw_artist(self._outline)
+            for outline in self._outlines:
+                self._axes.draw_artist(outline)
         except Exception as e:
             log.error(e)
 
