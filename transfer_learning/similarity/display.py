@@ -243,10 +243,10 @@ class SimilarImages(object):
         image = [image for image in self._images if image.axis == axis][0]
         log.debug('Clicked on {}'.format(image))
 
-        cutout = image.find_cutout(point, self._db)
-        log.debug('cutout was {}'.format(cutout))
+        fingerprint = image.find_fingerprint(point, self._db)
+        log.debug('cutout was {}'.format(fingerprint.cutout))
 
-        return cutout
+        return fingerprint.cutout
 
     def show_fingerprint(self, event):
         """
