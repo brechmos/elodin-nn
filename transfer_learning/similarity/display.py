@@ -4,8 +4,9 @@ import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib
 import matplotlib.gridspec as gridspec
-from scipy.spatial import distance_matrix
+from itertools import groupby
 
+from scipy.spatial import distance_matrix
 from transfer_learning.database import get_database
 from transfer_learning.fingerprint import Fingerprint
 from transfer_learning.cutout import Cutout
@@ -15,7 +16,7 @@ from astropy import units
 
 from ..tl_logging import get_logger
 import logging
-log = get_logger('display')
+log = get_logger('display', level=logging.DEBUG)
 
 
 class SimilarityDisplay(object):
@@ -122,7 +123,7 @@ class SimilarityDisplay(object):
         # If we are hovering over one of the NxN similar images
         elif self._similar_images.hover_in(event.inaxes) is not None:
             log.debug('In one of the similar axes')
-            self._similar_images.show_fingerprint(event.inaxes)
+            self._similar_images.show_fingerprint(event)
 
         self._move_callback_processing = False
 
@@ -246,32 +247,33 @@ class SimilarImages(object):
 
         return cutout
 
-    def show_fingerprint(self, hover_axes):
+    def show_fingerprint(self, event):
         """
         Check to see if the passed in axes is one we are repsonsible for.
         """
-        log.info('hover axis {}'.format(hover_axes))
+
+        hover_axes = event.inaxes
+
         index = [image.axis for image in self._images].index(hover_axes)
+        fingerprint = self._images[index].find_fingerprint((event.xdata, event.ydata), self._db)
+        image_number = self._fingerprints.index(fingerprint) + 1
 
         try:
             # Draw the text
             start = time.time()
 
-            cutout = Cutout.factory(self._images[index].get().cutout_uuid, self._db)
-
             # Meta information
-            meta_text = os.path.basename(cutout.data.location) + '\n\n'
-            for k, v in cutout.data.meta.items():
+            meta_text = '{}) '.format(image_number) + os.path.basename(fingerprint.cutout.data.location) + '\n'
+            for k, v in fingerprint.cutout.data.meta.items():
                 meta_text += '{}: {}\n'.format(k, v)
 
             # Fingerprint information
             meta_text += '\n'
             for ii in range(5):
                 meta_text += '{}: {:0.3}\n'.format(
-                        self._fingerprints[index].predictions[ii][1],
-                        self._fingerprints[index].predictions[ii][2])
+                        fingerprint.predictions[ii][1],
+                        fingerprint.predictions[ii][2])
 
-            log.debug('GOing to display meta {}'.format(meta_text[:20]))
             self._fingerprint_text.set_text(meta_text)
             plt.draw()
 
@@ -292,14 +294,16 @@ class SimilarImages(object):
         return [x for x in thelist if not (x in seen or seen.add(x))]
 
     def set_images(self, fingerprints):
+        log.info('fingerprints is {}'.format(fingerprints))
+
+        self._fingerprints = fingerprints
 
         # Determine the number of unqiue data locations and
         # therefore the number of images we need to display
         locations = self._uniquify([x.cutout.data.location for x in fingerprints])
         log.debug('locations {}'.format(locations))
 
-
-# TODO:  NEED SOMETHING SMARTER HERE AS IT IS REDRAWING THE IMAGE FOR EVERY CUTOUT
+        # TODO:  NEED SOMETHING SMARTER HERE AS IT IS REDRAWING THE IMAGE FOR EVERY CUTOUT
 
         # Create the grid of axes for each unique data location
         n_unique = len(locations)
@@ -311,14 +315,16 @@ class SimilarImages(object):
                 nrows, ncols,
                 subplot_spec=self._sim_images_and_text_grid[0, :-1])
 
-        # Loop through each fingerprint
-        for ii, fingerprint in enumerate(fingerprints):
-            ilocation = locations.index(fingerprint.cutout.data.location)
+        # Group the fingerprints by location so we are doing one
+        # plot and then just adding the fingerprints on top.
+        self._images = []
+        for location, fs in groupby(fingerprints, lambda x: x.cutout.data.location):
+            tfs = list(fs)
+            ilocation = locations.index(location)
             row, col = ilocation // ncols, ilocation % ncols
             im = Image(self._sim_images_grid[row, col])
-            im.imshow(fingerprints[ii], cutout_number=(ii+1))
+            im.imshow(tfs, cutout_numbers=[(fingerprints.index(f)+1) for f in tfs])
             self._images.append(im)
-
 
 class Image(object):
     def __init__(self, grid_spec):
@@ -326,7 +332,7 @@ class Image(object):
         self._axes_data = None
         self._spines_visible = False
         self._outline = None
-        self._fingerprint = None 
+        self._fingerprints = None
 
     def _rgb2plot(self, data):
         """
@@ -339,7 +345,7 @@ class Image(object):
         mindata, maxdata = np.percentile(data[np.isfinite(data)], (0.01, 99.0))
         return np.clip((data - mindata) / (maxdata-mindata) * 255, 0, 255).astype(np.uint8)
 
-    @property 
+    @property
     def axis(self):
         return self._axes
 
@@ -349,7 +355,7 @@ class Image(object):
 
     @property
     def location(self):
-        return self._fingerprint.cutout.data.location
+        return self._fingerprints[0].cutout.data.location
 
     def store(self, thedict):
         self._axes._imdata = thedict
@@ -357,20 +363,28 @@ class Image(object):
     def get(self):
         return self._axes._imdata
 
-    def _dist(self, point, bounding_box):
+    def _dist(self, point, bounding_box, requires_in=True):
+        """
+        Calculate the distance between the point and the bounding_box.
+        """
         bb_center = ((bounding_box[3]+bounding_box[2])/2.0, (bounding_box[0]+bounding_box[1])/2.0)
-        return (point[1]-bb_center[0])**2 + (point[0]-bb_center[1])**2
 
-    def find_cutout(self, point, db):
+        if requires_in and bounding_box[2] <= point[0] <= bounding_box[3] and bounding_box[0] <= point[1] <= bounding_box[1]:
+            return (point[1]-bb_center[0])**2 + (point[0]-bb_center[1])**2
+        elif requires_in:
+            return np.Inf
+        else:
+            return (point[1]-bb_center[0])**2 + (point[0]-bb_center[1])**2
+
+    def find_fingerprint(self, point, db):
         log.info('Find cutout closest to {}'.format(point))
 
         # Find all cutouts for this data
-        cutouts = [c for c in db.find('cutout') if c.data.uuid == self._fingerprint.cutout.data.uuid]
-
+        cutouts = [fingerprint.cutout for fingerprint in self._fingerprints]
         distances = [self._dist(point, cutout.bounding_box) for cutout in cutouts]
         inds = np.argsort(distances)
 
-        return cutouts[inds[0]]
+        return self._fingerprints[inds[0]]
 
     def imshow_cutout(self, cutout, title=None, origin='lower'):
 
@@ -397,19 +411,22 @@ class Image(object):
         if not matplotlib.get_backend() == 'nbAgg':
             self._axes.redraw_in_frame()
 
-    def imshow(self, fingerprint, title=None, origin='lower', cutout_number=None):
-        log.info('')
+    def imshow(self, fingerprints, title=None, origin='lower', cutout_numbers=None):
+        """
+        Display the cutouts (one from each fingerprint) onto the image.  It is assumed
+        at this point that the fingerprints are all from the same image (but might be
+        from different cutouts).
+        """
+        log.info('fingerprints paramter {}'.format(fingerprints))
 
         start = time.time()
-        if self._fingerprint is None or not fingerprint.cutout.data.location == self._fingerprint.cutout.data.location:
-            log.debug('appears to need to update the image')
-            self._fingerprint = fingerprint
-            if 'Full' in fingerprint.cutout.generator_parameters['cutout_type']:
-                data = fingerprint.cutout.get_data()
-                border = None
+        if self._fingerprints is None or not fingerprints[0].cutout.data.location == self._fingerprints[0].cutout.data.location:
+            log.debug('appears to need to update the image with fingerprints {}'.format(fingerprints))
+            self._fingerprints = fingerprints
+            if 'Full' in fingerprints[0].cutout.generator_parameters['cutout_type']:
+                data = fingerprints[0].cutout.data.get_data()
             else:
-                data = fingerprint.cutout.data.get_data()
-                border = fingerprint.cutout.bounding_box
+                data = fingerprints[0].cutout.data.get_data()
 
             data = self._rgb2plot(data)
 
@@ -424,25 +441,32 @@ class Image(object):
             else:
                 log.debug('setting data')
                 self._axes_data.set_data(data)
+
+        self._fingerprints = fingerprints
+
+        self.store(fingerprints)
         log.debug('A Took {}s'.format(time.time() - start))
 
-        # Draw a border around the cutout in the image if the cutout
-        # is a subset of the actual image (as opposed to the full image
-        # itself.
-        start = time.time()
-        if border is not None:
-            log.debug('border is {}'.format(border))
+        for ii, fingerprint in enumerate(self._fingerprints):
+            border = fingerprint.cutout.bounding_box
 
-            # row, col <-> y, x
-            self._border = matplotlib.patches.Rectangle(
-                    (border[2], border[0]), border[3]-border[2], border[1]-border[0],
-                    linewidth=1, edgecolor='#ffff77', facecolor='none')
-            self._axes.add_patch(self._border)
+            # Draw a border around the cutout in the image if the cutout
+            # is a subset of the actual image (as opposed to the full image
+            # itself.
+            start = time.time()
+            if border is not None:
+                log.debug('border is {}'.format(border))
 
-            if cutout_number is not None:
-                self._axes.text(border[2], border[0], '{}'.format(cutout_number), color='#ffff77')
+                # row, col <-> y, x
+                self._border = matplotlib.patches.Rectangle(
+                        (border[2], border[0]), border[3]-border[2], border[1]-border[0],
+                        linewidth=1, edgecolor='#ffff77', facecolor='none')
+                self._axes.add_patch(self._border)
 
-        log.debug('B Took {}s'.format(time.time() - start))
+                if cutout_numbers is not None:
+                    self._axes.text(border[2], border[0], '{}'.format(cutout_numbers[ii]), color='#ffff77')
+
+            log.debug('B Took {}s'.format(time.time() - start))
 
         start = time.time()
         if title is not None:
