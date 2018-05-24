@@ -9,17 +9,26 @@ from scipy.spatial.distance import pdist, squareform
 from transfer_learning.fingerprint import Fingerprint
 
 from ..tl_logging import get_logger
-import logging
 log = get_logger('similarity')
 
 
 def calculate(fingerprints, similarity_calculator, serialize_output=False):
     """
-    Similarity calculator.
-
     This function might be called locally and in that case we want to return the
     actual similarity calculator instance.  Or it might be run rmeotely (via celery)
     and in this case we want to reutrn the serialized version of the similarity instance.
+
+    Parameters
+    ----------
+    fingerprints : list
+       List of fingerprint objects to which the similarity is calculated.
+    similarity_calculator : str
+       String representation of the similarity calculator ('tsne', 'jaccard', 'distance')
+
+    Returns
+    -------
+    Similarity Object
+        The similariity object instantiated based on the string representation.
     """
     log.info('Start threaded real_calculate {} fingerprints and simcalc {}'.format(
         len(fingerprints), similarity_calculator))
@@ -60,15 +69,44 @@ class Similarity:
             sim.load(thedict, db)
             return sim
 
-    def __init__(self, similarity_type=None, similarity=None, fingerprint_uuids=[], uuid_in=None):
+    def __init__(self, similarity_type=None, similarity=None, fingerprint_uuids=None, uuid_in=None):
+        """
+        This function might be called locally and in that case we want to return the
+        actual similarity calculator instance.  Or it might be run rmeotely (via celery)
+        and in this case we want to reutrn the serialized version of the similarity instance.
+    
+        Parameters
+        ----------
+        similarity_type : list
+           String representation of the similarity calculator ('tsne', 'jaccard', 'distance')
+        similarity : str
+           String representation of the similarity calculator ('tsne', 'jaccard', 'distance')
+        fingerprint_uuids : list
+           List of fingerprint_uuids.
+        uuid_in : str
+           Unique identifier for this instance of the similarity calculator.
+    
+        Returns
+        -------
+        Similarity Object
+            The similariity object instantiated based on the string representation.
+        """
         if uuid_in is None:
             self._uuid = str(uuid.uuid4())
         else:
             self._uuid = uuid_in
         self._similarity_type = similarity_type
         self._similarity = similarity
-        self._fingerprint_uuids = fingerprint_uuids
+
+        if fingerprint_uuids is None:
+            self._fingerprint_uuids = []
+        else:
+            self._fingerprint_uuids = fingerprint_uuids
+
+        # TODO: Ck to see why this is not set through the parameters
         self._parameters = {}
+
+        self._fingerprint_filter = None
 
         self._similarity_collection[self._uuid] = self
 
@@ -78,6 +116,18 @@ class Similarity:
 
     def __repr__(self):
         return self.__str__()
+
+    #
+    # Setters and getters
+    #
+
+    @property
+    def fingerprint_filter(self):
+        return self._fingerprint_filter
+
+    @fingerprint_filter.setter
+    def fingerprint_filter(self, value):
+        self._fingerprint_filter = value
 
     @property
     def uuid(self):
@@ -135,6 +185,23 @@ class tSNE(Similarity):
     _similarity_type = 'tsne'
 
     def __init__(self, *args, **kwargs):
+        """
+        This function might be called locally and in that case we want to return the
+        actual similarity calculator instance.  Or it might be run rmeotely (via celery)
+        and in this case we want to reutrn the serialized version of the similarity instance.
+
+        Parameters
+        ----------
+        display_type : string
+           String representation of the display, can be 'plot', 'hexbin'.
+
+        Returns
+        -------
+        N/A
+        """
+
+        # Pull the display type out of kwargs if it is there. If not then we will
+        # use 'plot' as the default.
         if 'display_type' in kwargs:
             display_type = kwargs['display_type']
             del kwargs['display_type']
@@ -142,7 +209,6 @@ class tSNE(Similarity):
             display_type = 'plot'
 
         super().__init__(tSNE._similarity_type, *args, **kwargs)
-
         log.info('Created {}'.format(self._similarity_type))
 
         # Each line / element in these should correpsond
@@ -153,10 +219,14 @@ class tSNE(Similarity):
 
         # Display types
         self._display_types = ['plot', 'hexbin', 'mpl']
+        if self._display_type not in self._display_types:
+            raise Exception('Display type {} not one of {}'.format(
+                self._display_type, self._display_types))
         self._display_type = display_type
 
+        # Define the distance measures. 
         self._distance_measures = {
-            'l2': lambda Y, point:  np.sqrt(np.sum((Y - np.array(point))**2, axis=1)),
+            'l2': lambda Y, point: np.sqrt(np.sum((Y - np.array(point))**2, axis=1)),
             'l1': lambda Y, point: np.sum(np.abs((Y - np.array(point)), axis=1)),
         }
 
@@ -165,21 +235,54 @@ class tSNE(Similarity):
     #
 
     def calculate(self, fingerprints):
+        """
+        Calculate the TSNE based on the fingerprints.
+
+        Parameters
+        ----------
+        fingerprints : list of Fingerprint instances
+           The fingerprints we want to calculate over.
+
+        Returns
+        -------
+        N/A
+        """
         log.info('Going to calculate tSNE from {} fingerprints'.format(len(fingerprints)))
 
+        #
+        #  Filter the fingerprints, if the filter is set.
+        #
+
+        if self._fingerprint_filter is not None:
+            fingerprints = self._fingerprint_filter(fingerprints)
+
+        #
         # Calculate the unique labels
+        #
+
         labels = []
         values = {}
         for ii, fp in enumerate(fingerprints):
             log.debug('    fingerprint is {}'.format(fp))
+
+            #
             # Add to unique label list
+            #
+
             labels.extend([pred[1] for pred in fp.predictions if pred[1] not in labels])
 
+            #
             # Store the predictions for next processing
+            #
+
             values[ii] = fp.predictions
 
             self._fingerprints.append(fp)
         log.info('Unique labels {}'.format(labels))
+
+        #
+        # Set up the similarity matrix X based on the predictions
+        #
 
         X = np.zeros((len(fingerprints), len(labels)))
         for ii, fp in enumerate(fingerprints):
@@ -189,7 +292,10 @@ class tSNE(Similarity):
         log.debug('X is {}'.format(X))
         log.debug('Fingerprint list {}'.format(self._fingerprints))
 
+        #
         # Compute the tSNE of the data.
+        #
+
         log.info('Calculating the tSNE...')
         self._Y = TSNE(n_components=2).fit_transform(X)
         log.debug('self._Y is {}'.format(self._Y))
@@ -200,6 +306,18 @@ class tSNE(Similarity):
     #
 
     def save(self):
+        """
+        Save function converts the instance to a dict.
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        dict
+            Dictionary representation of this instance.
+        """
         log.info('Returning the dictionary of information')
         return {
             'uuid': self._uuid,
@@ -212,7 +330,22 @@ class tSNE(Similarity):
         }
 
     def load(self, thedict, db=None):
+        """
+        Reload the internal variables from the dictionary.
+
+        Parameters
+        ----------
+        thedict : dict
+            The first parameter.
+        db : str
+            database object
+
+        Returns
+        -------
+        N/A
+        """
         log.info('Loading the dictionary of information with database {}'.format(db))
+
         self._uuid = thedict['uuid']
         self._similarity_type = thedict['similarity_type']
         self._Y = np.array(thedict['similarity'])
@@ -234,8 +367,14 @@ class tSNE(Similarity):
         """
         Set the display type. Currently 'plot', 'hexbin', and 'mpl' are defined.
 
-        :param display_type:
-        :return:
+        Parameters
+        ----------
+        display_type : string
+            Display type: 'plot', 'hexbin', and 'mpl' are defined.
+
+        Returns
+        -------
+        N/A
         """
         if display_type in self._display_types:
             self._display_type = display_type
@@ -244,11 +383,16 @@ class tSNE(Similarity):
 
     def select_distance_measure(self, distance_measure=None):
         """
-        The function will display all the fingerprinting methods and return a class
-        of the one of interest.  This can then be used to construct the class and
-        to use in further calculations.
+        Select the distance measure.
 
-        :return:  selected class
+        Parameters
+        ----------
+        distance_measure : string
+            Display type: 'plot', 'hexbin', and 'mpl' are defined.
+
+        Returns
+        -------
+        N/A
         """
 
         if not distance_measure:
@@ -279,18 +423,24 @@ class tSNE(Similarity):
                 self._distance_measure = distance_measure
             else:
                 self._distance_measure = self._distance_measures.keys()[0]
-                log.error('ERROR: No definition for {} so using {} instead.'.format(distance_measure, self._distance_measure))
+                log.error('ERROR: No definition for {} so using {} instead.'.format(
+                    distance_measure, self._distance_measure))
 
     def display(self, tsne_axis):
         """
-        Display the Y values in an axis element.
+        Display the plot into the matplotlib axis in the
+        parameter based on the plot type. This just determines
+        the plot type and then calls the internal plot function.
 
-        :param axes:
-        :param args:
-        :param kwargs:
-        :return:
+        Parameters
+        ----------
+        tsne_axis : Matplotlib.axes.axis
+            The matplotlib axis into which we want to display the plot.
+
+        Returns
+        -------
+        N/A
         """
-
         if self._display_type == 'plot':
             self._display_plot(tsne_axis)
         elif self._display_type == 'hexbin':
@@ -298,17 +448,39 @@ class tSNE(Similarity):
 #        elif self._display_type == 'mpl':
 #            self._display_mpl(tsne_axis)
         else:
-            raise ValueError('Plot type {} is not in the valid list {}'.format(self._display_type, self._display_types))
+            raise ValueError('Plot type {} is not in the valid list {}'.format(
+                self._display_type, self._display_types))
 
     def _display_plot(self, tsne_axis):
-        # colors = ['b', 'g', 'r', 'c', 'm', 'y', 'k', 'w']
-        # for ii, fi in enumerate(set(self._filename_index)):
-        #     inds = np.nonzero(self._filename_index == fi)[0]
+        """
+        Display the plot into the matplotlib axis as a regular scatter plot.
+
+        Parameters
+        ----------
+        tsne_axis : Matplotlib.axes.axis
+            The matplotlib axis into which we want to display the plot.
+
+        Returns
+        -------
+        N/A
+        """
         tsne_axis.plot(self._Y[:, 0], self._Y[:, 1])#, '.')
         tsne_axis.grid('on')
         tsne_axis.set_title('tSNE [{}]'.format(self._distance_measure))
 
     def _display_hexbin(self, tsne_axis):
+        """
+        Display the plot into the matplotlib axis as a hexbin.
+
+        Parameters
+        ----------
+        tsne_axis : Matplotlib.axes.axis
+            The matplotlib axis into which we want to display the plot.
+
+        Returns
+        -------
+        N/A
+        """
         output = tsne_axis.hexbin(self._Y[:, 0], self._Y[:, 1], cmap='hot')
         tsne_axis.grid('on')
         tsne_axis.set_title('tSNE [{}]'.format(self._distance_measure))
@@ -320,6 +492,21 @@ class tSNE(Similarity):
         return output
 
     def find_similar(self, point, n=9):
+        """
+        Find fingerprints that are close to the input point.
+
+        Parameters
+        ----------
+        point : tuple (int, int)
+            A point in the plot.
+        n : int
+            Number to return.
+
+        Returns
+        -------
+        list
+            List of dicts that describe the closest fingerprints.
+        """
         log.info('Searching based on point {}'.format(point))
         distances = self._distance_measures[self._distance_measure](self._Y, point)
         inds = np.argsort(distances)
@@ -340,12 +527,15 @@ class tSNE(Similarity):
 
         return self._Y[index]
 
+
 class Jaccard(Similarity):
     """
-    Jaccard similarity implementation.  The Jaccard similarity is a set based method, which, implemented here,
-    is computes the similiarity of two cutouts based on only the names of the imagenet images in the fingerprint for
-    each.  So, given two cutouts C1 and C2 and their corresponding finger print imagenet sets S1 and S2.  The
-    Jaccard similarity between the two is computed as len( S1 & S2 ) / len( S1 | S2 ).  The higher the number, the
+    Jaccard similarity implementation.  The Jaccard similarity is a set based
+    method, which, implemented here, is computes the similiarity of two cutouts
+    based on only the names of the imagenet images in the fingerprint for
+    each.  So, given two cutouts C1 and C2 and their corresponding finger print
+    imagenet sets S1 and S2.  The Jaccard similarity between the two is computed
+    as len( S1 & S2 ) / len( S1 | S2 ).  The higher the number, the
     more similar the two cutouts.
     """
 

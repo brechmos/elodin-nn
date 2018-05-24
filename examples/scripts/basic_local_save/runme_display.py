@@ -1,6 +1,7 @@
 from transfer_learning.cutout import Cutout
 from transfer_learning.database import get_database
 from transfer_learning.similarity.display import SimilarityDisplay
+from transfer_learning.fingerprint import FingerprintFilter
 
 from configparser import ConfigParser
 config = ConfigParser()
@@ -21,5 +22,9 @@ print(similarities)
 
 # Grab the first on so we can work with it.
 similarity_tsne = similarities[0]
+
+# Add a filter on the fingerprints
+fingerprint_filter = FingerprintFilter(inclusion_patterns=['PUBLIC'])
+similarity_tsne.fingerprint_filter = fingerprint_filter
 
 sd = SimilarityDisplay(similarity_tsne, db)

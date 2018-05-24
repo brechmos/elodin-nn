@@ -3,6 +3,7 @@ import os
 import shutil
 import numpy as np
 
+from transfer_learning.fingerprint import FingerprintFilter
 from transfer_learning.fingerprint.processing import FingerprintCalculatorResnet
 from transfer_learning.fingerprint.processing import calculate as fingerprint_calculate
 from transfer_learning.similarity.similarity import calculate as similarity_calculate
@@ -70,8 +71,14 @@ print('Calculating the fingerprints')
 fingerprints = fingerprint_calculate(cutouts, fc_save)
 [db.save('fingerprint', x) for x in fingerprints]
 
+# An example method of filtering fingerprints
+#   This will actually select everything as they should all be listed public.
+f_filter = FingerprintFilter(inclusion_patterns=['PUBLIC'])
+output_fingerprints = f_filter.filter(fingerprints)
+print('output_fingerprints {}'.format(output_fingerprints))
+
 print('Calculating the tSNE similarity')
-similarity_tsne = similarity_calculate(fingerprints, 'tsne')
+similarity_tsne = similarity_calculate(output_fingerprints, 'tsne')
 db.save('similarity', similarity_tsne)
 
 #print('Calculating the Jaccard similarity')

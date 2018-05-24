@@ -57,7 +57,7 @@ def calculate(cutouts, fc_save, task=None):
         log.info('calculated fingerprints {}'.format(cleaned_predictions[:10]))
 
         # Load up the return list.
-        fingerprints_return.append(Fingerprint(cutout_uuid=cutout.uuid, predictions=cleaned_predictions))
+        fingerprints_return.append(Fingerprint(cutout=cutout, predictions=cleaned_predictions))
 
 #    if deserialize == True:
 #        fingerprints_return = [x.save() for x in fingerprints_return]
