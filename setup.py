@@ -32,6 +32,6 @@ setup(
         'Topic :: Utilities',
     ],
     keywords=[ 'detect', 'open', 'file', 'handle', 'psutil', 'pytest', 'py.test' ],
-    install_requires=[ 'pytest>=2.8.0', 'psutil' ],
+    install_requires=[ 'pytest>=2.8.0', 'psutil', 'keras', 'matplotlib', 'tensorflow', 'imageio', 'requests', 'blitzdb', 'celery', 'scikit-learn', 'scikit-image', 'redis', 'jupyter', 'ipython' ],
     python_requires='>=3.5'
 )
