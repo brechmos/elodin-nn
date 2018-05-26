@@ -218,11 +218,11 @@ class tSNE(Similarity):
         self._distance_measure = 'l2'
 
         # Display types
+        self._display_type = display_type
         self._display_types = ['plot', 'hexbin', 'mpl']
         if self._display_type not in self._display_types:
             raise Exception('Display type {} not one of {}'.format(
                 self._display_type, self._display_types))
-        self._display_type = display_type
 
         # Define the distance measures. 
         self._distance_measures = {
