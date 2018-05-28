@@ -1,4 +1,5 @@
 unqlite
+astropy
 requests
 pymongo
 numpy
