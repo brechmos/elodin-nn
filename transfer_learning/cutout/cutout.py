@@ -10,9 +10,6 @@ from ..tl_logging import get_logger
 import logging
 log = get_logger('cutout')
 
-class CutoutImage(Image):
-    def __init__(self, cutout):
-        self._cutout = cutout
 
 class Cutout(object):
     """
