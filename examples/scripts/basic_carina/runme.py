@@ -7,6 +7,7 @@ from transfer_learning.fingerprint.processing import calculate as fingerprint_ca
 from transfer_learning.similarity.similarity import calculate as similarity_calculate
 from transfer_learning.data import Data
 from transfer_learning.cutout.generators import BasicCutoutGenerator, BlobCutoutGenerator
+from transfer_learning.cutout.processing import HistogramEqualization as CutoutHistogramEqualization
 from transfer_learning.database import get_database
 
 fc_save = FingerprintCalculatorResnet().save()
@@ -19,7 +20,7 @@ print('Going to setup the database in {}'.format(config['database']['filename'])
 
 if os.path.isdir(config['database']['filename']):
     shutil.rmtree(config['database']['filename'])
-    db = get_database(config['database']['type'], config['database']['filename'])
+db = get_database(config['database']['type'], config['database']['filename'])
 
 #
 # Load the data
@@ -36,7 +37,12 @@ db.save('data', image_data)
 print('Going to calculate the sliding window cutouts')
 sliding_window_cutouts = BasicCutoutGenerator(output_size=224, step_size=150)
 cutouts = sliding_window_cutouts.create_cutouts(image_data)
-[db.save('cutout', cutout) for cutout in cutouts]
+
+histogram_equalization = CutoutHistogramEqualization()
+
+for cutout in cutouts:
+    processed_cutout = cutout.duplicate_with_processing([histogram_equalization])
+    db.save('cutout', processed_cutout)
 
 #
 #  Compute the fingerprints for each cutout

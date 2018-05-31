@@ -46,7 +46,7 @@ class Resize(CutoutProcessing):
         }
 
     @staticmethod
-    def load(self, thedict):
+    def load(thedict):
         """
         Static class method that takes a dict object from ``save()`` and
         creates an instance of Resize based on the parmaeters in thedict.
@@ -67,7 +67,7 @@ class Resize(CutoutProcessing):
         if not thedict['cutout_processing_type'] == 'resize':
             raise Exception('wrong cutout processing type {} for resize')
 
-        return Resize(thedict['output_size'])
+        return Resize(thedict['parameters']['output_size'])
 
     def process(self, numpy_data):
         log.debug('resizing data to {}'.format(self._output_size))
@@ -98,7 +98,7 @@ class Crop(CutoutProcessing):
         }
 
     @staticmethod
-    def load(self, thedict):
+    def load(thedict):
         """
         Static class method that takes a dict object from ``save()`` and
         creates an instance of Crop based on the parmaeters in thedict.
@@ -119,7 +119,7 @@ class Crop(CutoutProcessing):
         if not thedict['cutout_processing_type'] == 'crop':
             raise Exception('wrong data processing type {} for crop')
 
-        return Crop(output_size=thedict['output_size'])
+        return Crop(output_size=thedict['parameters']['output_size'])
 
     def process(self, numpy_data):
         log.debug('cropping data by {}'.format(self._output_size))
@@ -176,7 +176,7 @@ class RescaleIntensity(CutoutProcessing):
         }
 
     @staticmethod
-    def load(self, thedict):
+    def load(thedict):
         """
         Load the parameters from a dict.
 
@@ -195,8 +195,8 @@ class RescaleIntensity(CutoutProcessing):
         if not thedict['cutout_processing_type'] == 'rescale_intensity':
             raise Exception('wrong data processing type {} for rescale_intensity')
 
-        return RescaleIntensity(lower_percentile=self._lower_percentile,
-                                upper_percentile=self._upper_percentile)
+        return RescaleIntensity(lower_percentile=thedict['parameters']['lower_percentile'],
+                                upper_percentile=thedict['parameters']['upper_percentile'])
 
     def process(self, numpy_data):
         """
@@ -244,7 +244,7 @@ class HistogramEqualization(CutoutProcessing):
         }
 
     @staticmethod
-    def load(self, thedict):
+    def load(thedict):
         """
         Load the parameters from a dict.
 
@@ -317,7 +317,7 @@ class AdaptiveHistogramEqualization(CutoutProcessing):
         }
 
     @staticmethod
-    def load(self, thedict):
+    def load(thedict):
         """
         Load the parameters from a dict.
 

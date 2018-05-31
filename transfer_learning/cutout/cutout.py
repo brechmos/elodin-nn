@@ -38,13 +38,36 @@ class Cutout(object):
                           cutout_processing=parameter['cutout_processing'],
                           uuid_in=parameter['uuid'])
 
-    def __init__(self, data, bounding_box, generator_parameters, cutout_processing=None, uuid_in=None):
+    def __init__(self, data, bounding_box, generator_parameters, 
+                 cutout_processing=None, uuid_in=None):
         """
-        :param data: Data object
-        :param bounding_box: [row_start, row_end, col_start, col_end]
-        :param generator_parameters: parameters used to generate the cutout
+        Cutout initializer.
+
+        Parameters
+        ----------
+        data : Data
+            Data object from where the cutout came from
+        bounding_box: list [left, right, bottom, top]
+            Bounding box of the data which represents this cutout.
+        generator_paramters: Cutout Generator
+            The cutout generator that created the cutout.
+        cutout_processing: list of instances from processing.py
+            The list of instances from processing.py
+        uuid_in: UUID
+            unique uuid
+
+	Return
+	------
+        resize : Instance of class Resize.
+            Will load the parameters.
+
         """
         log.info(' calling with cutout_processing {}'.format(cutout_processing))
+
+        #
+        #  Set the incoming parameters
+        #
+
         if uuid_in is None:
             self._uuid = str(uuid.uuid4())
         else:
@@ -54,19 +77,20 @@ class Cutout(object):
         self._bounding_box = bounding_box
         self._generator_parameters = generator_parameters
 
+        self._base_cutout_uuid = None
         self._cutout_processing = [] if cutout_processing is None else [CutoutProcessing.load(x) for x in cutout_processing]
 
-        bb = self._bounding_box
 
+        #
         # This is the "original data"
+        #
+
+        bb = self._bounding_box
         self._original_data = self._data.get_data()[bb[0]:bb[1], bb[2]:bb[3]]
 
         self._cached_output = None
 
         Cutout._cutout_collection[self._uuid] = self
-
-        log.info('Creaing new cutout with data = {},  bounding_box = {}, generator_parameters = {}, cutout_rpcoessing = {}, uuid_in {}'.format(
-            data, bounding_box, generator_parameters, cutout_processing, uuid_in))
 
 
     def __str__(self):
@@ -118,19 +142,88 @@ class Cutout(object):
     def cutout_processing(self, value):
         self._cutout_processing = value
 
-    def add_processing(self, cutout_processing):
+    def add_processing(self, cutout_processing, base_cutout_uuid=None):
+        """
+        Add cutout processing (e.g., histogram equalization) to this
+        cutout.  We might want to store the base cutout uuid to link
+        it back to the original, unprocessed cutout.
+
+        Parameters
+        ----------
+        cutout_processing: list of instances from processing.py
+            The list of instances from processing.py
+        base_cutout_uuid: UUID
+            The unprocessed cutout.
+
+        """
         log.info('Adding processing {}'.format(cutout_processing))
-        self._cutout_processing.append(cutout_processing)
+
+        self._cutout_processing = cutout_processing
+
+        #
+        # Add in info about the base cutout uuid
+        #
+        
+        if base_cutout_uuid is not None:
+            self._base_cutout_uuid = base_cutout_uuid
+
+    def duplicate_with_processing(self, cutout_processing):
+        """
+        Duplicate this cutout and add the cutout processing.
+
+        Parameters
+        ----------
+        cutout_processing: list of instances from processing.py
+            The list of instances from processing.py
+
+	Return
+	------
+        cutout : Cutout
+            Duplicate of this cutout, and with processing.
+
+        """
+        
+        #
+        # Create the new cutout
+        #
+
+        cutout = Cutout(self._data, self._bounding_box,
+                        self._generator_parameters,
+                        self._cutout_processing)
+
+        #
+        # Add in the cutout processing
+        #
+
+        cutout.add_processing(cutout_processing, base_cutout_uuid=self.uuid)
+
+        return cutout
+
 
     def get_data(self):
+        """
+        Retrieve the data
+
+	Return
+	------
+        data : numpy array
+            cutout data, with any processing
+        """
         log.info('')
 
         if self._cached_output is None:
             data = self._original_data
 
+            #
             # Apply the processing
+            #
+
             for processing in self._cutout_processing:
                 data = processing.process(data)
+
+            #
+            #  Set it as cached so we don't have to recalculate
+            #
 
             self._cached_output = data
 
@@ -143,6 +236,7 @@ class Cutout(object):
             'data': self._data.save(),
             'bounding_box': self._bounding_box,
             'generator_parameters': self._generator_parameters,
+            'base_cutout_uuid': self._base_cutout_uuid,
             'cutout_processing': [x.save() for x in self._cutout_processing]
         }
 
@@ -152,5 +246,6 @@ class Cutout(object):
         self._uuid = thedict['uuid']
         self._data = Data(thedict['data'])
         self._generator_parameters = Data(thedict['generator_parameters'])
-        self._cutout_processing = [CutoutProcessing.load(x) for x in thedict['cutout_processing']]
         self._bounding_box = thedict['bounding_box']
+        self._base_cutout_uuid = thedict['base_cutout_uuid']
+        self._cutout_processing = [CutoutProcessing.load(x) for x in thedict['cutout_processing']]

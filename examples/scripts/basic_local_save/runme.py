@@ -12,6 +12,8 @@ from transfer_learning.data.processing import GrayScale as DataGrayScale
 from transfer_learning.cutout.generators import FullImageCutoutGenerator
 from transfer_learning.cutout.processing import Resize as CutoutResize
 from transfer_learning.cutout.processing import Crop as CutoutCrop
+from transfer_learning.cutout.processing import HistogramEqualization as CutoutHistogramEqualization
+from transfer_learning.cutout.processing import RescaleIntensity as CutoutRescaleIntensity
 from transfer_learning.database import get_database
 
 from configparser import ConfigParser
@@ -35,7 +37,7 @@ print('Setting up the data structure required')
 gray_scale = DataGrayScale()
 data = []
 np.random.seed(12)
-for fileinfo in np.random.choice(processing_dict, 200, replace=False):
+for fileinfo in np.random.choice(processing_dict, 100, replace=False):
     im = Data(location=fileinfo['location'], radec=fileinfo['radec'], meta=fileinfo['meta'])
     im.add_processing(gray_scale.save())
     data.append(im)
@@ -49,18 +51,29 @@ full_cutout = FullImageCutoutGenerator(output_size=(224, 224))
 
 cutout_crop = CutoutCrop([15, -15, 15, -15])
 cutout_resize = CutoutResize([224, 224])
+cutout_histeq = CutoutHistogramEqualization()
 
 print('Going to create the cutouts')
 cutouts = []
 for datum in data:
+
+    #
+    #  Create base cutout and add in there.
+    #
+
     cutout = full_cutout.create_cutouts(datum)
+    processed_cutout = cutout.duplicate_with_processing([cutout_crop, cutout_resize])
+    db.save('cutout', processed_cutout)
+    cutouts.append(processed_cutout)
 
-    # Add the processing
-    cutout.add_processing(cutout_crop) 
-    cutout.add_processing(cutout_resize)
+    #
+    # Add the processing and add in
+    #
 
-    db.save('cutout', cutout)
-    cutouts.append(cutout)
+    processed_cutout = cutout.duplicate_with_processing([cutout_crop, cutout_resize, cutout_histeq])
+    db.save('cutout', processed_cutout)
+    cutouts.append(processed_cutout)
+
 
 # Create the fingerprint calculator... fingerprint
 print('Creating the info for the fingerprint calculator')
