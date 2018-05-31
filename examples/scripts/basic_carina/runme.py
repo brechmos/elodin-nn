@@ -31,18 +31,14 @@ image_data = Data(location='../../data/carina.tiff', radec=(-0.8542, 287.6099), 
 image_data.get_data()
 db.save('data', image_data)
 
+histogram_equalization = CutoutHistogramEqualization()
+
 #
-#  Create the cutouts
+#  Create the cutouts with a processing step applied
 #
 print('Going to calculate the sliding window cutouts')
 sliding_window_cutouts = BasicCutoutGenerator(output_size=224, step_size=150)
-cutouts = sliding_window_cutouts.create_cutouts(image_data)
-
-histogram_equalization = CutoutHistogramEqualization()
-
-for cutout in cutouts:
-    processed_cutout = cutout.duplicate_with_processing([histogram_equalization])
-    db.save('cutout', processed_cutout)
+cutouts = sliding_window_cutouts.create_cutouts(image_data, [histogram_equalization])
 
 #
 #  Compute the fingerprints for each cutout

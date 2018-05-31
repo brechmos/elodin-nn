@@ -1,13 +1,9 @@
-import weakref
 import uuid
 
 from transfer_learning.data import Data
 from transfer_learning.cutout.processing import CutoutProcessing
-from transfer_learning.image import Image
 
-import numpy as np
 from ..tl_logging import get_logger
-import logging
 log = get_logger('cutout')
 
 
@@ -38,7 +34,7 @@ class Cutout(object):
                           cutout_processing=parameter['cutout_processing'],
                           uuid_in=parameter['uuid'])
 
-    def __init__(self, data, bounding_box, generator_parameters, 
+    def __init__(self, data, bounding_box, generator_parameters,
                  cutout_processing=None, uuid_in=None):
         """
         Cutout initializer.
@@ -52,12 +48,12 @@ class Cutout(object):
         generator_paramters: Cutout Generator
             The cutout generator that created the cutout.
         cutout_processing: list of instances from processing.py
-            The list of instances from processing.py
+            Data will be first processed by the processors in cutout_processing and then returned.
         uuid_in: UUID
             unique uuid
 
-	Return
-	------
+        Return
+        ------
         resize : Instance of class Resize.
             Will load the parameters.
 
@@ -80,7 +76,6 @@ class Cutout(object):
         self._base_cutout_uuid = None
         self._cutout_processing = [] if cutout_processing is None else [CutoutProcessing.load(x) for x in cutout_processing]
 
-
         #
         # This is the "original data"
         #
@@ -91,7 +86,6 @@ class Cutout(object):
         self._cached_output = None
 
         Cutout._cutout_collection[self._uuid] = self
-
 
     def __str__(self):
         return 'Cutout for data {} with box {} and processing {}'.format(
@@ -176,13 +170,13 @@ class Cutout(object):
         cutout_processing: list of instances from processing.py
             The list of instances from processing.py
 
-	Return
-	------
+        Return
+        ------
         cutout : Cutout
             Duplicate of this cutout, and with processing.
 
         """
-        
+
         #
         # Create the new cutout
         #
@@ -199,13 +193,12 @@ class Cutout(object):
 
         return cutout
 
-
     def get_data(self):
         """
         Retrieve the data
 
-	Return
-	------
+        Return
+        ------
         data : numpy array
             cutout data, with any processing
         """
