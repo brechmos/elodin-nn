@@ -8,6 +8,7 @@ from transfer_learning.similarity.similarity import calculate as similarity_calc
 from transfer_learning.data import Data
 from transfer_learning.cutout.generators import BasicCutoutGenerator, BlobCutoutGenerator
 from transfer_learning.cutout.processing import HistogramEqualization as CutoutHistogramEqualization
+from transfer_learning.data.processing import HistogramEqualization as DataHistogramEqualization
 from transfer_learning.database import get_database
 
 fc_save = FingerprintCalculatorResnet().save()
@@ -25,9 +26,11 @@ db = get_database(config['database']['type'], config['database']['filename'])
 #
 # Load the data
 #
+data_histogram_equalization = DataHistogramEqualization()
 
 print('Going to load the carina data')
-image_data = Data(location='../../data/carina.tiff', radec=(-0.8542, 287.6099), meta={})
+image_data = Data(location='../../data/carina.tiff', radec=(10.7502222, -59.8677778),
+                  meta={}, processing=[data_histogram_equalization])
 image_data.get_data()
 db.save('data', image_data)
 
