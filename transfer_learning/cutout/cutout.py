@@ -74,7 +74,10 @@ class Cutout(object):
         self._generator_parameters = generator_parameters
 
         self._base_cutout_uuid = None
-        self._cutout_processing = [] if cutout_processing is None else [CutoutProcessing.load(x) for x in cutout_processing]
+        if cutout_processing is None:
+            self._cutout_processing = []
+        else:
+            self._cutout_processing = [CutoutProcessing.load(x) if isinstance(x, dict) else x for x in cutout_processing]
 
         #
         # This is the "original data"

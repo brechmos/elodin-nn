@@ -37,8 +37,11 @@ histogram_equalization = CutoutHistogramEqualization()
 #  Create the cutouts with a processing step applied
 #
 print('Going to calculate the sliding window cutouts')
-sliding_window_cutouts = BasicCutoutGenerator(output_size=224, step_size=150)
-cutouts = sliding_window_cutouts.create_cutouts(image_data, [histogram_equalization])
+sliding_window_cutouts = BasicCutoutGenerator(output_size=224,
+                                              step_size=350,
+                                              cutout_processing=[histogram_equalization])
+cutouts = sliding_window_cutouts.create_cutouts(image_data)
+[db.save('cutout', cutout) for cutout in cutouts]
 
 #
 #  Compute the fingerprints for each cutout

@@ -134,7 +134,7 @@ class BasicCutoutGenerator:
             'cutout_type': self.__class__.__name__,
             'output_size': self._output_size,
             'step_size': self._step_size,
-            'cutout_processing': self._cutout_processing,
+            'cutout_processing': [x.save() for x in self._cutout_processing],
             'uuid': self._uuid
         }
 
@@ -227,7 +227,7 @@ class FullImageCutoutGenerator:
         return {
             'cutout_type': self.__class__.__name__,
             'output_size': self._output_size,
-            'cutout_processing': self._cutout_processing,
+            'cutout_processing': [x.save() for x in self._cutout_processing],
             'uuid': self._uuid
         }
 
@@ -441,7 +441,7 @@ class BlobCutoutGenerator:
             'output_size': self._output_size,
             'mean_threshold': self._mean_threshold,
             'gaussian_smoothing_sigma': self._gaussian_smoothing_sigma,
-            'cutout_processing': self._cutout_processing,
+            'cutout_processing': [x.save() for x in self._cutout_processing],
             'label_padding': self._label_padding,
             'uuid': self._uuid
         }
