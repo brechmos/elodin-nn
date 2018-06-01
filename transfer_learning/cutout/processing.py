@@ -1,8 +1,10 @@
 from skimage.transform import resize as skimage_resize
-from skimage import exposure
 from ..tl_logging import get_logger
+
+from ..misc import image_processing
+
 import logging
-log = get_logger('cutout processing')
+log = get_logger('cutout processing', level=logging.DEBUG)
 
 
 class CutoutProcessing(object):
@@ -16,7 +18,7 @@ class CutoutProcessing(object):
             return Crop.load(thedict)
         elif thedict['cutout_processing_type'] == 'rescale_intensity':
             return RescaleIntensity.load(thedict)
-        elif thedict['cutout_processing_type'] == 'equalize_histogram':
+        elif thedict['cutout_processing_type'] == 'histogram_equalization':
             return HistogramEqualization.load(thedict)
         elif thedict['cutout_processing_type'] == 'adaptive_histogram_equalization':
             return AdaptiveHistogramEqualization.load(thedict)
@@ -56,8 +58,8 @@ class Resize(CutoutProcessing):
         thedict : dict
             Dictionary of information from ``save()``
 
-	Return
-	------
+    Return
+    ------
         resize : Instance of class Resize.
             Will load the parameters.
 
@@ -108,8 +110,8 @@ class Crop(CutoutProcessing):
         thedict : dict
             Dictionary of information from ``save()``
 
-	Return
-	------
+    Return
+    ------
         resize : Instance of class Crop.
             Will load the parameters.
 
@@ -141,11 +143,6 @@ class RescaleIntensity(CutoutProcessing):
             Upper percentile value passed in to scikit.expousre,rescale_intenisty
 
         """
-        # *Not beautiful code*
-        if isinstance(lower_percentile, dict):
-            lower_percentile = output_size['parameters']['lower_percentile']
-            upper_percentile = output_size['parameters']['upper_percentile']
-
         if (not isinstance(lower_percentile, (int, float)) or
             not isinstance(upper_percentile, (int, float))):
             raise ValueError('Lower and upper percentiles must be a number')
@@ -160,8 +157,8 @@ class RescaleIntensity(CutoutProcessing):
         """
         Save the class to a dict
 
-	Return
-	------
+    Return
+    ------
         thdict : dict
             Parameters to re-create this instance.
 
@@ -188,7 +185,7 @@ class RescaleIntensity(CutoutProcessing):
         Return
         ------
         rescaler: instance of RescaleIntenisty
-            
+
         """
         log.info('')
 
@@ -207,16 +204,16 @@ class RescaleIntensity(CutoutProcessing):
         numpy_data : numpy array
             The image of data to process.
 
-	Return
-	------
+    Return
+    ------
         processed_data : numpy array
             processed array of data, same size as input
 
         """
         log.info('rescale intensity to percentile range {} {}'.format(
             self._lower_percentile, self._upper_percentile))
-        return exposure.rescale_intensity(numpy_data, 
-                                          in_range=(self._lower_percentile, self._upper_percentile))
+        return image_processing.rescale_intensity(numpy_data,
+                                                  in_range=(self._lower_percentile, self._upper_percentile))
 
 
 class HistogramEqualization(CutoutProcessing):
@@ -231,8 +228,8 @@ class HistogramEqualization(CutoutProcessing):
         """
         Save the class to a dict
 
-	Return
-	------
+        Return
+        ------
         thdict : dict
             Parameters to re-create this instance.
 
@@ -240,7 +237,7 @@ class HistogramEqualization(CutoutProcessing):
         log.info('')
         return {
             'cutout_processing_type': 'histogram_equalization',
-            'parameters': { }
+            'parameters': {}
         }
 
     @staticmethod
@@ -270,14 +267,14 @@ class HistogramEqualization(CutoutProcessing):
         numpy_data : numpy array
             The image of data to process.
 
-	Return
-	------
+        Return
+        ------
         processed_data : numpy array
             processed array of data, same size as input
 
         """
         log.info('histogram equalization')
-        return exposure.equalize_hist(numpy_data)
+        return image_processing.histogram_equalization(numpy_data)
 
 
 class AdaptiveHistogramEqualization(CutoutProcessing):
@@ -294,7 +291,6 @@ class AdaptiveHistogramEqualization(CutoutProcessing):
         """
         self._clip_limit = clip_limit
 
-
     def __str__(self):
         return 'Cutout Histogram Adaptive Equalization'
 
@@ -302,8 +298,8 @@ class AdaptiveHistogramEqualization(CutoutProcessing):
         """
         Save the class to a dict
 
-	Return
-	------
+    Return
+    ------
         thdict : dict
             Parameters to re-create this instance.
 
@@ -311,7 +307,7 @@ class AdaptiveHistogramEqualization(CutoutProcessing):
         log.info('')
         return {
             'cutout_processing_type': 'adaptive_histogram_equalization',
-            'parameters': { 
+            'parameters': {
                 'clip_limit': self._clip_limit
             }
         }
@@ -343,11 +339,11 @@ class AdaptiveHistogramEqualization(CutoutProcessing):
         numpy_data : numpy array
             The image of data to process.
 
-	Return
-	------
+    Return
+    ------
         processed_data : numpy array
             processed array of data, same size as input
 
         """
         log.info('adaptive histogram equalization with clip_limit {}'.format(self._clip))
-        return exposure.equalize_adapthist(numpy_data, clip_limit=self._clip_limit)
+        return image_processing.equalize_adapthist(numpy_data, clip_limit=self._clip_limit)

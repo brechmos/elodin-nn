@@ -17,7 +17,7 @@ from astropy import units
 
 from ..tl_logging import get_logger
 import logging
-log = get_logger('display')
+log = get_logger('display', '/tmp/mylog.log', level=logging.INFO)
 
 
 class SimilarityDisplay(object):
@@ -539,7 +539,11 @@ class Image(object):
 class Aitoff(object):
 
     def __init__(self, grid_spec):
+
+        #
         # If we have ra_dec then let's display the Aitoff projection axis
+        #
+
         self._axis = plt.subplot(grid_spec, projection="aitoff")
         self._axis.grid('on')
         self._axis.set_xlabel('RA')
@@ -557,6 +561,7 @@ class Aitoff(object):
         self._axis_background = self._axis.get_figure().canvas.copy_from_bbox(self._axis.bbox)
 
     def convert_ra_dec(self, ra, dec):
+        log.info('Conver ra,dec  {}, {}'.format(ra, dec))
         if ra is not None and dec is not None:
             coords = SkyCoord(ra=ra, dec=dec, unit='degree')
             ra = coords.ra.wrap_at(180 * units.deg).radian
@@ -576,10 +581,18 @@ class Aitoff(object):
                 x.remove()
             self._axis_aitoff_text_labels = []
 
+            #
+            #  Run through each of the "close" fingerprints
+            #
+
             points = []
             for ii, (fpoint, distance, radec, fingerprint) in enumerate(close_fingerprints):
 
+                #
                 # Add point to Aitoff plot
+                #
+
+                log.error(radec)
                 ra, dec = self.convert_ra_dec(*radec)
                 if self._onclick_points and ii in self._onclick_points:
                     self._onclick_points[ii][0].set_data(ra, dec)
@@ -617,20 +630,35 @@ class Aitoff(object):
 
     def on_move(self, radec):
         try:
-            ra, dec = self.convert_ra_dec(radec[0], radec[1])
+            #
+            # Convert the RA/DEC to proper coords
+            #
 
-            # Update the mbitoff figure as well
+            ra, dec = self.convert_ra_dec(*radec)
+
+            #
+            # Restore the background aitoff image.
+            #
+
             self._axis.get_figure().canvas.restore_region(self._axis_background)
+
+            #
+            #  Display the point
+            #
 
             if self._onmove_point is not None:
                 self._onmove_point[0].set_data(ra, dec)
             else:
                 self._onmove_point = self._axis.plot(ra, dec, 'o', color=self._onmove_color)
 
+            #
+            # Do the update on the figure.
+            #
             self._axis.draw_artist(self._onmove_point[0])
             self._axis.get_figure().canvas.blit(self._axis.bbox)
+
         except Exception as e:
-            log.error('display point {}'.format(e))
+            log.error('{}'.format(e))
 
 
 if __name__ == '__main__':
