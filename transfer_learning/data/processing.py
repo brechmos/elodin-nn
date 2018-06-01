@@ -1,7 +1,7 @@
 import skimage
 import numpy as np
 from ..tl_logging import get_logger
-import logging
+from ..misc import image_processing
 log = get_logger('data processing')
 
 
@@ -9,15 +9,34 @@ class DataProcessing(object):
 
     @staticmethod
     def load(thedict):
-        if thedict['data_processing_type'] == 'resize':
-            return Resize(thedict)
-        elif thedict['data_processing_type'] == 'crop':
-            return Crop(thedict)
-        elif thedict['data_processing_type'] == 'gray_scale':
-            return GrayScale()
+        """
+        Class static loader method to call the correct
+        loader based on the paramters in ``thedict``.
+
+        Parameters
+        -----------
+        thedict : dict
+            Dictionary of saved parameters, hopefully from one of the
+            save() methods below.
+
+        Raises
+        ------
+        ValueError
+            If no DataProcessing subclass found, then raise an error.
+
+        """
+        print(thedict)
+        if 'data_processing_type' in thedict:
+            for subclass in DataProcessing.__subclasses__():
+                if subclass._name == thedict['data_processing_type']:
+                    return subclass.load(thedict)
+
+        raise ValueError('No class found for data processing.')
 
 
 class Resize(DataProcessing):
+
+    _name = 'resize'
 
     def __init__(self, output_size):
         """
@@ -35,18 +54,18 @@ class Resize(DataProcessing):
 
     def save(self):
         return {
-            'data_processing_type': 'resize',
+            'data_processing_type': self._name,
             'parameters': {
                 'output_size': self._output_size
             }
         }
 
-    def load(self, thedict):
-
-        if not thedict['data_processing_type'] == 'resize':
+    @staticmethod
+    def load(thedict):
+        if not thedict['data_processing_type'] == Resize._name:
             raise Exception('wrong data processing type {} for resize')
 
-        self._output_size = thedict['output_size']
+        return Resize(output_size=thedict['output_size'])
 
     def process(self, data):
         log.info('resizeing data to {}'.format(self._output_size))
@@ -55,14 +74,13 @@ class Resize(DataProcessing):
             if ii == 0:
                 output = np.zeros((self._output_size[0], self._output_size[1], self.data.shape[2]))
 
-            output[:,:,ii] = skimage.transform.resize(data[:,:,ii], self._output_size)
+            output[:, :, ii] = skimage.transform.resize(data[:, :, ii], self._output_size)
         return output
 
 
-        return skimage.transform.resize(data, self._output_size)
-
-
 class Crop(DataProcessing):
+
+    _name = 'crop'
 
     def __init__(self, output_size):
         """
@@ -79,18 +97,19 @@ class Crop(DataProcessing):
 
     def save(self):
         return {
-            'data_processing_type': 'crop',
+            'data_processing_type': self._name,
             'parameters': {
                 'output_size': self._output_size
             }
         }
 
-    def load(self, thedict):
+    @staticmethod
+    def load(thedict):
 
-        if not thedict['data_processing_type'] == 'crop':
+        if not thedict['data_processing_type'] == Crop._name:
             raise Exception('wrong data processing type {} for crop')
 
-        self._output_size = thedict['output_size']
+        return Crop(output_size=thedict['output_size'])
 
     def process(self, array):
         log.info('cropping data by {}'.format(self._output_size))
@@ -103,6 +122,8 @@ class GrayScale(DataProcessing):
     Convert color image to gray scale
     """
 
+    _name = 'grayscale'
+
     def __init__(self):
         """
         :param output_size: a list or tuple of size 4 describing the start and stop rows and cols
@@ -111,15 +132,18 @@ class GrayScale(DataProcessing):
 
     def save(self):
         return {
-            'data_processing_type': 'gray_scale',
+            'data_processing_type': self._name,
             'parameters': {
             }
         }
 
-    def load(self, thedict):
+    @staticmethod
+    def load(thedict):
 
-        if not thedict['data_processing_type'] == 'gray_scale':
-            raise Exception('wrong data processing type {} for crop')
+        if not thedict['data_processing_type'] == GrayScale._name:
+            raise Exception('wrong data processing type {} for grayscale')
+
+        return GrayScale()
 
     def process(self, array):
         log.info('')
@@ -127,3 +151,229 @@ class GrayScale(DataProcessing):
             return np.dot(array[:, :, :3], [0.299, 0.587, 0.114])
         else:
             return array
+
+
+class RescaleIntensity(DataProcessing):
+
+    _name = 'rescale_intensity'
+
+    def __init__(self, lower_percentile=2, upper_percentile=98):
+        """
+        Initializer
+
+        Parameters
+        ----------
+        lower_percentile : number
+            Lower percentile value passed in to scikit.expousre,rescale_intenisty
+        upper_percentile : number
+            Upper percentile value passed in to scikit.expousre,rescale_intenisty
+
+        """
+        if (not isinstance(lower_percentile, (int, float)) or
+            not isinstance(upper_percentile, (int, float))):
+            raise ValueError('Lower and upper percentiles must be a number')
+
+        self._lower_percentile = lower_percentile
+        self._upper_percentile = upper_percentile
+
+    def __str__(self):
+        return 'Cutout RescaleIntensity {} {}'.format(self._lower_percentile, self._upper_percentile)
+
+    def save(self):
+        """
+        Save the class to a dict
+
+        Return
+        ------
+        thdict : dict
+            Parameters to re-create this instance.
+
+        """
+        log.info('')
+        return {
+            'data_processing_type': self._name,
+            'parameters': {
+                'lower_percentile': self._lower_percentile,
+                'upper_percentile': self._upper_percentile
+            }
+        }
+
+    @staticmethod
+    def load(thedict):
+        """
+        Load the parameters from a dict.
+
+        Parameters
+        ----------
+        thedict : dict
+            Dictionary from the ``save()`` method above.
+
+        Return
+        ------
+        rescaler: instance of RescaleIntenisty
+
+        """
+        log.info('')
+
+        if not thedict['data_processing_type'] == RescaleIntensity._name:
+            raise Exception('wrong data processing type {} for rescale_intensity')
+
+        return RescaleIntensity(lower_percentile=thedict['parameters']['lower_percentile'],
+                                upper_percentile=thedict['parameters']['upper_percentile'])
+
+    def process(self, numpy_data):
+        """
+        Process the input numpy data to rescale the intenisity.
+
+        Parameters
+        ----------
+        numpy_data : numpy array
+            The image of data to process.
+
+        Return
+        ------
+        processed_data : numpy array
+            processed array of data, same size as input
+
+        """
+        log.info('rescale intensity to percentile range {} {}'.format(
+            self._lower_percentile, self._upper_percentile))
+        return image_processing.rescale_intensity(numpy_data,
+                                                  in_range=(self._lower_percentile, self._upper_percentile))
+
+
+class HistogramEqualization(DataProcessing):
+
+    _name = 'histogram_equalization'
+
+    def __init__(self):
+        pass
+
+    def __str__(self):
+        return 'Cutout Histogram Equalization'
+
+    def save(self):
+        """
+        Save the class to a dict
+
+        Return
+        ------
+        thdict : dict
+            Parameters to re-create this instance.
+
+        """
+        log.info('')
+        return {
+            'data_processing_type': self._name,
+            'parameters': {}
+        }
+
+    @staticmethod
+    def load(thedict):
+        """
+        Load the parameters from a dict.
+
+        Parameters
+        ----------
+        thedict : dict
+            Dictionary from the ``save()`` method above.
+
+        """
+        log.info('')
+
+        if not thedict['data_processing_type'] == HistogramEqualization._name:
+            raise Exception('wrong data processing type {} for histogram equalization')
+
+        return HistogramEqualization()
+
+    def process(self, numpy_data):
+        """
+        Process the input numpy data using histogram equalization.
+
+        Parameters
+        ----------
+        numpy_data : numpy array
+            The image of data to process.
+
+        Return
+        ------
+        processed_data : numpy array
+            processed array of data, same size as input
+
+        """
+        log.info('histogram equalization')
+        return image_processing.histogram_equalization(numpy_data)
+
+
+class AdaptiveHistogramEqualization(DataProcessing):
+
+    _name = 'adaptive_histogram_equalization'
+
+    def __init__(self, clip_limit=0.03):
+        """
+        Initializer
+
+        Parameters
+        ----------
+        clip_limit : number
+            Clip limit will be passed to the scikit-image method.
+
+        """
+        self._clip_limit = clip_limit
+
+    def __str__(self):
+        return 'Cutout Histogram Adaptive Equalization'
+
+    def save(self):
+        """
+        Save the class to a dict
+
+        Return
+        ------
+        thdict : dict
+            Parameters to re-create this instance.
+
+        """
+        log.info('')
+        return {
+            'data_processing_type': self._name,
+            'parameters': {
+                'clip_limit': self._clip_limit
+            }
+        }
+
+    @staticmethod
+    def load(thedict):
+        """
+        Load the parameters from a dict.
+
+        Parameters
+        ----------
+        thedict : dict
+            Dictionary from the ``save()`` method above.
+
+        """
+        log.info('')
+
+        if not thedict['data_processing_type'] == AdaptiveHistogramEqualization._name:
+            raise Exception('wrong data processing for adaptive histogram equalization')
+
+        return AdaptiveHistogramEqualization(clip_limit=thedict['parameters']['clip_limit'])
+
+    def process(self, numpy_data):
+        """
+        Process the input numpy data using adaptive histogram equalization.
+
+        Parameters
+        ----------
+        numpy_data : numpy array
+            The image of data to process.
+
+    Return
+    ------
+        processed_data : numpy array
+            processed array of data, same size as input
+
+        """
+        log.info('adaptive histogram equalization with clip_limit {}'.format(self._clip))
+        return image_processing.equalize_adapthist(numpy_data, clip_limit=self._clip_limit)

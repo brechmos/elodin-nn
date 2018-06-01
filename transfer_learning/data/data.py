@@ -53,26 +53,70 @@ class Data:
         else:
             raise Exception('Unknown parameter type to Data factory')
 
-    def __init__(self, location='', processing=[], radec=[], meta={}, uuid_in=None):
+    def __init__(self, location='', processing=None, radec=(), meta={}, uuid_in=None):
+        """
+        Initialize the data object.
+
+        Parameters
+        -----------
+        location : str
+            The file or URL of the location of the data.
+
+        processing : list of DataProcessing or list of dict
+            List of instances of DataProcessing objects or list of `save()`
+            versions of DataProcessing objects.
+            Defaults to ``None``.
+
+        radec : tuple
+            (RA, DEC) of the location of the data object.
+            Default is ().
+
+        meta : dict
+            Meta information about the data, typically this will come
+            from the astroquery data or something else. 
+            Default is {}.
+
+        uuid_in : UUID, optional
+            Primary Key
+
+        """
+
+        #
+        #  Set the UUID if passed in or create it if not passed in.
+        #
+
         if uuid_in is None:
             self._uuid = str(uuid.uuid4())
         else:
             self._uuid = uuid_in
 
+        #
+        # Set the main parameters.
+        #
+
         self._location = location
         self._radec = radec
-        self._processing = processing
+        if processing is None:
+            self._processing = []
+        else:
+            self._processing = [DataProcessing.load(p) if isinstance(p, dict) else p for p in processing]
         self._meta = meta
 
-        # 2D or 3D Numpy array
+        #
+        # Cache of the 2D or 3D numpy array data
+        #
+
         self._cached_data = None
+
+        #
+        # Store self in the data_collection.
+        #
 
         Data._data_collection[self._uuid] = self
 
     def __str__(self):
         return 'Data located {} at RA/DEC {}'.format(
                 self.location, self.radec)
-
 
     @property
     def uuid(self):
@@ -96,6 +140,8 @@ class Data:
 
     @radec.setter
     def radec(self, value):
+        if not isinstance(value, (tuple, list)):
+            raise ValueError('RA/DEC must be a tuple of two numbers')
         self._radec = value
 
     @property
@@ -104,6 +150,8 @@ class Data:
 
     @meta.setter
     def meta(self, value):
+        if not isinstance(value, dict):
+            raise ValueError('Meta must be a dict')
         self._meta = value
 
     @property
@@ -122,7 +170,10 @@ class Data:
         log.debug('Data is not cached, so will need to load it')
         regex = r".*[jpg|tif|tiff]$"
 
-        # Distant dataset
+        #
+        # Load the dataset from a URL
+        #
+
         if 'http' in self.location:
             success = True
             try:
@@ -136,24 +187,34 @@ class Data:
 
             self._cached_data = np.array(imageio.imread(BytesIO(response.content)))
 
-        # Local dataset
+        #
+        # Load a local dataset.
+        #
+
         elif re.match(regex, self.location):
             self._cached_data = np.array(imageio.imread(self.location))
 
-        # Unknown dataset
+        #
+        # Unknown dataset - raise an exception
+        #
+
         else:
             log.error('Unknown file type of file {}'.format(self.location))
             raise Exception('Unknown type of file {}'.format(self.location))
 
-        # Apply the processing
-        for x in self._processing:
-            processor = DataProcessing.load(x)
+        #
+        # Apply the processing and store in the cached data
+        #
+
+        for processor in self._processing:
             self._cached_data = processor.process(self._cached_data)
 
+        #
         # If 2D, make 3D
-        if len(self._cached_data.shape) == 2:
-            self._cached_data = self._gray2rgb(self._cached_data)        
+        #
 
+        if len(self._cached_data.shape) == 2:
+            self._cached_data = self._gray2rgb(self._cached_data)
 
     def _gray2rgb(self, data):
         """
@@ -193,7 +254,7 @@ class Data:
             'uuid': self._uuid,
             'location': self._location,
             'radec': self._radec,
-            'processing': self._processing,
+            'processing': [x.save() for x in self._processing],
             'meta': stringify(self._meta)
         }
 
@@ -201,5 +262,5 @@ class Data:
         self._uuid = thedict['uuid']
         self._location = thedict['location']
         self._radec = thedict['radec']
-        self._processing = thedict['processing']
+        self._processing = [DataProcessing.load(x) for x in thedict['processing']]
         self._meta = thedict['meta']
