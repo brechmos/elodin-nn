@@ -46,7 +46,7 @@ class BasicCutoutGenerator:
         """
         self._output_size = output_size
         self._step_size = step_size
-        self._cutout_processing = cutout_processing
+        self._cutout_processing = cutout_processing or []
         self._uuid = str(uuid.uuid4())
 
     def __str__(self):
@@ -180,7 +180,7 @@ class FullImageCutoutGenerator:
             raise Exception('FullImageCutout must be passed a list or tuple, not {}'.format(output_size))
 
         self._output_size = output_size
-        self._cutout_processing = cutout_processing
+        self._cutout_processing = cutout_processing or []
         self._uuid = str(uuid.uuid4())
 
     def __str__(self):
@@ -284,7 +284,7 @@ class BlobCutoutGenerator:
         self._output_size = output_size
         self._mean_threshold = mean_threshold
         self._gaussian_smoothing_sigma = gaussian_smoothing_sigma
-        self._cutout_processing = cutout_processing
+        self._cutout_processing = cutout_processing or []
         self._label_padding = label_padding
         self._uuid = str(uuid.uuid4())
 

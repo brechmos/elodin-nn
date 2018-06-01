@@ -244,8 +244,8 @@ class Data:
 
     def add_processing(self, processing):
 
-        if not isinstance(processing, dict):
-            raise Exception('Data processing must be a dict that describes the type of processing.')
+        if not isinstance(processing, DataProcessing):
+            raise Exception('Must be a DataProcessing instance.')
 
         self._processing.append(processing)
 
