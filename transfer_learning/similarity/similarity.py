@@ -56,18 +56,16 @@ class Similarity:
     _similarity_collection = weakref.WeakValueDictionary()
 
     @staticmethod
-    def factory(thedict, db):
-        if isinstance(thedict, str):
-            return Similarity._similarity_collection[thedict]
-        else:
-            if thedict['similarity_type'] == 'tsne':
-                sim = tSNE()
-            elif thedict['similarity_type'] == 'jaccard':
-                sim = Jaccard()
-            elif thedict['similarity_type'] == 'distance':
-                sim = Distance()
-            sim.load(thedict, db)
-            return sim
+    def factory(thedict):
+
+        for sc in Similarity.__subclasses__():
+            print('Comparing {} {}'.format(sc._similarity_type, thedict['similarity_type']))
+            if sc._similarity_type == thedict['similarity_type']:
+                print('          same')
+                sim = sc()
+                sim.load(thedict)
+
+        return sim
 
     def __init__(self, similarity_type=None, similarity=None, fingerprint_uuids=None, uuid_in=None):
         """
@@ -323,7 +321,7 @@ class tSNE(Similarity):
             'uuid': self._uuid,
             'similarity_type': self._similarity_type,
             'similarity': self._Y.tolist(),
-            'fingerprint_uuids': [fp.uuid for fp in self._fingerprints],
+            'fingerprint': [fp.save() for fp in self._fingerprints],
             'parameters': {
                 'distance_measure': self._distance_measure
             }
@@ -349,15 +347,9 @@ class tSNE(Similarity):
         self._uuid = thedict['uuid']
         self._similarity_type = thedict['similarity_type']
         self._Y = np.array(thedict['similarity'])
-        self._fingerprint_uuids = thedict['fingerprint_uuids']
+        self._fingerprints = [Fingerprint.factory(x) for x in thedict['fingerprint']]
         self._parameters = thedict['parameters']
         self._distance_measure = self._parameters['distance_measure']
-
-        if db is not None:
-            self._fingerprints = [Fingerprint.factory(x, db) for x in thedict['fingerprint_uuids']]
-
-        log.debug('There are {} fingerprint uuids'.format(self._fingerprint_uuids))
-        log.debug('There are nwo {} fingerprints loaded'.format(self._fingerprints))
 
     #
     #  Display methods
@@ -794,7 +786,7 @@ class Distance(Similarity):
             'uuid': self._uuid,
             'similarity_type': self._similarity_type,
             'similarity': self._fingerprint_adjacency.tolist(),
-            'fingerprint_uuids': [fp.uuid for fp in self._fingerprints],
+            'fingerprint': [fp.save() for fp in self._fingerprints],
             'parameters': {
                 'metric': self._metric
             }
@@ -805,9 +797,6 @@ class Distance(Similarity):
         self._uuid = thedict['uuid']
         self._fingerprint_adjacency = np.array(thedict['similarity_type'])
         self._Y = np.array(thedict['similarity'])
-        self._fingerprint_uuids = thedict['fingerprint_uuids']
+        self._fingerprint = [Fingerprint.factory(x) for x in thedict['fingerprint']]
         self._parameters = thedict['parameters']
         self._metric = self._parameters['metric']
-
-        if db is not None:
-            self._fingerprints = [Fingerprint.factory(thedict['fingerprint_uuids'], db)]

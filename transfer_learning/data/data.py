@@ -1,4 +1,3 @@
-import weakref
 import uuid
 import re
 from io import BytesIO
@@ -9,9 +8,7 @@ import requests
 
 from .processing import DataProcessing
 
-from transfer_learning.image import Image
 from ..tl_logging import get_logger
-import logging
 log = get_logger('data')
 
 
@@ -19,39 +16,118 @@ def stringify(dictionary):
     return {k: str(v) for k, v in dictionary.items()}
 
 
-class DataImage(Image):
+class DataCollection(object):
+    """
+    This is a collection of Data objects. There isn't necessarily
+    much that ties them together other than just being in the collection.
+    """
 
-    def __init__(self, data):
-        self._data = data
+    # The main dictionary that will store all the actual
+    # data elements.
+    _collection = {}
+
+    @staticmethod
+    def _add(data):
+        DataCollection._collection[data.uuid] = data
+
+    def __init__(self, datas=None):
+
+        #
+        #  The local _collection is a list of UUIDs to get
+        #  the actual info, need to do a lookup into the
+        #  static _collection.
+        #
+
+        self._uuid = str(uuid.uuid4)
+
+        if datas is not None and isinstance(datas, list):
+
+            # Store the UUIDs
+            self._collection = [x.uuid for x in datas]
+
+            # Set into main dictionary
+            for data in datas:
+                DataCollection._collection[data.uuid] = data
+        elif datas is not None and isinstance(datas, DataCollection):
+            self._collection = [x for x in datas._collection]
+        else:
+            self._collection = []
+
+    @property
+    def uuid(self):
+        return self._uuid
+
+    @property
+    def data(self):
+        """
+        Return a list of the data.
+        """
+        yield [DataCollection._collection[x] for x in self._collection]
+
+    def __len__(self):
+        return len(self._collection)
+
+    def find(self, uuid):
+        """
+        Retrieve the data if it exists in here.
+        """
+        return DataCollection._collection[uuid] if uuid in self._collection else None
+
+    def add(self, data):
+        """
+        Add a data into the collection.
+        """
+
+        # Add to the main collection.
+        DataCollection._collection[data.uuid] = data
+
+        # Add to this collection.
+        self._collection.append(data.uuid)
+
+    #
+    # Iterator over the collection
+    #
+
+    def __iter__(self):
+        self.__collection_pos__ = 0
+        return self
+
+    def __next__(self):
+
+        if self.__collection_pos__ >= len(self._collection):
+            raise StopIteration
+        d = DataCollection._collection[self._collection[self.__collection_pos__]]
+        self.__collection_pos__ = self.__collection_pos__ + 1
+        return d
+
+    #
+    # Save and load
+    #
+
+    def save(self):
+        """
+        Save all the data that is in the data collection.
+        """
+
+        return {
+            'data_collection': [DataCollection._collection[x].save()
+                                for x in self._collection]
+        }
+
+    @staticmethod
+    def load(self, thedict):
+        for data_dict in thedict['data_collection']:
+            d = Data().load(data_dict)
+            self._add(d)
 
 
 class Data:
 
-    # Collection to confirm we have unique instances based on uuid
-    # _data_collection = weakref.WeakValueDictionary()
-    _data_collection = {}
-
     @staticmethod
-    def factory(parameter, db=None):
-        """
-        paramter: either a UUID or a dict describing the data
-        """
-        if isinstance(parameter, str):
-            if parameter in Data._data_collection:
-                return Data._data_collection[parameter]
-            elif db is not None:
-                return db.find('data', parameter)
-        elif isinstance(parameter, dict):
-
-            if 'uuid' in parameter and parameter['uuid'] in Data._data_collection:
-                log.debug('Found in collection and returning')
-                return Data._data_collection[parameter['uuid']]
-
-            return Data(location=parameter['location'], processing=parameter['processing'],
-                        radec=parameter['radec'], meta=parameter['meta'],
-                        uuid_in=parameter['uuid'])
-        else:
-            raise Exception('Unknown parameter type to Data factory')
+    def factory(parameter):
+        data = Data()
+        data.load(parameter)
+        return data
 
     def __init__(self, location='', processing=None, radec=(), meta={}, uuid_in=None):
         """
@@ -73,7 +149,7 @@ class Data:
 
         meta : dict
             Meta information about the data, typically this will come
-            from the astroquery data or something else. 
+            from the astroquery data or something else.
             Default is {}.
 
         uuid_in : UUID, optional
@@ -112,7 +188,7 @@ class Data:
         # Store self in the data_collection.
         #
 
-        Data._data_collection[self._uuid] = self
+        DataCollection._add(self)
 
     def __str__(self):
         return 'Data located {} at RA/DEC {}'.format(
@@ -264,3 +340,6 @@ class Data:
         self._radec = thedict['radec']
         self._processing = [DataProcessing.load(x) for x in thedict['processing']]
         self._meta = thedict['meta']
+
+        # Add data to the main collection
+        DataCollection._add(self)

@@ -7,34 +7,114 @@ from ..tl_logging import get_logger
 log = get_logger('cutout')
 
 
+class CutoutCollection(object):
+    """
+    This is a collection of Data objects. There isn't necessarily
+    much that ties them together other than just being in the collection.
+    """
+
+    # The main dictionary that will store all the actual
+    # data elements.
+    _collection = {}
+
+    def _add(cutout):
+        CutoutCollection._collection[cutout.uuid] = cutout
+
+    def __init__(self, cutouts=None):
+
+        self._uuid = str(uuid.uuid4())
+
+        #
+        # The dictionary of data as part of this. We are going
+        # to store it as a dictionary so the UUID lookup is faster.
+        #
+
+        if cutouts is not None and isinstance(cutouts, list):
+
+            # Store the UUIDs
+            self._collection = [x.uuid for x in cutouts]
+
+            # Set into main dictionary
+            for data in cutouts:
+                CutoutCollection._collection[data.uuid] = data
+        else:
+            self._collection = []
+
+    @property
+    def uuid(self):
+        return self._uuid
+
+    @property
+    def cutouts(self):
+        """
+        Return a list of the cutouts.
+        """
+        return [CutoutCollection._collection[k] for k in self._collection]
+
+    def __len__(self):
+        return len(self._collection)
+
+    def find(self, uuid):
+        """
+        Retrieve the cutout if it exists in here.
+        """
+        return CutoutCollection._collection[uuid] if uuid in self._collection else None
+
+    def add(self, cutout):
+        """
+        Add a cutout into the collection.
+        """
+        CutoutCollection._collection[cutout.uuid] = cutout
+        self._collection.append(cutout.uuid)
+
+    def __add__(self, cutout_collection):
+        return CutoutCollection(self._collection + cutout_collection._collection)
+
+    #
+    # Iterator over the collection
+    #
+
+    def __iter__(self):
+        self.__collection_pos__ = 0
+        return self
+
+    def __next__(self):
+
+        if self.__collection_pos__ >= len(self._collection):
+            raise StopIteration
+        d = CutoutCollection._collection[self._collection[self.__collection_pos__]]
+        self.__collection_pos__ = self.__collection_pos__ + 1
+        return d
+
+    #
+    # Load and save
+    #
+
+    def save(self):
+        return {
+            'cutout_collection': [CutoutCollection._collection[x].save()
+                                  for x in self._collection]
+        }
+
+    def load(self, thedict):
+        for cutout_dict in thedict['cutout_collection']:
+            c = Cutout().load(cutout_dict)
+            self.add(c)
+
+
 class Cutout(object):
     """
     This cutout class represents one cutout of an image.  Likely a fingerprint
     will be calculated from this cutout.
     """
 
-    # Collection to confirm we have unique instances based on uuid
-    # _cutout_collection = weakref.WeakValueDictionary()
-    _cutout_collection = {}
-
     @staticmethod
-    def factory(parameter, db=None):
-        if isinstance(parameter, str):
-            if parameter in Cutout._cutout_collection:
-                return Cutout._cutout_collection[parameter]
-            elif db is not None:
-                return db.find('cutout', parameter)
-        elif isinstance(parameter, dict):
+    def factory(parameter):
+        cutout = Cutout()
+        cutout.load(parameter)
+        return cutout
 
-            if 'uuid' in parameter and parameter['uuid'] in Cutout._cutout_collection:
-                return Cutout._cutout_collection[parameter['uuid']]
-
-            data = Data.factory(parameter['data'], db)
-            return Cutout(data, parameter['bounding_box'], parameter['generator_parameters'],
-                          cutout_processing=parameter['cutout_processing'],
-                          uuid_in=parameter['uuid'])
-
-    def __init__(self, data, bounding_box, generator_parameters,
+    def __init__(self, data=None, bounding_box=None, generator_parameters=None,
                  cutout_processing=None, uuid_in=None):
         """
         Cutout initializer.
@@ -82,13 +162,10 @@ class Cutout(object):
         #
         # This is the "original data"
         #
-
-        bb = self._bounding_box
-        self._original_data = self._data.get_data()[bb[0]:bb[1], bb[2]:bb[3]]
-
+        self._original_data = None
         self._cached_output = None
 
-        Cutout._cutout_collection[self._uuid] = self
+        CutoutCollection._add(self)
 
     def __str__(self):
         return 'Cutout for data {} with box {} and processing {}'.format(
@@ -160,7 +237,7 @@ class Cutout(object):
         #
         # Add in info about the base cutout uuid
         #
-        
+
         if base_cutout_uuid is not None:
             self._base_cutout_uuid = base_cutout_uuid
 
@@ -207,6 +284,18 @@ class Cutout(object):
         """
         log.info('')
 
+        #
+        # Cache the original data if not already set.
+        #
+
+        if self._original_data is None:
+            bb = self._bounding_box
+            self._original_data = self._data.get_data()[bb[0]:bb[1], bb[2]:bb[3]]
+
+        #
+        # Cache the procesed data if not already cached
+        #
+
         if self._cached_output is None:
             data = self._original_data
 
@@ -240,8 +329,11 @@ class Cutout(object):
         log.info('Loading cutout')
 
         self._uuid = thedict['uuid']
-        self._data = Data(thedict['data'])
-        self._generator_parameters = Data(thedict['generator_parameters'])
+        self._data = Data.factory(thedict['data'])
+        self._generator_parameters = thedict['generator_parameters']
         self._bounding_box = thedict['bounding_box']
         self._base_cutout_uuid = thedict['base_cutout_uuid']
         self._cutout_processing = [CutoutProcessing.load(x) for x in thedict['cutout_processing']]
+
+        # Add to the cutout collection
+        CutoutCollection._add(self)

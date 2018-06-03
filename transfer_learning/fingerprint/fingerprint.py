@@ -1,10 +1,95 @@
 import uuid
-import weakref
 
 from ..tl_logging import get_logger
 from transfer_learning.cutout import Cutout
-import logging
 log = get_logger('fingerprint')
+
+
+class FingerprintCollection(object):
+    """
+    This is a collection of Fingerprint objects. There isn't necessarily
+    much that ties them together other than just being in the collection.
+    """
+
+    # The main dictionary that will store all the actual
+    # data elements.
+    _collection = {}
+
+    @staticmethod
+    def _add(cutout):
+        FingerprintCollection._collection[cutout.uuid] = cutout
+
+    def __init__(self, fingerprints=None):
+
+        #
+        # The dictionary of data as part of this. We are going
+        # to store it as a dictionary so the UUID lookup is faster.
+        #
+
+        if fingerprints is not None and isinstance(fingerprints, list):
+
+            # Store the UUIDs
+            self._collection = [x.uuid for x in fingerprints]
+
+            # Set into main dictionary
+            for data in fingerprints:
+                FingerprintCollection._collection[data.uuid] = data
+        else:
+            self._collection = []
+
+    @property
+    def fingerprints(self):
+        """
+        Return a list of the data.
+        """
+        return [FingerprintCollection._collection[k] for k in self._collection]
+
+    def __len__(self):
+        return len(self._collection)
+
+    def find(self, uuid):
+        """
+        Retrieve the data if it exists in here.
+        """
+        return FingerprintCollection._collection[uuid] if uuid in self._collection else None
+
+    def add(self, fingerprint):
+        """
+        Add a fingerprint into the collection.
+        """
+        FingerprintCollection._collection[fingerprint.uuid] = fingerprint
+        self._collection.append(fingerprint.uuid)
+
+    #
+    # Iterator over the collection
+    #
+
+    def __iter__(self):
+        self.__collection_pos__ = 0
+        return self
+
+    def __next__(self):
+
+        if self.__collection_pos__ >= len(self._collection):
+            raise StopIteration
+        d = FingerprintCollection._collection[self._collection[self.__collection_pos__]]
+        self.__collection_pos__ = self.__collection_pos__ + 1
+        return d
+
+    #
+    # Load and save
+    #
+    
+    def save(self):
+        return {
+            'fingerprint_collection': [FingerprintCollection._collection[x].save()
+                                       for x in self._collection]
+        }
+
+    def load(self, thedict):
+        for fingerprint_dict in thedict['fingerprint_collection']:
+            f = Fingerprint().load(fingerprint_dict)
+            self.add(f)
 
 
 class FingerprintFilter(object):
@@ -77,25 +162,14 @@ class FingerprintFilter(object):
 
 class Fingerprint(object):
 
-    #_fingerprint_collection = weakref.WeakValueDictionary()
     _fingerprint_collection = {}
 
     @staticmethod
-    def factory(parameter, db=None):
-        if isinstance(parameter, str):
-            if parameter in Fingerprint._fingerprint_collection:
-                return Fingerprint._fingerprint_collection[parameter]
-            elif db is not None:
-                fingerprint = db.find('fingerprint', parameter)
-                fingerprint._cutout = db.find('cutout', fingerprint.cutout_uuid)
-                return fingerprint
-        elif isinstance(parameter, dict):
-            if 'uuid' in parameter and parameter['uuid'] in Fingerprint._fingerprint_collection:
-                return Fingerprint._fingerprint_collection[parameter['uuid']]
-
-            return Fingerprint(cutout_uuid=parameter['cutout_uuid'],
-                               predictions=parameter['predictions'],
-                               uuid_in=parameter['uuid'])
+    def factory(parameter):
+        cutout = Cutout.factory(parameter['cutout'])
+        return Fingerprint(cutout=cutout,
+                           predictions=parameter['predictions'],
+                           uuid_in=parameter['uuid'])
 
     def __init__(self, cutout_uuid=None, cutout=None, predictions=[], uuid_in=None):
         if uuid_in is not None:
@@ -146,17 +220,16 @@ class Fingerprint(object):
 
     def load(self, thedict, db=None):
         self._uuid = thedict['uuid']
-        self._cutout_uuid = thedict['cutout_uuid']
-        self._cutout = db.find('cutout', self._cutout_uuid)
+        self._cutout = Cutout.factory(thedict['cutout'])
         self._predictions = thedict['predictions']
 
-        if db is not None:
-            self._cutout = Cutout.factory(self._cutout_uuid, db)
+        # Add to the fingerprint collection
+        FingerprintCollection._add(self)
 
     def save(self):
         return {
              'uuid': self._uuid,
-             'cutout_uuid': self._cutout_uuid,
+             'cutout': self._cutout.save(),
              'predictions': [(x[0], x[1], float(x[2]))
                              for x in self._predictions]
         }

@@ -5,7 +5,7 @@ import weakref
 
 from transfer_learning.utils import gray2rgb
 from transfer_learning.fingerprint.fingerprint import Fingerprint
-from transfer_learning.cutout import Cutout
+from transfer_learning.cutout import Cutout, CutoutCollection
 
 from ..tl_logging import get_logger
 import logging
@@ -20,7 +20,7 @@ def calculate(cutouts, fc_save, task=None):
     """
     log.info('')
 
-    if not isinstance(cutouts, list) and not isinstance(cutouts[0], (dict, Cutout)):
+    if not isinstance(cutouts, CutoutCollection):
         log.error('Data must be a list of dictionaries')
         raise Exception('Data must be a list of dictionaries')
 

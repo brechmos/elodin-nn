@@ -6,7 +6,8 @@ from skimage import measure
 from skimage import filters
 import skimage.transform
 
-from transfer_learning.cutout import Cutout, CutoutProcessing
+from transfer_learning.data import Data, DataCollection
+from transfer_learning.cutout import Cutout, CutoutProcessing, CutoutCollection
 
 from ..tl_logging import get_logger
 log = get_logger('cutout generator')
@@ -24,7 +25,7 @@ class BasicCutoutGenerator:
     If there are any cutout_processing elements they are passed into each created cutout.
     """
 
-    def __init__(self, output_size, step_size, cutout_processing=None):
+    def __init__(self, output_size, step_size):
         """
         Basic cutout generator based on a sliding window technique.
 
@@ -40,13 +41,9 @@ class BasicCutoutGenerator:
             Size of the steps taken for the sliding window cutouts. At this point
             step_size is used in both row and column direction.
 
-        cutout_processing : list, optional
-            List of instances of ``transfer_learning.cutout.cutout_processing``.
-
         """
         self._output_size = output_size
         self._step_size = step_size
-        self._cutout_processing = cutout_processing or []
         self._uuid = str(uuid.uuid4())
 
     def __str__(self):
@@ -81,23 +78,58 @@ class BasicCutoutGenerator:
 
         return len(list(itertools.product(rows, cols)))
 
-    def create_cutouts(self, data):
+    def create_cutouts(self, data, cutout_processing=None):
         """
         Calculate the fingerprints for each subsection of the image in each file.
 
         Parameters
         -----------
-        data : `transfer_learning.data.Data`
+        data : `transfer_learning.data.Data` or `transfer_learning.data.DataCollection`
             The dataset.
+
+        cutout_processing : list, optional
+            List of instances of ``transfer_learning.cutout.cutout_processing``.
 
         Return
         ------
-        cutouts: list
-            List of cutouts.
+        cutouts: CutoutCollection
+            The cutouts that came from this generator.
+        """
+        log.info('Creating basic sliding window cutouts')
+
+        if isinstance(data, Data):
+            return self._create_cutouts_data(data, cutout_processing)
+        else:
+            cutout_collection = CutoutCollection()
+
+            for datum in data:
+                cutout_collection += self._create_cutouts_data(datum, cutout_processing)
+
+        return cutout_collection
+
+    def _create_cutouts_data(self, data, cutout_processing=None):
+        """
+        Calculate the fingerprints for each subsection of the image in each file.
+
+        Parameters
+        -----------
+        data : `transfer_learning.data.Data` or `transfer_learning.data.DataCollection`
+            The dataset.
+
+        cutout_processing : list, optional
+            List of instances of ``transfer_learning.cutout.cutout_processing``.
+
+        Return
+        ------
+        cutouts: CutoutCollection
+            The cutouts that came from this generator.
         """
         log.info('Creating basic sliding window cutouts')
 
         N = self._output_size // 2
+
+        if cutout_processing is not None and isinstance(cutout_processing, list):
+            raise ValueError('Cutout processing must be empty or a list')
 
         #
         # Determine the centers to use for the fingerprint calculation
@@ -111,12 +143,12 @@ class BasicCutoutGenerator:
         # Run over all the rows and columns and yield the result
         #
 
-        cutouts = []
+        cutout_collection = CutoutCollection()
         for ii, (row, col) in enumerate(itertools.product(rows, cols)):
-            cutouts.append(Cutout(data, [row-N, row+N, col-N, col+N], self.save(),
-                                  cutout_processing=self._cutout_processing))
+            cutout_collection.add(Cutout(data, [row-N, row+N, col-N, col+N], self.save(),
+                                  cutout_processing=cutout_processing))
 
-        return cutouts
+        return cutout_collection
 
     def save(self):
         """
@@ -134,7 +166,6 @@ class BasicCutoutGenerator:
             'cutout_type': self.__class__.__name__,
             'output_size': self._output_size,
             'step_size': self._step_size,
-            'cutout_processing': [x.save() for x in self._cutout_processing],
             'uuid': self._uuid
         }
 
@@ -154,7 +185,6 @@ class BasicCutoutGenerator:
         """
         self._step_size = parameters['step_size']
         self._output_size = parameters['output_size']
-        self._cutout_processing = [CutoutProcessing.load(x) for x in parameters['cutout_processing']]
         self._uuid = parameters['uuid']
 
 
@@ -163,7 +193,7 @@ class FullImageCutoutGenerator:
     The FullImageCutout class will create a single cutout based on resizing the input image to the output size.
     """
 
-    def __init__(self, output_size, cutout_processing=None):
+    def __init__(self, output_size):
         """
         Initialize with the output_size (assumed square at this point and a step_size
 
@@ -172,15 +202,11 @@ class FullImageCutoutGenerator:
         output_size : tuple
             Size of the cutout, must be a pair of numbers (e.g., (224, 224) ).
 
-        cutout_processing : list, optional
-            List of instances of ``transfer_learning.cutout.cutout_processing``.
-
         """
         if not isinstance(output_size, (list, tuple)):
             raise Exception('FullImageCutout must be passed a list or tuple, not {}'.format(output_size))
 
         self._output_size = output_size
-        self._cutout_processing = cutout_processing or []
         self._uuid = str(uuid.uuid4())
 
     def __str__(self):
@@ -198,20 +224,30 @@ class FullImageCutoutGenerator:
         """
         return 1
 
-    def create_cutouts(self, data):
+    def create_cutouts(self, data, cutout_processing=None):
         """
         Create the cutouts based on the data input.  Though, only one
-        cutout is created.
+        cutout is created per datum.
 
         Parameters
         -----------
-        data : `transfer_learning.data.Data`
+        data : `transfer_learning.data.Data` or `transfer_learning.data.DataCollection`
             The dataset.
+
+        cutout_processing : list, optional
+            List of instances of ``transfer_learning.cutout.cutout_processing``.
 
         """
         log.info('Creating new cutout from data {}'.format(data.uuid))
-        return Cutout(data, [0, self._output_size[0], 0, self._output_size[1]], self.save(),
-                      cutout_processing=self._cutout_processing)
+        if isinstance(data, Data):
+            return Cutout(data, [0, self._output_size[0], 0, self._output_size[1]], self.save(),
+                          cutout_processing=cutout_processing)
+        elif isinstance(data, DataCollection):
+            cc = CutoutCollection()
+            for datum in data:
+                cc.add(Cutout(datum, [0, self._output_size[0], 0, self._output_size[1]], self.save(),
+                              cutout_processing=cutout_processing))
+            return cc
 
     def save(self):
         """
@@ -227,7 +263,6 @@ class FullImageCutoutGenerator:
         return {
             'cutout_type': self.__class__.__name__,
             'output_size': self._output_size,
-            'cutout_processing': [x.save() for x in self._cutout_processing],
             'uuid': self._uuid
         }
 
@@ -246,7 +281,6 @@ class FullImageCutoutGenerator:
 
         """
         self._output_size = parameters['output_size']
-        self._cutout_processing = [CutoutProcessing.load(x) for x in parameters['cutout_processing']]
         self._uuid = parameters['uuid']
 
 
@@ -257,8 +291,7 @@ class BlobCutoutGenerator:
     components and then return 224x224 cutouts based on the center of each connected component.
     """
 
-    def __init__(self, output_size, mean_threshold=2.0, gaussian_smoothing_sigma=10, label_padding=80,
-                 cutout_processing=None):
+    def __init__(self, output_size, mean_threshold=2.0, gaussian_smoothing_sigma=10, label_padding=80):
         """
         Initialize the labeled connected component cutout creator.
 
@@ -276,15 +309,11 @@ class BlobCutoutGenerator:
         label_padding : number
             How much do we want to pad around the output image.
 
-        cutout_processing: list of instances from processing.py
-            Data will be first processed by the processors in cutout_processing and then returned.
-
         """
         # list of data processing elements
         self._output_size = output_size
         self._mean_threshold = mean_threshold
         self._gaussian_smoothing_sigma = gaussian_smoothing_sigma
-        self._cutout_processing = cutout_processing or []
         self._label_padding = label_padding
         self._uuid = str(uuid.uuid4())
 
@@ -324,7 +353,7 @@ class BlobCutoutGenerator:
         blobs = self._create_labels(data)
         return blobs.max()
 
-    def create_cutouts(self, data):
+    def create_cutouts(self, data, cutout_processing=None):
         """
         This will create a number of cutouts. Each cutout is based on a connected component labeling of the image
         after a little smoothing. This is a reasonably standard method of doing the connnected component labeling.
@@ -333,6 +362,9 @@ class BlobCutoutGenerator:
         -----------
         data : `transfer_learning.data.Data`
             The dataset.
+
+        cutout_processing : list, optional
+            List of instances of ``transfer_learning.cutout.cutout_processing``.
 
         Notes
         -----
@@ -421,7 +453,7 @@ class BlobCutoutGenerator:
 
             yield min_row, max_row, min_col, max_col, td
             cutouts.append(Cutout(data, [min_row, max_row, min_col, max_col], self.save(),
-                                  cutout_processing=self._cutout_processing))
+                                  cutout_processing=cutout_processing))
 
         return cutouts
 
@@ -441,7 +473,6 @@ class BlobCutoutGenerator:
             'output_size': self._output_size,
             'mean_threshold': self._mean_threshold,
             'gaussian_smoothing_sigma': self._gaussian_smoothing_sigma,
-            'cutout_processing': [x.save() for x in self._cutout_processing],
             'label_padding': self._label_padding,
             'uuid': self._uuid
         }
@@ -463,7 +494,6 @@ class BlobCutoutGenerator:
 
         self._output_size = parameters['output_size']
         self._gaussian_smoothing_sigma = parameters['gaussian_smoothing_sigma']
-        self._cutout_processing = [CutoutProcessing.load(x) for x in parameters['cutout_processing']]
         self._label_padding = parameters['label_padding']
         self._mean_threshold = parameters['mean_threshold']
         self._uuid = parameters['uuid']
