@@ -6,7 +6,7 @@ import numpy as np
 import imageio
 import requests
 
-from .processing import DataProcessing
+from ..misc.image_processing import ImageProcessing
 
 from ..tl_logging import get_logger
 log = get_logger('data')
@@ -53,6 +53,10 @@ class DataCollection(object):
         else:
             self._collection = []
 
+    #
+    # Properties
+    #
+
     @property
     def uuid(self):
         return self._uuid
@@ -64,8 +68,19 @@ class DataCollection(object):
         """
         yield [DataCollection._collection[x] for x in self._collection]
 
+    #
+    # Internal methods
+    #
+
     def __len__(self):
         return len(self._collection)
+
+    def __getitem__(self, index):
+        return DataCollection._collection[self._collection[index]]
+
+    #
+    # Public methods
+    #
 
     def find(self, uuid):
         """
@@ -138,9 +153,9 @@ class Data:
         location : str
             The file or URL of the location of the data.
 
-        processing : list of DataProcessing or list of dict
-            List of instances of DataProcessing objects or list of `save()`
-            versions of DataProcessing objects.
+        processing : list of ImageProcessing or list of dict
+            List of instances of ImageProcessing objects or list of `save()`
+            versions of ImageProcessing objects.
             Defaults to ``None``.
 
         radec : tuple
@@ -175,7 +190,7 @@ class Data:
         if processing is None:
             self._processing = []
         else:
-            self._processing = [DataProcessing.load(p) if isinstance(p, dict) else p for p in processing]
+            self._processing = [ImageProcessing.load(p) if isinstance(p, dict) else p for p in processing]
         self._meta = meta
 
         #
@@ -320,8 +335,8 @@ class Data:
 
     def add_processing(self, processing):
 
-        if not isinstance(processing, DataProcessing):
-            raise Exception('Must be a DataProcessing instance.')
+        if not isinstance(processing, ImageProcessing):
+            raise Exception('Must be a ImageProcessing instance.')
 
         self._processing.append(processing)
 
@@ -338,7 +353,7 @@ class Data:
         self._uuid = thedict['uuid']
         self._location = thedict['location']
         self._radec = thedict['radec']
-        self._processing = [DataProcessing.load(x) for x in thedict['processing']]
+        self._processing = [ImageProcessing.load(x) for x in thedict['processing']]
         self._meta = thedict['meta']
 
         # Add data to the main collection

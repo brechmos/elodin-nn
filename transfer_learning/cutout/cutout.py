@@ -1,7 +1,7 @@
 import uuid
 
 from transfer_learning.data import Data
-from transfer_learning.cutout.processing import CutoutProcessing
+from transfer_learning.misc.image_processing import ImageProcessing
 
 from ..tl_logging import get_logger
 log = get_logger('cutout')
@@ -29,7 +29,7 @@ class CutoutCollection(object):
         # to store it as a dictionary so the UUID lookup is faster.
         #
 
-        if cutouts is not None and isinstance(cutouts, list):
+        if isinstance(cutouts, list) and isinstance(cutouts[0], Cutout):
 
             # Store the UUIDs
             self._collection = [x.uuid for x in cutouts]
@@ -37,8 +37,23 @@ class CutoutCollection(object):
             # Set into main dictionary
             for data in cutouts:
                 CutoutCollection._collection[data.uuid] = data
+
+        #
+        # If the cutouts passed in is a list of UUIDs then just
+        # store them.
+        #
+
+        elif isinstance(cutouts, list) and isinstance(cutouts[0], str):
+
+            # Store the UUIDs
+            self._collection = [x for x in cutouts]
+
         else:
             self._collection = []
+
+    #
+    #  Properties
+    #
 
     @property
     def uuid(self):
@@ -51,8 +66,9 @@ class CutoutCollection(object):
         """
         return [CutoutCollection._collection[k] for k in self._collection]
 
-    def __len__(self):
-        return len(self._collection)
+    #
+    # Regular methods
+    #
 
     def find(self, uuid):
         """
@@ -71,8 +87,14 @@ class CutoutCollection(object):
         return CutoutCollection(self._collection + cutout_collection._collection)
 
     #
-    # Iterator over the collection
+    # Internal functions
     #
+
+    def __len__(self):
+        return len(self._collection)
+
+    def __getitem__(self, index):
+        return CutoutCollection._collection[self._collection[index]]
 
     def __iter__(self):
         self.__collection_pos__ = 0
@@ -157,7 +179,7 @@ class Cutout(object):
         if cutout_processing is None:
             self._cutout_processing = []
         else:
-            self._cutout_processing = [CutoutProcessing.load(x) if isinstance(x, dict) else x for x in cutout_processing]
+            self._cutout_processing = [ImageProcessing.load(x) if isinstance(x, dict) else x for x in cutout_processing]
 
         #
         # This is the "original data"
@@ -333,7 +355,7 @@ class Cutout(object):
         self._generator_parameters = thedict['generator_parameters']
         self._bounding_box = thedict['bounding_box']
         self._base_cutout_uuid = thedict['base_cutout_uuid']
-        self._cutout_processing = [CutoutProcessing.load(x) for x in thedict['cutout_processing']]
+        self._cutout_processing = [ImageProcessing.load(x) for x in thedict['cutout_processing']]
 
         # Add to the cutout collection
         CutoutCollection._add(self)

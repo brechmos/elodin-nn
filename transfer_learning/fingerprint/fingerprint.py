@@ -11,13 +11,20 @@ class FingerprintCollection(object):
     much that ties them together other than just being in the collection.
     """
 
+    #
     # The main dictionary that will store all the actual
     # data elements.
+    #
+
     _collection = {}
 
     @staticmethod
     def _add(cutout):
         FingerprintCollection._collection[cutout.uuid] = cutout
+
+    #
+    #  Main functionality
+    #
 
     def __init__(self, fingerprints=None):
 
@@ -37,6 +44,10 @@ class FingerprintCollection(object):
         else:
             self._collection = []
 
+    #
+    # Properties
+    #
+
     @property
     def fingerprints(self):
         """
@@ -44,25 +55,15 @@ class FingerprintCollection(object):
         """
         return [FingerprintCollection._collection[k] for k in self._collection]
 
+    #
+    # Internal methods
+    #
+
     def __len__(self):
         return len(self._collection)
 
-    def find(self, uuid):
-        """
-        Retrieve the data if it exists in here.
-        """
-        return FingerprintCollection._collection[uuid] if uuid in self._collection else None
-
-    def add(self, fingerprint):
-        """
-        Add a fingerprint into the collection.
-        """
-        FingerprintCollection._collection[fingerprint.uuid] = fingerprint
-        self._collection.append(fingerprint.uuid)
-
-    #
-    # Iterator over the collection
-    #
+    def __getitem__(self, index):
+        return FingerprintCollection._collection[self._collection[index]]
 
     def __iter__(self):
         self.__collection_pos__ = 0
@@ -75,6 +76,29 @@ class FingerprintCollection(object):
         d = FingerprintCollection._collection[self._collection[self.__collection_pos__]]
         self.__collection_pos__ = self.__collection_pos__ + 1
         return d
+
+    #
+    # Public methods
+    #
+
+    def get(self, uuid):
+        """
+        Retrieve the data if it exists in here.
+        """
+        return FingerprintCollection._collection[uuid] if uuid in self._collection else None
+
+    def add(self, fingerprint):
+        """
+        Add a fingerprint into the collection.
+        """
+        FingerprintCollection._collection[fingerprint.uuid] = fingerprint
+        self._collection.append(fingerprint.uuid)
+
+    def index(self, fingerprint):
+        if fingerprint.uuid in self._collection.index:
+            return self._collection.index(fingerprint.uuid)
+        else:
+            return None
 
     #
     # Load and save

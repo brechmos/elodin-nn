@@ -501,13 +501,14 @@ class tSNE(Similarity):
         """
         log.info('Searching based on point {}'.format(point))
         distances = self._distance_measures[self._distance_measure](self._Y, point)
+        log.debug('There are {} distances'.format(len(distances)))
         inds = np.argsort(distances)
         log.debug(inds)
 
         return [{
                     'tsne_point': self._Y[ind],
                     'distance': distances[ind],
-                    'fingerprint_uuid': self._fingerprint_uuids[ind]
+                    'fingerprint': self._fingerprints[ind]
                 } for ind in inds[:n]]
 
     def cutout_point(self, cutout):

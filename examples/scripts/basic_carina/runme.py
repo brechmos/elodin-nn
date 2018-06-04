@@ -5,10 +5,10 @@ from configparser import ConfigParser
 from transfer_learning.fingerprint.processing import FingerprintCalculatorResnet
 from transfer_learning.fingerprint.processing import calculate as fingerprint_calculate
 from transfer_learning.similarity.similarity import calculate as similarity_calculate
-from transfer_learning.data import Data
+from transfer_learning.data import Data, DataCollection
+from transfer_learning.cutout import CutoutCollection
+from transfer_learning.fingerprint import FingerprintCollection
 from transfer_learning.cutout.generators import BasicCutoutGenerator, BlobCutoutGenerator
-from transfer_learning.cutout.processing import HistogramEqualization as CutoutHistogramEqualization
-from transfer_learning.data.processing import HistogramEqualization as DataHistogramEqualization
 from transfer_learning.database import get_database
 
 fc_save = FingerprintCalculatorResnet().save()
@@ -26,40 +26,41 @@ db = get_database(config['database']['type'], config['database']['filename'])
 #
 # Load the data
 #
-data_histogram_equalization = DataHistogramEqualization()
 
+# Get the data.
 print('Going to load the carina data')
 image_data = Data(location='../../data/carina.tiff', radec=(10.7502222, -59.8677778),
-                  meta={}, processing=[data_histogram_equalization])
+                  meta={}, processing=[])
 image_data.get_data()
-db.save('data', image_data)
 
-histogram_equalization = CutoutHistogramEqualization()
+# Add to the data collection
+dc = DataCollection()
+dc.add(image_data)
 
 #
 #  Create the cutouts with a processing step applied
 #
 print('Going to calculate the sliding window cutouts')
 sliding_window_cutouts = BasicCutoutGenerator(output_size=224,
-                                              step_size=350,
-                                              cutout_processing=[histogram_equalization])
-cutouts = sliding_window_cutouts.create_cutouts(image_data)
-[db.save('cutout', cutout) for cutout in cutouts]
+                                              step_size=350)
+cc = CutoutCollection()
+
+for cutout in sliding_window_cutouts.create_cutouts(image_data):
+    cc.add(cutout)
 
 #
 #  Compute the fingerprints for each cutout
 #
 print('Calculate the fingerprint for each cutout')
-fingerprints = fingerprint_calculate(cutouts, fc_save)
-print([str(x) for x in fingerprints])
-[db.save('fingerprint', fingerprint) for fingerprint in fingerprints]
+fc = FingerprintCollection()
+for fingerprint in fingerprint_calculate(cc, fc_save):
+    fc.add(fingerprint)
 
 #
 #  Compute the similarity metrics
 #
 print('Calculating the tSNE similarity')
-similarity_tsne = similarity_calculate(fingerprints, 'tsne')
-db.save('similarity', similarity_tsne)
+similarity_tsne = similarity_calculate(fc, 'tsne')
 
 # print('Calculating the jaccard similarity')
 # similarity_jaccard = similarity_calculate(fingerprints, 'jaccard')

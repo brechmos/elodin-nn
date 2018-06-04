@@ -4,10 +4,9 @@ import numpy as np
 
 from skimage import measure
 from skimage import filters
-import skimage.transform
 
 from transfer_learning.data import Data, DataCollection
-from transfer_learning.cutout import Cutout, CutoutProcessing, CutoutCollection
+from transfer_learning.cutout import Cutout, CutoutCollection
 
 from ..tl_logging import get_logger
 log = get_logger('cutout generator')
@@ -385,13 +384,13 @@ class BlobCutoutGenerator:
         # Find the blobs - make gray scale, smooth, find blobs, then label them
         #
 
-        blobs_labels = self._create_labels(data)
+        blobs_labels = self._create_labels(data.get_data())
 
         #
         # Loop over the labeled blob
         #
 
-        cutouts = []
+        cutouts = CutoutCollection()
         for ii in range(1, blobs_labels.max()):
             b = blobs_labels == ii
 
@@ -441,19 +440,11 @@ class BlobCutoutGenerator:
             log.debug('Cutting out {} {}   {} {}'.format(min_row, max_row, min_col, max_col))
 
             #
-            # Resize the image and return
-            #
-
-            td = skimage.transform.resize(data[min_row:max_row, min_col:max_col],
-                                          [self._output_size, self._output_size])
-
-            #
             # This will need to match the standard return method for cutouts.
             #
 
-            yield min_row, max_row, min_col, max_col, td
-            cutouts.append(Cutout(data, [min_row, max_row, min_col, max_col], self.save(),
-                                  cutout_processing=cutout_processing))
+            cutouts.add(Cutout(data, [min_row, max_row, min_col, max_col], self.save(),
+                               cutout_processing=cutout_processing))
 
         return cutouts
 
