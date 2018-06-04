@@ -129,6 +129,229 @@ class Crop(CutoutProcessing):
         return numpy_data[rc[0]:rc[1], rc[2]:rc[3]]
 
 
+class Rotate(CutoutProcessing):
+    """
+    Image rotation.
+
+    Note that anything away from 0, 90, 180, 270 is going to
+    have black regions around the image.
+    """
+
+    _cutout_processing_name = 'rotate'
+
+    def __init__(self, angle=0.0):
+        """
+        Initializer for an image rotation.
+
+        """
+        self._angle = angle
+
+    def __str__(self):
+        return 'Image Rotation'
+
+    def save(self):
+        """
+        Save the class to a dict
+
+        Return
+        ------
+        thdict : dict
+            Parameters to re-create this instance.
+
+        """
+        log.info('')
+        return {
+            'cutout_processing_type': Rotate._cutout_processing_name,
+            'parameters': {
+                'angle': self._angle
+            }
+        }
+
+    @staticmethod
+    def load(thedict):
+        """
+        Load the parameters from a dict.
+
+        Parameters
+        ----------
+        thedict : dict
+            Dictionary from the ``save()`` method above.
+
+        Return
+        ------
+        rescaler: instance of RescaleIntenisty
+
+        """
+        log.info('')
+
+        if not thedict['cutout_processing_type'] == Rotate._cutout_processing_name,
+            raise Exception('wrong data processing type {} for rescale_intensity')
+
+        return Rotate(angle=thedict['parameters']['angle'])
+
+    def process(self, numpy_data):
+        """
+        Process the input numpy data to rescale the intenisity.
+
+        Parameters
+        ----------
+        numpy_data : numpy array
+            The image of data to process.
+
+        Return
+        ------
+        processed_data : numpy array
+            processed array of data, same size as input
+
+        """
+        log.info('rotate')
+        return scipy.ndimage.interpolation.rotate(numpy_data, self._angle)
+
+
+class FlipLR(CutoutProcessing):
+
+    _cutout_processing_name = 'fliplr'
+
+    def __init__(self):
+        """
+        Initializer for an image Flip left/right
+
+        """
+        pass
+
+    def __str__(self):
+        return 'Flip LR'
+
+    def save(self):
+        """
+        Save the class to a dict
+
+        Return
+        ------
+        thdict : dict
+            Parameters to re-create this instance.
+
+        """
+        log.info('')
+        return {
+            'cutout_processing_type': FlipLR._cutout_processing_name,
+            'parameters': {
+            }
+        }
+
+    @staticmethod
+    def load(thedict):
+        """
+        Load the parameters from a dict.
+
+        Parameters
+        ----------
+        thedict : dict
+            Dictionary from the ``save()`` method above.
+
+        Return
+        ------
+        rescaler: instance of RescaleIntenisty
+
+        """
+        log.info('')
+
+        if not thedict['cutout_processing_type'] == FlipLR._cutout_processing_name,
+            raise Exception('wrong data processing type {} for rescale_intensity')
+
+        return FlipLR()
+
+    def process(self, numpy_data):
+        """
+        Process the input numpy data to rescale the intenisity.
+
+        Parameters
+        ----------
+        numpy_data : numpy array
+            The image of data to process.
+
+    Return
+    ------
+        processed_data : numpy array
+            processed array of data, same size as input
+
+        """
+        log.info('fliplr')
+        return numpy_data[:, ::-1]
+
+
+class FlipUD(CutoutProcessing):
+
+    _cutout_processing_name = 'flipud'
+
+    def __init__(self):
+        """
+        Initializer for an image Flip up/down.
+
+        """
+        pass
+
+    def __str__(self):
+        return 'Flip UD'
+
+    def save(self):
+        """
+        Save the class to a dict
+
+        Return
+        ------
+        thdict : dict
+            Parameters to re-create this instance.
+
+        """
+        log.info('')
+        return {
+            'cutout_processing_type': FlipUD._cutout_processing_name,
+            'parameters': {
+            }
+        }
+
+    @staticmethod
+    def load(thedict):
+        """
+        Load the parameters from a dict.
+
+        Parameters
+        ----------
+        thedict : dict
+            Dictionary from the ``save()`` method above.
+
+        Return
+        ------
+        rescaler: instance of RescaleIntenisty
+
+        """
+        log.info('')
+
+        if not thedict['cutout_processing_type'] == FlipUD._cutout_processing_name,
+            raise Exception('wrong data processing type {} for rescale_intensity')
+
+        return FlipLR()
+
+    def process(self, numpy_data):
+        """
+        Process the input numpy data to rescale the intenisity.
+
+        Parameters
+        ----------
+        numpy_data : numpy array
+            The image of data to process.
+
+        Return
+        ------
+        processed_data : numpy array
+            Numpy array flipped up/down.
+
+        """
+        log.info('flipud')
+        return numpy_data[::-1]
+
+
 class RescaleIntensity(CutoutProcessing):
 
     def __init__(self, lower_percentile=2, upper_percentile=98):
