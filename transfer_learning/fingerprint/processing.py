@@ -4,7 +4,7 @@ import numpy as np
 import weakref
 
 from transfer_learning.utils import gray2rgb
-from transfer_learning.fingerprint.fingerprint import Fingerprint
+from transfer_learning.fingerprint.fingerprint import Fingerprint, FingerprintCollection
 from transfer_learning.cutout import Cutout, CutoutCollection
 
 from ..tl_logging import get_logger
@@ -24,16 +24,11 @@ def calculate(cutouts, fc_save, task=None):
         log.error('Data must be a list of dictionaries')
         raise Exception('Data must be a list of dictionaries')
 
-#    deserialize = False
-#    if isinstance(cutouts[0], dict):
-#        data = [Cutout.data_factory(x) for x in data]
-#        deserialize = True
-
     # Load the fingerprint calculator based on dictionary information
     fc = FingerprintCalculator.load_parameters(fc_save)
 
     # Now run through each datum and calculate the fingerprint
-    fingerprints_return = []
+    fingerprints_collection = FingerprintCollection()
     for ii, cutout in enumerate(cutouts):
 
         # Update the progress if we are using the task version of this.
@@ -57,12 +52,10 @@ def calculate(cutouts, fc_save, task=None):
         log.info('calculated fingerprints {}'.format(cleaned_predictions[:10]))
 
         # Load up the return list.
-        fingerprints_return.append(Fingerprint(cutout=cutout, predictions=cleaned_predictions))
+        fingerprints_collection.add(Fingerprint(cutout=cutout, predictions=cleaned_predictions))
 
-#    if deserialize == True:
-#        fingerprints_return = [x.save() for x in fingerprints_return]
 
-    return fingerprints_return
+    return fingerprints_collection
 
 
 class FingerprintCalculator:

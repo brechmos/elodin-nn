@@ -78,6 +78,18 @@ class DataCollection(object):
     def __getitem__(self, index):
         return DataCollection._collection[self._collection[index]]
 
+    def __iter__(self):
+        self.__collection_pos__ = 0
+        return self
+
+    def __next__(self):
+
+        if self.__collection_pos__ >= len(self._collection):
+            raise StopIteration
+        d = DataCollection._collection[self._collection[self.__collection_pos__]]
+        self.__collection_pos__ = self.__collection_pos__ + 1
+        return d
+
     #
     # Public methods
     #
@@ -98,22 +110,6 @@ class DataCollection(object):
 
         # Add to this collection.
         self._collection.append(data.uuid)
-
-    #
-    # Iterator over the collection
-    #
-
-    def __iter__(self):
-        self.__collection_pos__ = 0
-        return self
-
-    def __next__(self):
-
-        if self.__collection_pos__ >= len(self._collection):
-            raise StopIteration
-        d = DataCollection._collection[self._collection[self.__collection_pos__]]
-        self.__collection_pos__ = self.__collection_pos__ + 1
-        return d
 
     #
     # Save and load
