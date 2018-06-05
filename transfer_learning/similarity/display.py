@@ -97,7 +97,7 @@ class SimilarityDisplay(object):
             fingerprint = close_fingerprint[0]['fingerprint']
 
             # For now going to not stop the display as it seemed to be causing issues.
-            if (not fingerprint.uuid == self._current_image_axis_fingerprint_uuid):
+            if True or (not fingerprint.uuid == self._current_image_axis_fingerprint_uuid):
                 try:
                     log.debug('going to show fingerprint {}'.format(fingerprint.uuid))
                     self._current_image_axis_fingerprint_uuid = fingerprint.uuid
@@ -120,6 +120,7 @@ class SimilarityDisplay(object):
                         current_text_display += '{} {:.3}\n'.format(p[1], p[2])
                     self._current_image_text_axis_text.set_text(current_text_display)
 
+                    self._figure.canvas.blit(self._current_image_text_axis.bbox)
                     self._current_image_axis.imshow_cutout(cutout)
 
                     #
