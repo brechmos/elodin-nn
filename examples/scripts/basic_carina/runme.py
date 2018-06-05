@@ -16,13 +16,6 @@ fc_save = FingerprintCalculatorResnet().save()
 config = ConfigParser()
 config.read('config.ini')
 
-# Create the database
-print('Going to setup the database in {}'.format(config['database']['filename']))
-
-if os.path.isdir(config['database']['filename']):
-    shutil.rmtree(config['database']['filename'])
-db = get_database(config['database']['type'], config['database']['filename'])
-
 #
 # Load the data
 #
@@ -42,7 +35,7 @@ dc.add(image_data)
 #
 print('Going to calculate the sliding window cutouts')
 sliding_window_cutouts = BasicCutoutGenerator(output_size=224,
-                                              step_size=350)
+                                              step_size=550)
 cc = CutoutCollection()
 
 for cutout in sliding_window_cutouts.create_cutouts(image_data):

@@ -1,4 +1,3 @@
-from transfer_learning.cutout import Cutout
 from transfer_learning.database import get_database
 from transfer_learning.similarity.display import SimilarityDisplay
 

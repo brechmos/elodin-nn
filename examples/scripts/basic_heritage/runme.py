@@ -1,6 +1,4 @@
-import os
 import glob
-import shutil
 import pickle
 from configparser import ConfigParser
 
@@ -10,7 +8,6 @@ from transfer_learning.similarity.similarity import calculate as similarity_calc
 from transfer_learning.data import Data, DataCollection
 from transfer_learning.cutout import CutoutCollection
 from transfer_learning.cutout.generators import BasicCutoutGenerator
-from transfer_learning.database import get_database
 
 fc_save = FingerprintCalculatorResnet().save()
 
@@ -28,6 +25,11 @@ print('Going to load the HST Heritage data')
 data = DataCollection()
 cutouts = CutoutCollection()
 for filename in glob.glob('../../data/heritage/*.???'):
+
+    #
+    # Load the data
+    #
+
     print('   processing {}'.format(filename))
     image_data = Data(location=filename, radec=(-32, 12), meta={})
     image_data.get_data()
@@ -50,9 +52,10 @@ fingerprints = fingerprint_calculate(cutouts, fc_save)
 #
 print('Calculating the tSNE similarity')
 similarity_tsne = similarity_calculate(fingerprints, 'tsne')
-
 with open('similarity_tsne.pck', 'wb') as fp:
     pickle.dump(similarity_tsne.save(), fp)
 
-# print('Calculating the jaccard similarity')
-# similarity_jaccard = similarity_calculate(fingerprints, 'jaccard')
+print('Calculating the Jaccard similarity')
+similarity_jaccard = similarity_calculate(fingerprints, 'jaccard')
+with open('similarity_jaccard.pck', 'wb') as fp:
+    pickle.dump(similarity_jaccard.save(), fp)
