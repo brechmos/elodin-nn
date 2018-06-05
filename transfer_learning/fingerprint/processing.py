@@ -54,7 +54,6 @@ def calculate(cutouts, fc_save, task=None):
         # Load up the return list.
         fingerprints_collection.add(Fingerprint(cutout=cutout, predictions=cleaned_predictions))
 
-
     return fingerprints_collection
 
 

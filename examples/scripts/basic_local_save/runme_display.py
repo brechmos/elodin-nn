@@ -1,3 +1,4 @@
+import pickle
 from transfer_learning.cutout import Cutout
 from transfer_learning.database import get_database
 from transfer_learning.similarity import Similarity
@@ -8,8 +9,12 @@ from configparser import ConfigParser
 config = ConfigParser()
 config.read('config.ini')
 
-with open('/tmp/orig.json', 'rt') as fp:
-    similarity_tsne_dict = json.load(fp)
+#
+# Load the data
+#
 
-similarity_tsne = Similarity.factory(similarity_tsne_dict)
+with open('similarity_tsne.pck', 'rb') as fp:
+    similarity_tsne_dict = pickle.load(fp)
+    similarity_tsne = Similarity.factory(similarity_tsne_dict)
+
 sd = SimilarityDisplay(similarity_tsne)
