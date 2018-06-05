@@ -52,7 +52,7 @@ print('Calculating the tSNE similarity')
 similarity_tsne = similarity_calculate(fingerprints, 'tsne')
 
 with open('similarity_tsne.pck', 'wb') as fp:
-    pickle.dump(similarity_tsne, fp)
+    pickle.dump(similarity_tsne.save(), fp)
 
 # print('Calculating the jaccard similarity')
 # similarity_jaccard = similarity_calculate(fingerprints, 'jaccard')
