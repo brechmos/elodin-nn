@@ -1,5 +1,7 @@
 import uuid
 
+from cachetools.func import lru_cache
+
 from transfer_learning.data import Data
 from transfer_learning.misc.image_processing import ImageProcessing
 
@@ -29,7 +31,7 @@ class CutoutCollection(object):
         # to store it as a dictionary so the UUID lookup is faster.
         #
 
-        if isinstance(cutouts, list) and isinstance(cutouts[0], Cutout):
+        if isinstance(cutouts, list) and len(cutouts) > 0 and isinstance(cutouts[0], Cutout):
 
             # Store the UUIDs
             self._collection = [x.uuid for x in cutouts]
@@ -43,7 +45,7 @@ class CutoutCollection(object):
         # store them.
         #
 
-        elif isinstance(cutouts, list) and isinstance(cutouts[0], str):
+        elif isinstance(cutouts, list) and len(cutouts) > 0 and isinstance(cutouts[0], str):
 
             # Store the UUIDs
             self._collection = [x for x in cutouts]
@@ -132,9 +134,12 @@ class Cutout(object):
 
     @staticmethod
     def factory(parameter):
-        cutout = Cutout()
-        cutout.load(parameter)
-        return cutout
+        if parameter['uuid'] in CutoutCollection._collection:
+            return CutoutCollection._collection[parameter['uuid']]
+        else:
+            cutout = Cutout()
+            cutout.load(parameter)
+            return cutout
 
     def __init__(self, data=None, bounding_box=None, generator_parameters=None,
                  cutout_processing=None, uuid_in=None):
@@ -295,7 +300,35 @@ class Cutout(object):
 
         return cutout
 
+    @lru_cache(maxsize=1024)
     def get_data(self):
+        """
+        Retrieve the data
+
+        Return
+        ------
+        data : numpy array
+            cutout data, with any processing
+        """
+        log.info('')
+
+        #
+        # Cache the original data if not already set.
+        #
+
+        bb = self._bounding_box
+        data = self._data.get_data()[bb[0]:bb[1], bb[2]:bb[3]]
+
+        #
+        # Apply the processing
+        #
+
+        for processing in self._cutout_processing:
+            data = processing.process(data)
+
+        return data
+
+    def get_data_OLD(self):
         """
         Retrieve the data
 

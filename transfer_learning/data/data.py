@@ -5,6 +5,7 @@ from io import BytesIO
 import numpy as np
 import imageio
 import requests
+from cachetools.func import lru_cache
 
 from ..misc.image_processing import ImageProcessing
 
@@ -13,6 +14,10 @@ log = get_logger('data')
 
 
 def stringify(dictionary):
+    """
+    Used to make everything a string in the value part of the
+    dict.  A couple things in meta were not, so needed this.
+    """
     return {k: str(v) for k, v in dictionary.items()}
 
 
@@ -32,13 +37,13 @@ class DataCollection(object):
 
     def __init__(self, datas=None):
 
+        self._uuid = str(uuid.uuid4)
+
         #
         #  The local _collection is a list of UUIDs to get
         #  the actual info, need to do a lookup into the
         #  static _collection.
         #
-
-        self._uuid = str(uuid.uuid4)
 
         if datas is not None and isinstance(datas, list):
 
@@ -48,8 +53,10 @@ class DataCollection(object):
             # Set into main dictionary
             for data in datas:
                 DataCollection._collection[data.uuid] = data
+
         elif datas is not None and isinstance(datas, DataCollection):
-            self._collection = [x for x in datas._collection]
+            self._collection = datas._collection.copy()
+
         else:
             self._collection = []
 
@@ -76,14 +83,22 @@ class DataCollection(object):
         return len(self._collection)
 
     def __getitem__(self, index):
+        """
+        Used for indexing.
+        """
         return DataCollection._collection[self._collection[index]]
 
     def __iter__(self):
+        """
+        Used for 'for' loops
+        """
         self.__collection_pos__ = 0
         return self
 
     def __next__(self):
-
+        """
+        Used for 'for' loops
+        """
         if self.__collection_pos__ >= len(self._collection):
             raise StopIteration
         d = DataCollection._collection[self._collection[self.__collection_pos__]]
@@ -105,7 +120,8 @@ class DataCollection(object):
         Add a data into the collection.
         """
 
-        # Add to the main collection.
+        # Add to the main collection. Essentially an update
+        # if it already exists in the data collection
         DataCollection._collection[data.uuid] = data
 
         # Add to this collection.
@@ -136,9 +152,13 @@ class Data:
 
     @staticmethod
     def factory(parameter):
-        data = Data()
-        data.load(parameter)
-        return data
+
+        if parameter['uuid'] in DataCollection._collection:
+            return DataCollection._collection[parameter['uuid']]
+        else:
+            data = Data()
+            data.load(parameter)
+            return data
 
     def __init__(self, location='', processing=None, radec=(), meta={}, uuid_in=None):
         """
@@ -316,7 +336,70 @@ class Data:
         data_out[:, :, 2] = data
         return data_out
 
+    @lru_cache(maxsize=1024)
     def get_data(self):
+        """
+        Retrieve the numpy array of data
+
+        :return: 2D or 3D data array
+        """
+        log.info('Retrieving data...')
+
+        # If we have the data already loaded then don't
+        # need to reload all the data.
+
+        log.debug('Data is not cached, so will need to load it')
+        regex = r".*[jpg|tif|tiff]$"
+
+        #
+        # Load the dataset from a URL
+        #
+
+        if 'http' in self.location:
+            success = True
+            try:
+                response = requests.get(self.location)
+            except requests.exceptions.RequestException as e:
+                success = False
+
+            if not response.status_code == 200 or not success:
+                log.error('Problem loading the data {}'.format(self.location))
+                raise Exception('Problem loading the data {}'.format(self.location))
+
+            data = np.array(imageio.imread(BytesIO(response.content)))
+
+        #
+        # Load a local dataset.
+        #
+
+        elif re.match(regex, self.location):
+            data = np.array(imageio.imread(self.location))
+
+        #
+        # Unknown dataset - raise an exception
+        #
+
+        else:
+            log.error('Unknown file type of file {}'.format(self.location))
+            raise Exception('Unknown type of file {}'.format(self.location))
+
+        #
+        # Apply the processing and store in the cached data
+        #
+
+        for processor in self._processing:
+            data = processor.process(data)
+
+        #
+        # If 2D, make 3D
+        #
+
+        if len(data.shape) == 2:
+            data = self._gray2rgb(data)
+
+        return data 
+
+    def get_data_OLD(self):
         """
         Retrieve the numpy array of data
 
