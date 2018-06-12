@@ -9,7 +9,8 @@ from scipy.spatial.distance import pdist, squareform
 from transfer_learning.fingerprint import Fingerprint
 
 from ..tl_logging import get_logger
-log = get_logger('similarity')
+import logging
+log = get_logger('similarity', level=logging.DEBUG)
 
 
 def calculate(fingerprints, similarity_calculator, serialize_output=False):
@@ -108,6 +109,10 @@ class Similarity:
 
         self._similarity_collection[self._uuid] = self
 
+        # These are the inds that will be used in the return
+        # If empty, then send all.
+        self._fingerprint_filter_inds = []
+
     def __str__(self):
         return 'Similarity {} based on {}...'.format(
                 self._similarity_type, self._fingerprint_uuids[:3])
@@ -177,6 +182,40 @@ class Similarity:
     def load(self, thedict):
         raise Exception('load function must be defined in subclass')
 
+    def set_filter_fingerprints(self, thelist):
+        """
+        Return a list of all indices that match the string items
+        in the list.
+
+        Currently this is just an inclusive thing but in the future
+        might need to change to have exclusion as well.
+
+        Parameters
+        -----------
+        thelist : list
+            List of strings of things to look for in the meta.
+
+        """
+        log.info('list is {}'.format(thelist))
+
+        #
+        # If nothing in the list, then show everything
+        #
+
+        if not thelist:
+            self._fingerprint_filter_inds = list(range(len(self._fingerprints)))
+
+        #
+        # Otherwise how a subset.
+        #
+
+        else:
+            # This is the meat of the filtering, and rgith now just looks to see
+            # if any of the string elements in "thelist" are found within some
+            # subset of the value of the meta in data.
+            self._fingerprint_filter_inds = [ii for ii, f in enumerate(self._fingerprints)
+                                             if any([tl in m for tl in thelist for k, m in f.cutout.data.meta.items()])]
+
 
 class tSNE(Similarity):
 
@@ -227,6 +266,17 @@ class tSNE(Similarity):
             'l2': lambda Y, point: np.sqrt(np.sum((Y - np.array(point))**2, axis=1)),
             'l1': lambda Y, point: np.sum(np.abs((Y - np.array(point)), axis=1)),
         }
+
+    @property
+    def data(self):
+        return self._Y
+
+    @property
+    def data_filtered(self):
+        if self._fingerprint_filter_inds:
+            return self._Y[self._fingerprint_filter_inds]
+        else:
+            return self._Y
 
     #
     #  Calculation Methods
@@ -499,12 +549,26 @@ class tSNE(Similarity):
         list
             List of dicts that describe the closest fingerprints.
         """
-        log.info('Searching based on point {}'.format(point))
-        distances = self._distance_measures[self._distance_measure](self._Y, point)
-        log.debug('There are {} distances'.format(len(distances)))
-        inds = np.argsort(distances)
-        log.debug(inds)
+        log.info('')
 
+        if not self._fingerprint_filter_inds:
+            self._fingerprint_filter_inds = list(range(len(self._fingerprints)))
+
+        log.debug('Calling calculate distances')
+        distances = self._distance_measures[self._distance_measure](self._Y, point)
+
+        log.debug('Filtering based, n distances {}  n filter_inds {}'.format(len(distances), len(self._fingerprint_filter_inds)))
+        #inds = [ind for ind in np.argsort(distances) if ind in self._fingerprint_filter_inds]
+
+        inds = []
+        for ind in np.argsort(distances):
+            if ind in self._fingerprint_filter_inds:
+                inds.append(ind)
+                if len(inds) == n:
+                    break
+
+        # Now we want to look only in the "search_inds" if that is passed in
+        log.debug('Returning data')
         return [{
                     'tsne_point': self._Y[ind],
                     'distance': distances[ind],
@@ -512,14 +576,70 @@ class tSNE(Similarity):
                 } for ind in inds[:n]]
 
     def cutout_point(self, cutout):
-        log.info('')
+        """
+        Given a cutout (and therefore a fingerprint), find the point in the
+        tSNE plot that it corresponds to.
 
-        log.debug('There are {} fingerprints to check'.format(len(self._fingerprints)))
+        Parameters
+        -----------
+        cutout : Cutout
+            The cutout we want to find.
+
+        Return
+        ------
+        tSNE point: tuple
+            Point in the tSNE space the cutout corresponds to
+        """
+        log.info('cutout {}'.format(cutout))
+
         index = [fingerprint.cutout.uuid for fingerprint in self._fingerprints].index(cutout.uuid)
-        log.debug('The index is {}'.format(index))
-
         return self._Y[index]
 
+    def closest_cutout(self, data, point):
+        """
+        Given a cutout (and therefore a fingerprint), find the point in the
+        tSNE plot that it corresponds to.
+
+        Parameters
+        -----------
+        cutout : Cutout
+            The cutout we want to find.
+
+        Return
+        ------
+        tSNE point: tuple
+            Point in the tSNE space the cutout corresponds to
+        """
+        log.info('data {}  point {}'.format(data, point))
+
+        #
+        # Get the cutouts assocated with the data passed in.
+        #
+
+        cutouts = [fingerprint.cutout for fingerprint in self._fingerprints if fingerprint.cutout.data == data]
+
+        #
+        # Compute distance between cutout bounding boxes centers and the point.
+        #
+
+        distances = [self._bounding_box_distance(c.bounding_box, point) for c in cutouts]
+
+        #
+        # Find the smallest.
+        #
+
+        index = np.argsort(distances)[0]
+
+        log.debug('Closest cutout is with bb {} and dist {}'.format(cutouts[index].bounding_box, distances[index]))
+
+        return cutouts[index]
+
+    def _bounding_box_distance(self, bounding_box, point):
+        log.info('bb {} point {}'.format(bounding_box, point))
+        center = ((bounding_box[0]+bounding_box[1])/2.0, (bounding_box[2]+bounding_box[3])/2.0)
+        distance = np.sqrt((center[0]-point[1])**2+(center[1]-point[0])**2)
+        log.debug('    distance is {}'.format(distance))
+        return distance
 
 class Jaccard(Similarity):
     """
@@ -554,6 +674,10 @@ class Jaccard(Similarity):
         # Top n_predictions to use in the jaccard comparison
         # TODO: This might be good to be a funciton of # of fingerprints (?)
         self._n_predictions = 10
+
+    @property
+    def data(self):
+        return self._fingerprint_adjacency
 
     #
     # Calculation Methods
@@ -703,6 +827,10 @@ class Distance(Similarity):
             raise TypeError('Metric needs to be a string')
 
         self._metric = metric
+
+    @property
+    def data(self):
+        return self._fingerprint_adjacency
 
     @classmethod
     def is_similarity_for(cls, similarity_type):
