@@ -380,6 +380,18 @@ class BlobCutoutGenerator:
         NDDataArray
         """
 
+        if isinstance(data, Data):
+            return self._create_cutouts_data(data, cutout_processing)
+        else:
+            cutout_collection = CutoutCollection()
+
+            for datum in data:
+                cutout_collection += self._create_cutouts_data(datum, cutout_processing)
+
+        return cutout_collection
+
+    def _create_cutouts_data(self, data, cutout_processing=None):
+
         #
         # Find the blobs - make gray scale, smooth, find blobs, then label them
         #
