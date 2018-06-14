@@ -1,3 +1,4 @@
+import ast
 import weakref
 import uuid
 import itertools
@@ -182,7 +183,7 @@ class Similarity:
     def load(self, thedict):
         raise Exception('load function must be defined in subclass')
 
-    def set_filter_fingerprints(self, thelist):
+    def set_filter_fingerprints(self, thefilter):
         """
         Return a list of all indices that match the string items
         in the list.
@@ -196,13 +197,13 @@ class Similarity:
             List of strings of things to look for in the meta.
 
         """
-        log.info('list is {}'.format(thelist))
+        log.info('list is {}'.format(thefilter))
 
         #
         # If nothing in the list, then show everything
         #
 
-        if not thelist:
+        if len(thefilter) == 0:
             self._fingerprint_filter_inds = list(range(len(self._fingerprints)))
 
         #
@@ -213,8 +214,76 @@ class Similarity:
             # This is the meat of the filtering, and rgith now just looks to see
             # if any of the string elements in "thelist" are found within some
             # subset of the value of the meta in data.
-            self._fingerprint_filter_inds = [ii for ii, f in enumerate(self._fingerprints)
-                                             if any([tl in m for tl in thelist for k, m in f.cutout.data.meta.items()])]
+
+            metas = [dict(list(x.cutout.data.meta.items())+[('id_number', ii)])
+                     for ii, x in enumerate(self._fingerprints)]
+
+            filtered_metas = self._eval_expr(thefilter, metas)
+            self._fingerprint_filter_inds = [x['id_number'] for x in filtered_metas]
+
+    def _eval_expr(self, expr, tdict):
+        return self.eval_(ast.parse(expr, mode='eval').body, tdict)
+
+    def eval_(self, node, tdict):
+        if isinstance(node, ast.Num):  # <number>
+            return node.n
+
+        elif isinstance(node, ast.Str):  # <operator> <operand> e.g., -1
+            return node.s
+
+        elif isinstance(node, ast.Compare):  # <operator> <operand> e.g., -1
+            if isinstance(node.ops[0], ast.Eq):
+                return [x for x in tdict if x[str(node.left.id)] == self.eval_(node.comparators[0], tdict)]
+
+            elif isinstance(node.ops[0], ast.Gt):
+                tocompare = self.eval_(node.comparators[0], tdict)
+                if isinstance(tocompare, (int, float)):
+                    cast = float
+                else:
+                    cast = str
+                return [x for x in tdict if cast(x[str(node.left.id)]) > tocompare]
+
+            elif isinstance(node.ops[0], ast.Lt):
+                tocompare = self.eval_(node.comparators[0], tdict)
+                if isinstance(tocompare, (int, float)):
+                    cast = float
+                else:
+                    cast = str
+                return [x for x in tdict if cast(x[str(node.left.id)]) < tocompare]
+
+            elif isinstance(node.ops[0], ast.GtE):
+                tocompare = self.eval_(node.comparators[0], tdict)
+                if isinstance(tocompare, (int, float)):
+                    cast = float
+                else:
+                    cast = str
+                return [x for x in tdict if cast(x[str(node.left.id)]) >= tocompare]
+
+            elif isinstance(node.ops[0], ast.LtE):
+                tocompare = self.eval_(node.comparators[0], tdict)
+                if isinstance(tocompare, (int, float)):
+                    cast = float
+                else:
+                    cast = str
+                return [x for x in tdict if cast(x[str(node.left.id)]) <= tocompare]
+
+            elif isinstance(node.ops[0], ast.In):
+                return [x for x in tdict if str(node.left.s) in x[node.comparators[0].id]]
+
+        elif isinstance(node, ast.BoolOp):  # <operator> <operand> e.g., -1
+
+            if isinstance(node.op, ast.And):
+                left_list = self.eval_(node.values[0], tdict)
+                right_list = self.eval_(node.values[1], tdict)
+                return [x for x in left_list if x in right_list]
+
+            if isinstance(node.op, ast.Or):
+                left_list = self.eval_(node.values[0], tdict)
+                right_list = self.eval_(node.values[1], tdict)
+                return left_list + [x for x in right_list if not x in left_list]
+
+        else:
+            raise TypeError(node)
 
 
 class tSNE(Similarity):
@@ -274,6 +343,7 @@ class tSNE(Similarity):
     @property
     def data_filtered(self):
         if self._fingerprint_filter_inds:
+            print(self._fingerprint_filter_inds)
             return self._Y[self._fingerprint_filter_inds]
         else:
             return self._Y
@@ -679,6 +749,13 @@ class Jaccard(Similarity):
     def data(self):
         return self._fingerprint_adjacency
 
+    @property
+    def data_filtered(self):
+        if self._fingerprint_filter_inds:
+            return self._fingerprint_adjacency[self._fingerprint_filter_inds, self._fingerprint_filter_inds]
+        else:
+            return self._fingerprint_adjacency
+
     #
     # Calculation Methods
     #
@@ -777,7 +854,77 @@ class Jaccard(Similarity):
         log.debug('Closest indexes are {}'.format(inds[:n]))
         log.debug('Size of the fingerprint list {}'.format(len(self._fingerprints)))
 
-        return [((row, ind), distances[ind], self._fingerprints[ind]) for ind in inds[:n]]
+        return [{
+                    'tsne_point': self._fingerprint_adjacency[ind],
+                    'distance': distances[ind],
+                    'fingerprint': self._fingerprints[ind]
+                } for ind in inds[:n]]
+
+    def cutout_point(self, cutout):
+        """
+        Given a cutout (and therefore a fingerprint), find the point in the
+        tSNE plot that it corresponds to.
+
+        Parameters
+        -----------
+        cutout : Cutout
+            The cutout we want to find.
+
+        Return
+        ------
+        tSNE point: tuple
+            Point in the tSNE space the cutout corresponds to
+        """
+        log.info('cutout {}'.format(cutout))
+
+        index = [fingerprint.cutout.uuid for fingerprint in self._fingerprints].index(cutout.uuid)
+        return (index,0)
+
+    def closest_cutout(self, data, point):
+        """
+        Given a cutout (and therefore a fingerprint), find the point in the
+        tSNE plot that it corresponds to.
+
+        Parameters
+        -----------
+        cutout : Cutout
+            The cutout we want to find.
+
+        Return
+        ------
+        tSNE point: tuple
+            Point in the tSNE space the cutout corresponds to
+        """
+        log.info('data {}  point {}'.format(data, point))
+
+        #
+        # Get the cutouts assocated with the data passed in.
+        #
+
+        cutouts = [fingerprint.cutout for fingerprint in self._fingerprints if fingerprint.cutout.data == data]
+
+        #
+        # Compute distance between cutout bounding boxes centers and the point.
+        #
+
+        distances = [self._bounding_box_distance(c.bounding_box, point) for c in cutouts]
+
+        #
+        # Find the smallest.
+        #
+
+        index = np.argsort(distances)[0]
+
+        log.debug('Closest cutout is with bb {} and dist {}'.format(cutouts[index].bounding_box, distances[index]))
+
+        return cutouts[index]
+
+    def _bounding_box_distance(self, bounding_box, point):
+        log.info('bb {} point {}'.format(bounding_box, point))
+        center = ((bounding_box[0]+bounding_box[1])/2.0, (bounding_box[2]+bounding_box[3])/2.0)
+        distance = np.sqrt((center[0]-point[1])**2+(center[1]-point[0])**2)
+        log.debug('    distance is {}'.format(distance))
+        return distance
 
     #
     #  Utility Methods
@@ -789,7 +936,7 @@ class Jaccard(Similarity):
             'uuid': self._uuid,
             'similarity_type': self._similarity_type,
             'similarity': self._fingerprint_adjacency.tolist(),
-            'fingerprint_uuids': [fp.uuid for fp in self._fingerprints],
+            'fingerprint': [fp.save() for fp in self._fingerprints],
             'parameters': {
             }
         }
@@ -799,11 +946,9 @@ class Jaccard(Similarity):
         self._uuid = thedict['uuid']
         self._similarity_type = thedict['similarity_type']
         self._fingerprint_adjacency = np.array(thedict['similarity'])
-        self._fingerprint_uuids = thedict['fingerprint_uuids']
+        self._fingerprints = [Fingerprint.factory(x) for x in thedict['fingerprint']]
         self._parameters = thedict['parameters']
 
-        if db is not None:
-            self._fingerprints = [Fingerprint.factory(thedict['fingerprint_uuids'], db)]
 
 class Distance(Similarity):
     """
@@ -831,6 +976,13 @@ class Distance(Similarity):
     @property
     def data(self):
         return self._fingerprint_adjacency
+
+    @property
+    def data_filtered(self):
+        if self._fingerprint_filter_inds:
+            return self._fingerprint_adjacency[self._fingerprint_filter_inds, self._fingerprint_filter_inds]
+        else:
+            return self._fingerprint_adjacency
 
     @classmethod
     def is_similarity_for(cls, similarity_type):
@@ -903,7 +1055,11 @@ class Distance(Similarity):
         # TOOD: At this point this is assuming smallest distance is the best.
         inds = np.argsort(distances)
 
-        return [((row, ind), distances[ind], self._fingerprints[ind]) for ind in inds[:n]]
+        return [{
+                    'tsne_point': self._fingerprint_adjacency[ind],
+                    'distance': distances[ind],
+                    'fingerprint': self._fingerprints[ind]
+                } for ind in inds[:n]]
 
     #
     #  Utility Methods
@@ -924,8 +1080,8 @@ class Distance(Similarity):
     def load(self, thedict, db=None):
         log.info('Loading the dictionary of information')
         self._uuid = thedict['uuid']
-        self._fingerprint_adjacency = np.array(thedict['similarity_type'])
-        self._Y = np.array(thedict['similarity'])
-        self._fingerprint = [Fingerprint.factory(x) for x in thedict['fingerprint']]
+        self._similarity_type = thedict['similarity_type']
+        self._fingerprint_adjacency = np.array(thedict['similarity'])
+        self._fingerprints = [Fingerprint.factory(x) for x in thedict['fingerprint']]
         self._parameters = thedict['parameters']
         self._metric = self._parameters['metric']
