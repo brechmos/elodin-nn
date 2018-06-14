@@ -190,10 +190,13 @@ class Fingerprint(object):
 
     @staticmethod
     def factory(parameter):
-        cutout = Cutout.factory(parameter['cutout'])
-        return Fingerprint(cutout=cutout,
-                           predictions=parameter['predictions'],
-                           uuid_in=parameter['uuid'])
+        if parameter['uuid'] in FingerprintCollection._collection:
+            return FingerprintCollection._collection[parameter['uuid']]
+        else:
+            cutout = Cutout.factory(parameter['cutout'])
+            return Fingerprint(cutout=cutout,
+                               predictions=parameter['predictions'],
+                               uuid_in=parameter['uuid'])
 
     def __init__(self, cutout_uuid=None, cutout=None, predictions=[], uuid_in=None):
         if uuid_in is not None:
