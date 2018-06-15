@@ -19,7 +19,7 @@ config.read('config.ini')
 #
 
 print('Going to calculate the sliding window cutouts')
-sliding_window_cutouts = BasicCutoutGenerator(output_size=224, step_size=400)
+sliding_window_cutouts = BasicCutoutGenerator(output_size=224, step_size=224)
 
 print('Going to load the HST Heritage data')
 data = DataCollection()
@@ -38,8 +38,8 @@ for filename in glob.glob('../../data/heritage/*.???'):
     #
     #  Create the cutouts
     #
-    cutouts = cutouts + sliding_window_cutouts.create_cutouts(data)
-    print('created {} cutouts'.format(len(cutouts)))
+    imcutouts = sliding_window_cutouts.create_cutouts(image_data)
+    cutouts = cutouts + imcutouts
 
 #
 #  Compute the fingerprints for each cutout
