@@ -1,6 +1,6 @@
 import pickle
 from transfer_learning.similarity import Similarity
-from transfer_learning.similarity.display import SimilarityDisplay
+from transfer_learning.similarity.qtdisplay import SimilarityDisplay
 
 from configparser import ConfigParser
 config = ConfigParser()
