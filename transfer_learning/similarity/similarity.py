@@ -1,4 +1,5 @@
 import ast
+import operator
 import weakref
 import uuid
 import itertools
@@ -221,6 +222,11 @@ class Similarity:
             filtered_metas = self._eval_expr(thefilter, metas)
             self._fingerprint_filter_inds = [x['id_number'] for x in filtered_metas]
 
+    #
+    # Next section are methods for parsing the fingerprint meta and predictions
+    # for updating the display.
+    #
+
     def _eval_expr(self, expr, tdict):
         return self.eval_(ast.parse(expr, mode='eval').body, tdict)
 
@@ -229,69 +235,96 @@ class Similarity:
         This method determines if the key is a prediction query
         or just a regular meta lookup.
         """
+
+        # Prediction query
         if key.startswith('π'):
             _, k = key.split('π')
             return next((p[2] for p in meta['predictions'] if p[1] == k), None)
+
+        # Meta dictionary lookup
         else:
             return meta[key]
 
+    def _compare(self, op, node, tdict):
+        tocompare = self.eval_(node.comparators[0], tdict)
+        if isinstance(tocompare, (int, float)):
+            cast = float
+        else:
+            cast = str
+        return [x for x in tdict
+                if(self.dp(x, str(node.left.id)) is not None and
+                   op(cast(self.dp(x, str(node.left.id))), cast(self.eval_(node.comparators[0], tdict)))
+                   )
+                ]
+
     def eval_(self, node, tdict):
+        """
+        Recursive node evaulator that was modeled after some code on the
+        internets.
+
+        Parameters
+        -----------
+        node : ast.node.Node
+            A Python AST node.
+
+        tdict : List of dicts
+            List of dictionaries that contain the fingerprint info.
+
+        Raises
+        ------
+        TypeError
+            If there is an error in the parsing of the original query.
+
+        """
+
+        #
+        # Number
+        #
+
         if isinstance(node, ast.Num):  # <number>
             return node.n
 
+        #
+        #  String
+        #
+
         elif isinstance(node, ast.Str):  # <operator> <operand> e.g., -1
             return node.s
+
+        #
+        #  Comparators i.e., > < >= <= ==
+        #
 
         elif isinstance(node, ast.Compare):  # <operator> <operand> e.g., -1
             if isinstance(node.ops[0], ast.Eq):
                 return [x for x in tdict if x[str(node.left.id)] == self.eval_(node.comparators[0], tdict)]
 
-            #
-            # Greater than
-            #
             elif isinstance(node.ops[0], ast.Gt):
-                tocompare = self.eval_(node.comparators[0], tdict)
-                if isinstance(tocompare, (int, float)):
-                    cast = float
-                else:
-                    cast = str
-                return [x for x in tdict
-                        if self.dp(x, str(node.left.id)) is not None and self.dp(x, str(node.left.id)) > self.eval_(node.comparators[0], tdict)]
+                return self._compare(operator.gt, node, tdict)
 
-            #
-            # Less than
-            #
             elif isinstance(node.ops[0], ast.Lt):
-                tocompare = self.eval_(node.comparators[0], tdict)
-                if isinstance(tocompare, (int, float)):
-                    cast = float
-                else:
-                    cast = str
-                return [x for x in tdict
-                        if self.dp(x, str(node.left.id)) is not None and self.dp(x, str(node.left.id)) < self.eval_(node.comparators[0], tdict)]
+                return self._compare(operator.lt, node, tdict)
 
             elif isinstance(node.ops[0], ast.GtE):
-                tocompare = self.eval_(node.comparators[0], tdict)
-                if isinstance(tocompare, (int, float)):
-                    cast = float
-                else:
-                    cast = str
-                return [x for x in tdict
-                        if self.dp(x, str(node.left.id)) is not None and self.dp(x, str(node.left.id)) >= self.eval_(node.comparators[0], tdict)]
+                return self._compare(operator.gte, node, tdict)
 
             elif isinstance(node.ops[0], ast.LtE):
-                tocompare = self.eval_(node.comparators[0], tdict)
-                if isinstance(tocompare, (int, float)):
-                    cast = float
-                else:
-                    cast = str
-                return [x for x in tdict
-                        if self.dp(x, str(node.left.id)) is not None and self.dp(x, str(node.left.id)) <= self.eval_(node.comparators[0], tdict)]
+                return self._compare(operator.lte, node, tdict)
 
             elif isinstance(node.ops[0], ast.In):
                 return [x for x in tdict if str(node.left.s) in x[node.comparators[0].id]]
 
+        #
+        #  Boolean operators i.e.,  And and Or
+        #
+
         elif isinstance(node, ast.BoolOp):  # <operator> <operand> e.g., -1
+
+            #
+            # And
+            #  Creating sets would be great, but dictionaries aren't hashable
+            #  so had to do this based on an 'id_number' being injected into the dicts
+            #
 
             if isinstance(node.op, ast.And):
                 """
@@ -315,12 +348,17 @@ class Similarity:
 
                 return [x for x in li if x['id_number'] in u]
 
+            #
+            # Or
+            #
+
             if isinstance(node.op, ast.Or):
                 id_numbers = set()
                 toreturn = []
                 for nv in node.values:
                     li = self.eval_(nv, tdict)
-                    toreturn = toreturn + [x for x in li if x['id_number'] not in id_numbers and not id_numbers.add(x['id_number'])]
+                    toreturn = toreturn + [x for x in li 
+                                           if x['id_number'] not in id_numbers and not id_numbers.add(x['id_number'])]
                 return toreturn
 
         else:
@@ -383,11 +421,7 @@ class tSNE(Similarity):
 
     @property
     def data_filtered(self):
-        if self._fingerprint_filter_inds:
-            print(self._fingerprint_filter_inds)
-            return self._Y[self._fingerprint_filter_inds]
-        else:
-            return self._Y
+        return self._Y[self._fingerprint_filter_inds]
 
     #
     #  Calculation Methods
@@ -511,6 +545,8 @@ class tSNE(Similarity):
         self._fingerprints = [Fingerprint.factory(x) for x in thedict['fingerprint']]
         self._parameters = thedict['parameters']
         self._distance_measure = self._parameters['distance_measure']
+
+        self._fingerprint_filter_inds = list(range(len(self._fingerprints)))
 
     #
     #  Display methods
@@ -662,7 +698,7 @@ class tSNE(Similarity):
         """
         log.info('')
 
-        if not self._fingerprint_filter_inds:
+        if self._fingerprint_filter_inds is None:
             self._fingerprint_filter_inds = list(range(len(self._fingerprints)))
 
         distances = self._distance_measures[self._distance_measure](self._Y, point)
@@ -988,6 +1024,8 @@ class Jaccard(Similarity):
         self._fingerprints = [Fingerprint.factory(x) for x in thedict['fingerprint']]
         self._parameters = thedict['parameters']
 
+        self._fingerprint_filter_inds = list(range(len(self._fingerprints)))
+
 
 class Distance(Similarity):
     """
@@ -1124,3 +1162,5 @@ class Distance(Similarity):
         self._fingerprints = [Fingerprint.factory(x) for x in thedict['fingerprint']]
         self._parameters = thedict['parameters']
         self._metric = self._parameters['metric']
+
+        self._fingerprint_filter_inds = list(range(len(self._fingerprints)))
