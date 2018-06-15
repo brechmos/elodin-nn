@@ -25,7 +25,7 @@ print('Setting up the data structure required')
 gray_scale = image_processing.GrayScale()
 data_collection = DataCollection()
 np.random.seed(12)
-for fileinfo in np.random.choice(processing_dict, 20, replace=False):
+for fileinfo in np.random.choice(processing_dict, 2000, replace=False):
     im = Data(location=fileinfo['location'], radec=fileinfo['radec'], meta=fileinfo['meta'])
     im.add_processing(gray_scale)
 
@@ -39,7 +39,7 @@ for fileinfo in np.random.choice(processing_dict, 20, replace=False):
 # Cutout processing
 cutout_crop = image_processing.Crop([15, -15, 15, -15])
 cutout_resize = image_processing.Resize([224, 224])
-cutout_histeq = image_processing.HistogramEqualization()
+#cutout_histeq = image_processing.HistogramEqualization()
 
 # Cutout generator
 full_cutout = FullImageCutoutGenerator(output_size=(224, 224))
@@ -49,11 +49,13 @@ cutout_processing = [cutout_crop, cutout_resize]
 cutouts_orig = full_cutout.create_cutouts(data_collection,
                                           cutout_processing=cutout_processing)
 
-cutout_processing = [cutout_crop, cutout_resize, cutout_histeq]
-cutouts_histeq = full_cutout.create_cutouts(data_collection,
-                                            cutout_processing=cutout_processing)
+#cutout_processing = [cutout_crop, cutout_resize, cutout_histeq]
+#cutouts_histeq = full_cutout.create_cutouts(data_collection,
+#                                            cutout_processing=cutout_processing)
 
-cutouts = cutouts_orig + cutouts_histeq
+#cutouts = cutouts_orig + cutouts_histeq
+
+cutouts = cutouts_orig
 
 # Create the fingerprint calculator... fingerprint
 print('Creating the info for the fingerprint calculator')
