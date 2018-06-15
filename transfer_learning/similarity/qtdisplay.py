@@ -58,6 +58,9 @@ class FingerprintFilter(QtGui.QWidget):
         super().__init__(*args, **kwargs)
 
         # Filter input
+        self._filter_description = QtGui.QLabel()
+        self._filter_description.setText('Fingerprint Filter: e.g., "s_ra > 0.1" or "πnematode > 0.1 and s_ra > 0.1"')
+
         self._filter_input = QtGui.QLineEdit()
         self._filter_input.textChanged.connect(self._text_changed)
         self._filter_input.editingFinished.connect(self._enter_pressed)
@@ -65,6 +68,7 @@ class FingerprintFilter(QtGui.QWidget):
 
         # Add both to this widget
         self.layout = QtGui.QGridLayout(self)
+        self.layout.addWidget(self._filter_description)
         self.layout.addWidget(self._filter_input)
 
     def _get_filter(self):
@@ -178,7 +182,7 @@ class SimilarityPlotDock(Dock):
             self._parent._similarity_tsne.set_filter_fingerprints(thefilter)
             # Set the background color to white as there are no errors.
             self.fingerprint_filter_widget.remove_error_background()
-        except TypeError as e:
+        except Exception as e:
             #
             # If there was an error, then remove the filters and set
             # the background to red.
@@ -219,6 +223,11 @@ class SimilarityPlotDock(Dock):
         # Find the closest fingerpint
         log.debug('calling find similar')
         fingerprints = self._parent._similarity_tsne.find_similar(point, n=1)
+
+        # If none are returned (likely the filtering is too restrictive)
+        if len(fingerprints) == 0:
+            return
+
         f = fingerprints[0]['fingerprint']
 
         # Display
@@ -324,6 +333,11 @@ class SimilarityImagesDock(Dock):
         """
         log.info('')
 
+        # It is possible, due to filtering, that no fingerprints
+        # will be passed in here, so nothing to do.
+        if len(fingerprints) == 0:
+            return
+
         #
         # Delete any regions that currently exist
         # TODO:  Might be better to not delete ALL the images,
@@ -397,6 +411,73 @@ class ImageDisplay(pg.ImageView):
         del kwargs['fingerprint_dock']
 
         super().__init__(*args, **kwargs)
+        """
+        A container for `numpy.ndarray`-based datasets, using the
+        `~astropy.nddata.NDDataBase` interface.
+
+        The key distinction from raw `numpy.ndarray` is the presence of
+        additional metadata such as uncertainty, mask, unit, a coordinate system
+        and/or a dictionary containing further meta information. This class *only*
+        provides a container for *storing* such datasets. For further functionality
+        take a look at the ``See also`` section.
+
+        Parameters
+        -----------
+        data : `numpy.ndarray`-like or `NDData`-like
+            The dataset.
+
+        mask : any type, optional
+            Mask for the dataset. Masks should follow the ``numpy`` convention that
+            **valid** data points are marked by ``False`` and **invalid** ones with
+            ``True``.
+            Defaults to ``None``.
+
+        copy : `bool`, optional
+            Indicates whether to save the arguments as copy. ``True`` copies
+            every attribute before saving it while ``False`` tries to save every
+            parameter as reference.
+            Note however that it is not always possible to save the input as
+            reference.
+            Default is ``False``.
+
+            .. versionadded:: 1.2
+
+        Raises
+        ------
+        TypeError
+            In case ``data`` or ``meta`` don't meet the restrictions.
+
+        Notes
+        -----
+        Each attribute can be accessed through the homonymous instance attribute:
+        ``data`` in a `NDData` object can be accessed through the `data`
+        attribute::
+
+            >>> from astropy.nddata import NDData
+            >>> nd = NDData([1,2,3])
+            >>> nd.data
+            array([1, 2, 3])
+
+        Given a conflicting implicit and an explicit parameter during
+        initialization, for example the ``data`` is a `~astropy.units.Quantity` and
+        the unit parameter is not ``None``, then the implicit parameter is replaced
+        (without conversion) by the explicit one and a warning is issued::
+
+            >>> import numpy as np
+            >>> import astropy.units as u
+            >>> q = np.array([1,2,3,4]) * u.m
+            >>> nd2 = NDData(q, unit=u.cm)
+            INFO: overwriting Quantity's current unit with specified unit. [astropy.nddata.nddata]
+            >>> nd2.data  # doctest: +FLOAT_CMP
+            array([1., 2., 3., 4.])
+            >>> nd2.unit
+            Unit("cm")
+
+        See also
+        --------
+        NDDataArray
+        """
+
 
         self.fingerprints = fingerprints
         self.parent = parent
@@ -658,6 +739,11 @@ class SimilarityDisplay(QtGui.QApplication):
         #
 
         fingerprints = self._similarity_tsne.find_similar(point, n=9)
+        
+        # It is possilbe to have nothing come back if we are filtering
+        # too much.
+        if len(fingerprints) == 0:
+            return
 
         #
         # Display the fingeprint cutouts on the images
