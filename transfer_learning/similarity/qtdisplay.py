@@ -40,6 +40,22 @@ log = logging.getLogger(__name__)
 log.setLevel(logging.WARNING)
 
 
+class ColorImageView(pg.ImageView):
+    """
+    Wrapper around the ImageView to create a color lookup
+    table automatically as there seem to be issues with displaying
+    color images through pg.ImageView.
+    """
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.lut = None
+
+    def updateImage(self, autoHistogramRange=True):
+        super().updateImage(autoHistogramRange)
+        self.getImageItem().setLookupTable(self.lut)
+
+
 class FingerprintFilter(QtGui.QWidget):
     """
     Provides a place to be able to filter fingeprints
@@ -121,7 +137,7 @@ class SimilarityPlotDock(Dock):
             self.proxy_mm = pg.SignalProxy(self.sim_repr.scene().sigMouseMoved, rateLimit=5, slot=self.mouseMoved)
             self.proxy_mc = pg.SignalProxy(self.sim_repr.scene().sigMouseClicked, rateLimit=5, slot=self.mouseClicked)
         else:
-            self.sim_repr = pg.ImageView()
+            self.sim_repr = ColorImageView()
             self.sim_repr.setMinimumHeight(250)
             self.sim_repr.ui.histogram.hide()
             self.sim_repr.ui.menuBtn.hide()
@@ -134,7 +150,7 @@ class SimilarityPlotDock(Dock):
         #  Show the image that is similar to where the mouse is
         #
 
-        self.sim_image = pg.ImageView()
+        self.sim_image = ColorImageView()
         self.sim_image.ui.histogram.hide()
         self.sim_image.ui.menuBtn.hide()
         self.sim_image.ui.roiBtn.hide()
@@ -232,7 +248,7 @@ class SimilarityPlotDock(Dock):
 
         # Display
         log.debug('set image')
-        self.sim_image.setImage(f.cutout.get_data()[:, :, 0])
+        self.sim_image.setImage(f.cutout.get_data())
 
         # Text Information
         loc = os.path.basename(f.cutout.data.location)
@@ -385,7 +401,7 @@ class SimilarityImagesDock(Dock):
                     ii = ii + 1
 
 
-class ImageDisplay(pg.ImageView):
+class ImageDisplay(ColorImageView):
     """
     The ImageDisplay class is essentially an ImageView but also
     has a set of fingerprints (and therefore cutouts [and there for data])
@@ -494,7 +510,7 @@ class ImageDisplay(pg.ImageView):
 
         # Display the cutout data.
         imdata = self.fingerprints[0].cutout.data.get_data()
-        self.setImage(imdata[:, :, 0])
+        self.setImage(imdata)
 
         # Display the bounding boxes.
         for fingerprint in self.fingerprints:
