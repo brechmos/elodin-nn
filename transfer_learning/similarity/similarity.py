@@ -215,7 +215,7 @@ class Similarity:
             # if any of the string elements in "thelist" are found within some
             # subset of the value of the meta in data.
 
-            metas = [dict(list(x.cutout.data.meta.items())+[('id_number', ii)])
+            metas = [dict(list(x.cutout.data.meta.items())+[('id_number', ii), ('predictions', x.predictions)])
                      for ii, x in enumerate(self._fingerprints)]
 
             filtered_metas = self._eval_expr(thefilter, metas)
@@ -223,6 +223,17 @@ class Similarity:
 
     def _eval_expr(self, expr, tdict):
         return self.eval_(ast.parse(expr, mode='eval').body, tdict)
+
+    def dp(self, meta, key):
+        """
+        This method determines if the key is a prediction query
+        or just a regular meta lookup.
+        """
+        if key.startswith('π'):
+            _, k = key.split('π')
+            return next((p[2] for p in meta['predictions'] if p[1] == k), None)
+        else:
+            return meta[key]
 
     def eval_(self, node, tdict):
         if isinstance(node, ast.Num):  # <number>
@@ -235,21 +246,29 @@ class Similarity:
             if isinstance(node.ops[0], ast.Eq):
                 return [x for x in tdict if x[str(node.left.id)] == self.eval_(node.comparators[0], tdict)]
 
+            #
+            # Greater than
+            #
             elif isinstance(node.ops[0], ast.Gt):
                 tocompare = self.eval_(node.comparators[0], tdict)
                 if isinstance(tocompare, (int, float)):
                     cast = float
                 else:
                     cast = str
-                return [x for x in tdict if cast(x[str(node.left.id)]) > tocompare]
+                return [x for x in tdict
+                        if self.dp(x, str(node.left.id)) is not None and self.dp(x, str(node.left.id)) > self.eval_(node.comparators[0], tdict)]
 
+            #
+            # Less than
+            #
             elif isinstance(node.ops[0], ast.Lt):
                 tocompare = self.eval_(node.comparators[0], tdict)
                 if isinstance(tocompare, (int, float)):
                     cast = float
                 else:
                     cast = str
-                return [x for x in tdict if cast(x[str(node.left.id)]) < tocompare]
+                return [x for x in tdict
+                        if self.dp(x, str(node.left.id)) is not None and self.dp(x, str(node.left.id)) < self.eval_(node.comparators[0], tdict)]
 
             elif isinstance(node.ops[0], ast.GtE):
                 tocompare = self.eval_(node.comparators[0], tdict)
@@ -257,7 +276,8 @@ class Similarity:
                     cast = float
                 else:
                     cast = str
-                return [x for x in tdict if cast(x[str(node.left.id)]) >= tocompare]
+                return [x for x in tdict
+                        if self.dp(x, str(node.left.id)) is not None and self.dp(x, str(node.left.id)) >= self.eval_(node.comparators[0], tdict)]
 
             elif isinstance(node.ops[0], ast.LtE):
                 tocompare = self.eval_(node.comparators[0], tdict)
@@ -265,7 +285,8 @@ class Similarity:
                     cast = float
                 else:
                     cast = str
-                return [x for x in tdict if cast(x[str(node.left.id)]) <= tocompare]
+                return [x for x in tdict
+                        if self.dp(x, str(node.left.id)) is not None and self.dp(x, str(node.left.id)) <= self.eval_(node.comparators[0], tdict)]
 
             elif isinstance(node.ops[0], ast.In):
                 return [x for x in tdict if str(node.left.s) in x[node.comparators[0].id]]
@@ -273,14 +294,34 @@ class Similarity:
         elif isinstance(node, ast.BoolOp):  # <operator> <operand> e.g., -1
 
             if isinstance(node.op, ast.And):
-                left_list = self.eval_(node.values[0], tdict)
-                right_list = self.eval_(node.values[1], tdict)
-                return [x for x in left_list if x in right_list]
+                """
+                Dictionaries must be injected with a key 'id_number' that has a unique value.
+                """
+
+                #
+                # Create a list of lists of id_number
+                #
+
+                id_numbers = []
+                for ii in range(len(node.values)):
+                    li = self.eval_(node.values[ii], tdict)
+                    id_numbers.append(set([x['id_number'] for x in li]))
+
+                #
+                #  Now need to determine the ones common in each
+                #
+
+                u = set.intersection(*id_numbers)
+
+                return [x for x in li if x['id_number'] in u]
 
             if isinstance(node.op, ast.Or):
-                left_list = self.eval_(node.values[0], tdict)
-                right_list = self.eval_(node.values[1], tdict)
-                return left_list + [x for x in right_list if not x in left_list]
+                id_numbers = set()
+                toreturn = []
+                for nv in node.values:
+                    li = self.eval_(nv, tdict)
+                    toreturn = toreturn + [x for x in li if x['id_number'] not in id_numbers and not id_numbers.add(x['id_number'])]
+                return toreturn
 
         else:
             raise TypeError(node)
@@ -624,11 +665,10 @@ class tSNE(Similarity):
         if not self._fingerprint_filter_inds:
             self._fingerprint_filter_inds = list(range(len(self._fingerprints)))
 
-        log.debug('Calling calculate distances')
         distances = self._distance_measures[self._distance_measure](self._Y, point)
 
-        log.debug('Filtering based, n distances {}  n filter_inds {}'.format(len(distances), len(self._fingerprint_filter_inds)))
-        #inds = [ind for ind in np.argsort(distances) if ind in self._fingerprint_filter_inds]
+        log.debug('Filtering based, n distances {}  n filter_inds {}'.format(
+                  len(distances), len(self._fingerprint_filter_inds)))
 
         inds = []
         for ind in np.argsort(distances):
@@ -638,7 +678,6 @@ class tSNE(Similarity):
                     break
 
         # Now we want to look only in the "search_inds" if that is passed in
-        log.debug('Returning data')
         return [{
                     'tsne_point': self._Y[ind],
                     'distance': distances[ind],
