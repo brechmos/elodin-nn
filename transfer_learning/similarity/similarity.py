@@ -827,7 +827,7 @@ class Jaccard(Similarity):
     @property
     def data_filtered(self):
         if self._fingerprint_filter_inds:
-            return self._fingerprint_adjacency[self._fingerprint_filter_inds, self._fingerprint_filter_inds]
+            return self._fingerprint_adjacency[self._fingerprint_filter_inds, :][:, self._fingerprint_filter_inds]
         else:
             return self._fingerprint_adjacency
 
@@ -917,6 +917,10 @@ class Jaccard(Similarity):
         """
 
         row, col = int(point[0]), int(point[1])
+
+        # The point passed in is based directly off the image and
+        # therefore we will need to map the point back to the full set.
+        row = self._fingerprint_filter_inds[row]
 
         # find the Main fingerprint for this point in the image
         distances = self._fingerprint_adjacency[row]
@@ -1056,10 +1060,7 @@ class Distance(Similarity):
 
     @property
     def data_filtered(self):
-        if self._fingerprint_filter_inds:
-            return self._fingerprint_adjacency[self._fingerprint_filter_inds, self._fingerprint_filter_inds]
-        else:
-            return self._fingerprint_adjacency
+        return self._fingerprint_adjacency[:, self._fingerprint_filter_inds][self._fingerprint_filter_inds, :]
 
     @classmethod
     def is_similarity_for(cls, similarity_type):
@@ -1127,6 +1128,11 @@ class Distance(Similarity):
         log.debug('Calling find_similar')
 
         row, col = int(point[0]), int(point[1])
+
+        # The point passed in is based directly off the image and
+        # therefore we will need to map the point back to the full set.
+        row = self._fingerprint_filter_inds[row]
+
         distances = self._fingerprint_adjacency[row]
 
         # TOOD: At this point this is assuming smallest distance is the best.
