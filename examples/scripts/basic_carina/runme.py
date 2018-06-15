@@ -1,6 +1,7 @@
 import os
 import shutil
 from configparser import ConfigParser
+import pickle
 
 from transfer_learning.fingerprint.processing import FingerprintCalculatorResnet
 from transfer_learning.fingerprint.processing import calculate as fingerprint_calculate
@@ -35,7 +36,7 @@ dc.add(image_data)
 #
 print('Going to calculate the sliding window cutouts')
 sliding_window_cutouts = BasicCutoutGenerator(output_size=224,
-                                              step_size=550)
+                                              step_size=100)
 cc = CutoutCollection()
 
 for cutout in sliding_window_cutouts.create_cutouts(image_data):
@@ -54,6 +55,9 @@ for fingerprint in fingerprint_calculate(cc, fc_save):
 #
 print('Calculating the tSNE similarity')
 similarity_tsne = similarity_calculate(fc, 'tsne')
+
+with open('similarity_tsne.pck', 'wb') as fp:
+    pickle.dump(similarity_tsne.save(), fp)
 
 # print('Calculating the jaccard similarity')
 # similarity_jaccard = similarity_calculate(fingerprints, 'jaccard')
