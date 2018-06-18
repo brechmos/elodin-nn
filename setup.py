@@ -6,7 +6,7 @@ from setuptools import setup, find_packages
 
 setup(
     name='transfer_learning',
-    version='0.1.dev0',
+    version='0.2.dev0',
     license='GPLV3.0',
     description='Transfer learning info.',
     long_description='Transfer Learning',
