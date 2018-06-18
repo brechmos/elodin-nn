@@ -197,8 +197,11 @@ class Similarity:
         thelist : list
             List of strings of things to look for in the meta.
 
+        overlapping_bounding_boxes : bool
+            Allow overlapping bounding boxes
+
         """
-        log.info('list is {}'.format(thefilter))
+        log.info('filter is {}'.format(thefilter))
 
         #
         # If nothing in the list, then show everything
@@ -222,6 +225,7 @@ class Similarity:
             filtered_metas = self._eval_expr(thefilter, metas)
             self._fingerprint_filter_inds = [x['id_number'] for x in filtered_metas]
 
+        return len(self._fingerprint_filter_inds)
     #
     # Next section are methods for parsing the fingerprint meta and predictions
     # for updating the display.
@@ -244,6 +248,36 @@ class Similarity:
         # Meta dictionary lookup
         else:
             return meta[key]
+
+    def bounding_boxes_overlap(self, fingerprint1, fingerprint2):
+        """
+        Check to see if two bounding boxes overlap.
+
+        Parameters
+        -----------
+        fingerprint1 : Fingerprint
+            The first fingeprint.
+
+        fingerprint2 : Fingerprint
+            The second fingerprint.
+
+        Return
+        ------
+        overlaps: bool
+            Returns True/False depending on overlap
+
+        """
+
+        bb1 = fingerprint1.cutout.bounding_box
+        bb2 = fingerprint2.cutout.bounding_box
+
+        hoverlaps = True
+        voverlaps = True
+        if (bb1[0] > bb2[1]) or (bb1[1] < bb2[0]):
+            hoverlaps = False
+        if (bb1[3] < bb2[2]) or (bb1[2] > bb2[3]):
+            voverlaps = False
+        return hoverlaps and voverlaps
 
     def _compare(self, op, node, tdict):
         tocompare = self.eval_(node.comparators[0], tdict)
@@ -680,7 +714,7 @@ class tSNE(Similarity):
 
         return output
 
-    def find_similar(self, point, n=9):
+    def find_similar(self, point, n=9, allow_overlapping_bounding_boxes=True):
         """
         Find fingerprints that are close to the input point.
 
@@ -690,6 +724,9 @@ class tSNE(Similarity):
             A point in the plot.
         n : int
             Number to return.
+
+        allow_overlapping_bounding_boxes: bool
+            Whether to allow overlapping bb or not.
 
         Returns
         -------
@@ -708,10 +745,17 @@ class tSNE(Similarity):
 
         inds = []
         for ind in np.argsort(distances):
+
+            # First, make sure this index is one of the filtered ones.
             if ind in self._fingerprint_filter_inds:
-                inds.append(ind)
-                if len(inds) == n:
-                    break
+
+                # Next check to see if we allow overlapping bounding boxes
+                # If not, make sure this one doesn't overlap with any in the list so far.
+                if(allow_overlapping_bounding_boxes or
+                   not any([self.bounding_boxes_overlap(self._fingerprints[ind], self._fingerprints[ii]) for ii in inds])):
+                    inds.append(ind)
+                    if len(inds) == n:
+                        break
 
         # Now we want to look only in the "search_inds" if that is passed in
         return [{
@@ -907,14 +951,29 @@ class Jaccard(Similarity):
 
         tsne_axis._axes.get_figure().canvas.blit(tsne_axis._axes.bbox)
 
-    def find_similar(self, point, n=9):
+    def find_similar(self, point, n=9, allow_overlapping_bounding_boxes=True):
         """
-        Find the n similar fingerprints based on the input point.
+        Find fingerprints that are close to the input point.
 
-        :param point:
-        :param n:
-        :return:
+        Parameters
+        ----------
+        point : tuple (int, int)
+            A point in the plot.
+        n : int
+            Number to return.
+
+        allow_overlapping_bounding_boxes: bool
+            Whether to allow overlapping bb or not.
+
+        Returns
+        -------
+        list
+            List of dicts that describe the closest fingerprints.
         """
+        log.info('')
+
+        if self._fingerprint_filter_inds is None:
+            self._fingerprint_filter_inds = list(range(len(self._fingerprints)))
 
         row, col = int(point[0]), int(point[1])
 
@@ -926,9 +985,19 @@ class Jaccard(Similarity):
         distances = self._fingerprint_adjacency[row]
         log.debug('length of dsistances is {}'.format(len(distances)))
 
-        # Sort from highest to lowest.
-        inds = np.argsort(distances)[::-1]
-        log.debug('length of inds is {}'.format(len(inds)))
+        inds = []
+        for ind in np.argsort(distances):
+
+            # First, make sure this index is one of the filtered ones.
+            if ind in self._fingerprint_filter_inds:
+
+                # Next check to see if we allow overlapping bounding boxes
+                # If not, make sure this one doesn't overlap with any in the list so far.
+                if(allow_overlapping_bounding_boxes or
+                   not any([self.bounding_boxes_overlap(self._fingerprints[ind], self._fingerprints[ii]) for ii in inds])):
+                    inds.append(ind)
+                    if len(inds) == n:
+                        break
 
         log.debug('Closest indexes are {}'.format(inds[:n]))
         log.debug('Size of the fingerprint list {}'.format(len(self._fingerprints)))
@@ -1117,15 +1186,29 @@ class Distance(Similarity):
         tsne_axis.grid('on')
         tsne_axis.set_title('Distance [{}]'.format(self._metric))
 
-    def find_similar(self, point, n=9):
+    def find_similar(self, point, n=9, allow_overlapping_bounding_boxes=True):
         """
-        Find similar given the input point.
+        Find fingerprints that are close to the input point.
 
-        :param point:
-        :param n:
-        :return:
+        Parameters
+        ----------
+        point : tuple (int, int)
+            A point in the plot.
+        n : int
+            Number to return.
+
+        allow_overlapping_bounding_boxes: bool
+            Whether to allow overlapping bb or not.
+
+        Returns
+        -------
+        list
+            List of dicts that describe the closest fingerprints.
         """
-        log.debug('Calling find_similar')
+        log.info('')
+
+        if self._fingerprint_filter_inds is None:
+            self._fingerprint_filter_inds = list(range(len(self._fingerprints)))
 
         row, col = int(point[0]), int(point[1])
 
@@ -1133,10 +1216,23 @@ class Distance(Similarity):
         # therefore we will need to map the point back to the full set.
         row = self._fingerprint_filter_inds[row]
 
+        # find the Main fingerprint for this point in the image
         distances = self._fingerprint_adjacency[row]
+        log.debug('length of dsistances is {}'.format(len(distances)))
 
-        # TOOD: At this point this is assuming smallest distance is the best.
-        inds = np.argsort(distances)
+        inds = []
+        for ind in np.argsort(distances):
+
+            # First, make sure this index is one of the filtered ones.
+            if ind in self._fingerprint_filter_inds:
+
+                # Next check to see if we allow overlapping bounding boxes
+                # If not, make sure this one doesn't overlap with any in the list so far.
+                if(allow_overlapping_bounding_boxes or
+                   not any([self.bounding_boxes_overlap(self._fingerprints[ind], self._fingerprints[ii]) for ii in inds])):
+                    inds.append(ind)
+                    if len(inds) == n:
+                        break
 
         return [{
                     'tsne_point': self._fingerprint_adjacency[ind],

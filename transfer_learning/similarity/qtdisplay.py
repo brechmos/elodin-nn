@@ -73,23 +73,42 @@ class FingerprintFilter(QtGui.QWidget):
 
         super().__init__(*args, **kwargs)
 
-        # Filter input
+        # Filter input Description
         self._filter_description = QtGui.QLabel()
-        self._filter_description.setText('Fingerprint Filter: e.g., "s_ra > 0.1" or "πnematode > 0.1 and s_ra > 0.1"')
+        self._filter_description.setText('<b>Fingerprint Filter</b>: e.g., "s_ra > 0.1" or "πnematode > 0.1 and s_ra > 0.1"')
 
+        # Filter text input
         self._filter_input = QtGui.QLineEdit()
         self._filter_input.textChanged.connect(self._text_changed)
         self._filter_input.editingFinished.connect(self._enter_pressed)
         self._filter_text = ''
 
+        # Filter text result
+        self._filter_results = QtGui.QLabel()
+
+        # Filter overlapping bounding boxes
+        self._filter_overlapping_bb = QtGui.QCheckBox('Overlapping Bounding Boxes')
+        self._filter_overlapping_bb.setCheckState(True)
+        self._filter_overlapping_bb.setTristate(False)
+        self._filter_overlapping_bb.stateChanged.connect(self._filter_overlapping_bb_state_change)
+
         # Add both to this widget
         self.layout = QtGui.QGridLayout(self)
-        self.layout.addWidget(self._filter_description)
-        self.layout.addWidget(self._filter_input)
+        self.layout.addWidget(self._filter_description, 0, 0, 1, 3)
+        self.layout.addWidget(self._filter_input, 1, 0, 1, 2)
+        self.layout.addWidget(self._filter_overlapping_bb, 1, 2)
+        self.layout.addWidget(self._filter_results, 2, 0, 1, 3)
 
     def _get_filter(self):
         log.info('')
         return self._filter_input.text()
+
+    @property
+    def overlapping_bb(self):
+        """
+        Returns 2 if checked (assumably 1 if checked in tristate mode).
+        """
+        return self._filter_overlapping_bb.checkState() > 0
 
     #
     # Signal Handlers
@@ -104,7 +123,7 @@ class FingerprintFilter(QtGui.QWidget):
         log.info('')
 
         # Fire update on filter
-        self.filter_entered.emit(self._get_filter())
+        self.filter_entered.emit(self._get_filter(), self.overlapping_bb)
 
     def set_error_background(self):
         self._filter_input.setStyleSheet("background-color: rgb(255, 0, 255);")
@@ -112,6 +131,11 @@ class FingerprintFilter(QtGui.QWidget):
     def remove_error_background(self):
         self._filter_input.setStyleSheet("")
 
+    def set_filter_results(self, thetext):
+        self._filter_results.setText(thetext)
+
+    def _filter_overlapping_bb_state_change(self, event):
+        self.filter_entered.emit(self._get_filter())
 
 class SimilarityPlotDock(Dock):
     """
@@ -195,7 +219,9 @@ class SimilarityPlotDock(Dock):
         log.info('the filter {}'.format(thefilter))
 
         try:
-            self._parent._similarity_tsne.set_filter_fingerprints(thefilter)
+            nleft = self._parent._similarity_tsne.set_filter_fingerprints(thefilter)
+            self.fingerprint_filter_widget.set_filter_results('There are {} fingerprints left'.format(nleft))
+
             # Set the background color to white as there are no errors.
             self.fingerprint_filter_widget.remove_error_background()
         except Exception as e:
@@ -205,6 +231,7 @@ class SimilarityPlotDock(Dock):
             #
             self._parent._similarity_tsne.set_filter_fingerprints('')
             self.fingerprint_filter_widget.set_error_background()
+            self.fingerprint_filter_widget.set_filter_results('Error in parsing the filter')
 
         self.show_similarity_plot()
 
@@ -722,7 +749,7 @@ class SimilarityDisplay(QtGui.QApplication):
         self.area = DockArea()
         self.win.setCentralWidget(self.area)
         self.win.resize(1500, 800)
-        self.win.setWindowTitle('pyqtgraph example: dockarea')
+        self.win.setWindowTitle('Hubble Transfer Learning')
 
         # Create docks, place them into the window one at a time.
         # Note that size arguments are only a suggestion; docks will still have to
@@ -733,10 +760,10 @@ class SimilarityDisplay(QtGui.QApplication):
         self.similarity = SimilarityPlotDock("Similarity Plot", size=(250, 200), parent=self)
         self.similar_images = SimilarityImagesDock("Similar Images", size=(500, 500), similarity_display=self, fingerprint_dock=self.fingerprint)
 
-        self.area.addDock(self.aitoff, 'top')  # place d3 at bottom edge of d1
-        self.area.addDock(self.similarity, 'bottom')  # place d3 at bottom edge of d1
-        self.area.addDock(self.similar_images, 'right')  # place d3 at bottom edge of d1
-        self.area.addDock(self.fingerprint, 'right')  # place d3 at bottom edge of d1
+        self.area.addDock(self.aitoff, 'top')
+        self.area.addDock(self.similarity, 'bottom')
+        self.area.addDock(self.similar_images, 'right')
+        self.area.addDock(self.fingerprint, 'right')
 
         self.win.show()
 
@@ -754,8 +781,10 @@ class SimilarityDisplay(QtGui.QApplication):
         #  Find the N similar images to this point.
         #
 
-        fingerprints = self._similarity_tsne.find_similar(point, n=9)
-        
+        overlapping_bounding_boxes = self.similarity.fingerprint_filter_widget.overlapping_bb
+        fingerprints = self._similarity_tsne.find_similar(point, n=9,
+                                                          allow_overlapping_bounding_boxes=overlapping_bounding_boxes)
+
         # It is possilbe to have nothing come back if we are filtering
         # too much.
         if len(fingerprints) == 0:
