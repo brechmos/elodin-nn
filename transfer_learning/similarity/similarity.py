@@ -75,7 +75,7 @@ class Similarity:
         This function might be called locally and in that case we want to return the
         actual similarity calculator instance.  Or it might be run rmeotely (via celery)
         and in this case we want to reutrn the serialized version of the similarity instance.
-    
+
         Parameters
         ----------
         similarity_type : list
@@ -86,7 +86,7 @@ class Similarity:
            List of fingerprint_uuids.
         uuid_in : str
            Unique identifier for this instance of the similarity calculator.
-    
+
         Returns
         -------
         Similarity Object
@@ -391,7 +391,7 @@ class Similarity:
                 toreturn = []
                 for nv in node.values:
                     li = self.eval_(nv, tdict)
-                    toreturn = toreturn + [x for x in li 
+                    toreturn = toreturn + [x for x in li
                                            if x['id_number'] not in id_numbers and not id_numbers.add(x['id_number'])]
                 return toreturn
 
@@ -443,7 +443,7 @@ class tSNE(Similarity):
             raise Exception('Display type {} not one of {}'.format(
                 self._display_type, self._display_types))
 
-        # Define the distance measures. 
+        # Define the distance measures.
         self._distance_measures = {
             'l2': lambda Y, point: np.sqrt(np.sum((Y - np.array(point))**2, axis=1)),
             'l1': lambda Y, point: np.sum(np.abs((Y - np.array(point)), axis=1)),
@@ -824,11 +824,27 @@ class tSNE(Similarity):
         return cutouts[index]
 
     def _bounding_box_distance(self, bounding_box, point):
+        """
+        Measure the distance from the center of a bounding_box to a point.
+
+        Parameters
+        -----------
+        bounding_box : list/tuple of 4 elements
+            This is defined in cutout and is [left, right, bottom, top]
+
+        point: list/tuple of 2 elements
+            Two points defined in space. 
+        """
         log.info('bb {} point {}'.format(bounding_box, point))
+
+        # Calculate the center of the bounding box.
         center = ((bounding_box[0]+bounding_box[1])/2.0, (bounding_box[2]+bounding_box[3])/2.0)
+
+        # Calculate the distance
         distance = np.sqrt((center[0]-point[1])**2+(center[1]-point[0])**2)
-        log.debug('    distance is {}'.format(distance))
+
         return distance
+
 
 class Jaccard(Similarity):
     """
