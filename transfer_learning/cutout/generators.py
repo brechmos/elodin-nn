@@ -6,7 +6,7 @@ from skimage import measure
 from skimage import filters
 
 from transfer_learning.data import Data, DataCollection
-from transfer_learning.cutout import Cutout, CutoutCollection
+from transfer_learning.cutout import Cutout, CutoutCollection, BoundingBox
 
 from ..tl_logging import get_logger
 log = get_logger('cutout generator')
@@ -144,7 +144,8 @@ class BasicCutoutGenerator:
 
         cutout_collection = CutoutCollection()
         for ii, (row, col) in enumerate(itertools.product(rows, cols)):
-            cutout_collection.add(Cutout(data, [row-N, row+N, col-N, col+N], self.save(),
+            bounding_box = BoundingBox(row-N, row+N, col-N, col+N)
+            cutout_collection.add(Cutout(data, bounding_box, self.save(),
                                   cutout_processing=cutout_processing))
 
         return cutout_collection
@@ -239,12 +240,14 @@ class FullImageCutoutGenerator:
         """
         log.info('Creating new cutout from data {}'.format(data.uuid))
         if isinstance(data, Data):
-            return Cutout(data, [0, self._output_size[0], 0, self._output_size[1]], self.save(),
+            bounding_box = BoundingBox(0, self._output_size[0], 0, self._output_size[1])
+            return Cutout(data, bounding_box, self.save(),
                           cutout_processing=cutout_processing)
         elif isinstance(data, DataCollection):
             cc = CutoutCollection()
             for datum in data:
-                cc.add(Cutout(datum, [0, self._output_size[0], 0, self._output_size[1]], self.save(),
+                bounding_box = BoundingBox(0, self._output_size[0], 0, self._output_size[1])
+                cc.add(Cutout(datum, bounding_box, self.save(),
                               cutout_processing=cutout_processing))
             return cc
 
@@ -455,7 +458,8 @@ class BlobCutoutGenerator:
             # This will need to match the standard return method for cutouts.
             #
 
-            cutouts.add(Cutout(data, [min_row, max_row, min_col, max_col], self.save(),
+            bounding_box = BoundingBox(min_row, max_row, min_col, max_col)
+            cutouts.add(Cutout(data, bounding_box, self.save(),
                                cutout_processing=cutout_processing))
 
         return cutouts

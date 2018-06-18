@@ -249,36 +249,6 @@ class Similarity:
         else:
             return meta[key]
 
-    def bounding_boxes_overlap(self, fingerprint1, fingerprint2):
-        """
-        Check to see if two bounding boxes overlap.
-
-        Parameters
-        -----------
-        fingerprint1 : Fingerprint
-            The first fingeprint.
-
-        fingerprint2 : Fingerprint
-            The second fingerprint.
-
-        Return
-        ------
-        overlaps: bool
-            Returns True/False depending on overlap
-
-        """
-
-        bb1 = fingerprint1.cutout.bounding_box
-        bb2 = fingerprint2.cutout.bounding_box
-
-        hoverlaps = True
-        voverlaps = True
-        if (bb1[0] > bb2[1]) or (bb1[1] < bb2[0]):
-            hoverlaps = False
-        if (bb1[3] < bb2[2]) or (bb1[2] > bb2[3]):
-            voverlaps = False
-        return hoverlaps and voverlaps
-
     def _compare(self, op, node, tdict):
         tocompare = self.eval_(node.comparators[0], tdict)
         if isinstance(tocompare, (int, float)):
@@ -752,7 +722,7 @@ class tSNE(Similarity):
                 # Next check to see if we allow overlapping bounding boxes
                 # If not, make sure this one doesn't overlap with any in the list so far.
                 if(allow_overlapping_bounding_boxes or
-                   not any([self.bounding_boxes_overlap(self._fingerprints[ind], self._fingerprints[ii]) for ii in inds])):
+                   not any([self._fingerprints[ind].cutout.bounding_box.overlap(self._fingerprints[ii].cutout.bounding_box) for ii in inds])):
                     inds.append(ind)
                     if len(inds) == n:
                         break
@@ -811,7 +781,7 @@ class tSNE(Similarity):
         # Compute distance between cutout bounding boxes centers and the point.
         #
 
-        distances = [self._bounding_box_distance(c.bounding_box, point) for c in cutouts]
+        distances = [c.bounding_box.distance(point) for c in cutouts]
 
         #
         # Find the smallest.
@@ -822,28 +792,6 @@ class tSNE(Similarity):
         log.debug('Closest cutout is with bb {} and dist {}'.format(cutouts[index].bounding_box, distances[index]))
 
         return cutouts[index]
-
-    def _bounding_box_distance(self, bounding_box, point):
-        """
-        Measure the distance from the center of a bounding_box to a point.
-
-        Parameters
-        -----------
-        bounding_box : list/tuple of 4 elements
-            This is defined in cutout and is [left, right, bottom, top]
-
-        point: list/tuple of 2 elements
-            Two points defined in space. 
-        """
-        log.info('bb {} point {}'.format(bounding_box, point))
-
-        # Calculate the center of the bounding box.
-        center = ((bounding_box[0]+bounding_box[1])/2.0, (bounding_box[2]+bounding_box[3])/2.0)
-
-        # Calculate the distance
-        distance = np.sqrt((center[0]-point[1])**2+(center[1]-point[0])**2)
-
-        return distance
 
 
 class Jaccard(Similarity):
@@ -1010,7 +958,7 @@ class Jaccard(Similarity):
                 # Next check to see if we allow overlapping bounding boxes
                 # If not, make sure this one doesn't overlap with any in the list so far.
                 if(allow_overlapping_bounding_boxes or
-                   not any([self.bounding_boxes_overlap(self._fingerprints[ind], self._fingerprints[ii]) for ii in inds])):
+                   not any([self._fingerprints[ind].cutout.bounding_box.overlap(self._fingerprints[ii].cutout.bounding_box) for ii in inds])):
                     inds.append(ind)
                     if len(inds) == n:
                         break
@@ -1071,7 +1019,7 @@ class Jaccard(Similarity):
         # Compute distance between cutout bounding boxes centers and the point.
         #
 
-        distances = [self._bounding_box_distance(c.bounding_box, point) for c in cutouts]
+        distances = [c.bounding_box.distance(point) for c in cutouts]
 
         #
         # Find the smallest.
@@ -1082,13 +1030,6 @@ class Jaccard(Similarity):
         log.debug('Closest cutout is with bb {} and dist {}'.format(cutouts[index].bounding_box, distances[index]))
 
         return cutouts[index]
-
-    def _bounding_box_distance(self, bounding_box, point):
-        log.info('bb {} point {}'.format(bounding_box, point))
-        center = ((bounding_box[0]+bounding_box[1])/2.0, (bounding_box[2]+bounding_box[3])/2.0)
-        distance = np.sqrt((center[0]-point[1])**2+(center[1]-point[0])**2)
-        log.debug('    distance is {}'.format(distance))
-        return distance
 
     #
     #  Utility Methods
@@ -1245,7 +1186,7 @@ class Distance(Similarity):
                 # Next check to see if we allow overlapping bounding boxes
                 # If not, make sure this one doesn't overlap with any in the list so far.
                 if(allow_overlapping_bounding_boxes or
-                   not any([self.bounding_boxes_overlap(self._fingerprints[ind], self._fingerprints[ii]) for ii in inds])):
+                   not any([self._fingerprints[ind].cutout.bounding_box.overlap(self._fingerprints[ii].cutout.bounding_box) for ii in inds])):
                     inds.append(ind)
                     if len(inds) == n:
                         break

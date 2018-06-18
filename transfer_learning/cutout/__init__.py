@@ -1,1 +1,1 @@
-from .cutout import Cutout, CutoutCollection
+from .cutout import Cutout, CutoutCollection, BoundingBox

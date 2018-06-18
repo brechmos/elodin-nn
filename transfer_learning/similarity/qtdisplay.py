@@ -37,7 +37,7 @@ from transfer_learning.similarity import Similarity
 FORMAT = '%(levelname)-8s %(asctime)-15s %(name)-10s %(funcName)-10s %(lineno)-4d %(message)s'
 logging.basicConfig(format=FORMAT)
 log = logging.getLogger(__name__)
-log.setLevel(logging.WARNING)
+log.setLevel(logging.DEBUG)
 
 
 class ColorImageView(pg.ImageView):
@@ -123,7 +123,7 @@ class FingerprintFilter(QtGui.QWidget):
         log.info('')
 
         # Fire update on filter
-        self.filter_entered.emit(self._get_filter(), self.overlapping_bb)
+        self.filter_entered.emit(self._get_filter())
 
     def set_error_background(self):
         self._filter_input.setStyleSheet("background-color: rgb(255, 0, 255);")
@@ -136,6 +136,7 @@ class FingerprintFilter(QtGui.QWidget):
 
     def _filter_overlapping_bb_state_change(self, event):
         self.filter_entered.emit(self._get_filter())
+
 
 class SimilarityPlotDock(Dock):
     """
@@ -568,9 +569,8 @@ class ImageDisplay(ColorImageView):
         f_in = None
         for f in self.fingerprints:
             log.debug('Checking to see if point is in cutout {}'.format(f.cutout.bounding_box))
-            bb = f.cutout.bounding_box
 
-            if point[0] >= bb[2] and point[0] <= bb[3] and point[1] >= bb[0] and point[1] <= bb[1]:
+            if f.cutout.bounding_box.isin(point):
                 log.debug('    ... it is')
                 f_in = f
                 break
@@ -626,7 +626,7 @@ class ImageDisplay(ColorImageView):
         log.info('')
 
         bb = cutout_bounding_box
-        roi = pg.RectROI([bb[2], bb[0]], [bb[1]-bb[0], bb[3]-bb[2]],
+        roi = pg.RectROI([bb.bottom, bb.left], [bb.width, bb.height],
                          pen=pg.mkPen((255, 255, 0, 255), width=2), movable=False)
 
         # Store the region and add to the ImageView

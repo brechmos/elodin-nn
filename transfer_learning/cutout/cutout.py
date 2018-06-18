@@ -1,6 +1,7 @@
 import uuid
 
 from cachetools.func import lru_cache
+import numpy as np
 
 from transfer_learning.data import Data
 from transfer_learning.misc.image_processing import ImageProcessing
@@ -126,6 +127,129 @@ class CutoutCollection(object):
             self.add(c)
 
 
+class BoundingBox(object):
+    """
+    Encompass a bounding box.  I did this as it got very confusing
+    due to the large number of ways a bounding box can be defined.
+    """
+
+    def __init__(self, left, right, bottom, top):
+        if right < left or top < bottom:
+            raise ValueError('BoundingBox parameters, {} {} {} {}, are not correct'.format(
+                left, right, bottom, top))
+
+        self._bounding_box = [left, right, bottom, top]
+
+    def __str__(self):
+        return 'BoundingBox {} {} {} {}'.format(*self._bounding_box)
+
+    def save(self):
+        return {'bounding_box': self._bounding_box}
+
+    #
+    # Static methods
+    #
+
+    @staticmethod
+    def load(thedict):
+        bb = thedict['bounding_box']
+        return BoundingBox(bb[0], bb[1], bb[2], bb[3])
+
+    #
+    # Regular Methods
+    #
+
+    def overlap(self, bounding_box):
+        """
+        Does this bounding box overlap with the one passed in...
+
+        Parameters
+        -----------
+        bounding_box : BoundingBox
+            Another bounding box.
+
+        Return
+        ------
+        bool
+            True if they overlap otherwise False
+        """
+
+        hoverlaps = True
+        voverlaps = True
+
+        if (self.left > bounding_box.right) or (self.right < bounding_box.left):
+            hoverlaps = False
+
+        if (self.top < bounding_box.bottom) or (self.bottom > bounding_box.top):
+            voverlaps = False
+
+        return hoverlaps and voverlaps
+
+    def isin(self, point):
+        """
+        Check to see if the point is in the bounding box.
+
+        Parameters
+        -----------
+        point: list/tuple of 2 elements
+            Two points defined in space.
+
+        """
+        log.info('point {}'.format(point))
+
+        if point[0] >= self.bottom and point[0] <= self.top and point[1] >= self.left and point[1] <= self.right:
+            return True
+        else:
+            return False
+
+    def distance(self, point):
+        """
+        Measure the distance from the center of a bounding_box to a point.
+
+        Parameters
+        -----------
+        point: list/tuple of 2 elements
+            Two points defined in space.
+        """
+        log.info('point {}'.format(point))
+
+        # Calculate the center of the bounding box.
+        center = ((self.left+self.right)/2.0, (self.bottom+self.top)/2.0)
+
+        # Calculate the distance
+        distance = np.sqrt((center[0]-point[1])**2+(center[1]-point[0])**2)
+
+        return distance
+
+    #
+    # Properties
+    #
+
+    @property
+    def left(self):
+        return self._bounding_box[0]
+
+    @property
+    def right(self):
+        return self._bounding_box[1]
+
+    @property
+    def bottom(self):
+        return self._bounding_box[2]
+
+    @property
+    def top(self):
+        return self._bounding_box[3]
+
+    @property
+    def width(self):
+        return self._bounding_box[1] - self._bounding_box[0]
+
+    @property
+    def height(self):
+        return self._bounding_box[3] - self._bounding_box[2]
+
+
 class Cutout(object):
     """
     This cutout class represents one cutout of an image.  Likely a fingerprint
@@ -150,7 +274,7 @@ class Cutout(object):
         ----------
         data : Data
             Data object from where the cutout came from
-        bounding_box: list [left, right, bottom, top]
+        bounding_box: BoundingBox
             Bounding box of the data which represents this cutout.
         generator_paramters: Cutout Generator
             The cutout generator that created the cutout.
@@ -229,11 +353,11 @@ class Cutout(object):
     @bounding_box.setter
     def bounding_box(self, value):
 
-        if not isinstance(value, (list, tuple)) and not len(value) == 4:
-            log.error('Bounding box must be a list of 4 integers')
+        if not isinstance(value, BoundingBox):
+            log.error('Bounding box must be a Boundingbox')
             raise Exception('Bounding box must be a list of 4 integers')
 
-        self._bounding_box = value
+        self._bounding_box = BoundingBox(*value)
 
     @property
     def cutout_processing(self):
@@ -317,7 +441,7 @@ class Cutout(object):
         #
 
         bb = self._bounding_box
-        data = self._data.get_data()[bb[0]:bb[1], bb[2]:bb[3]]
+        data = self._data.get_data()[bb.left:bb.right, bb.bottom:bb.top]
 
         #
         # Apply the processing
@@ -328,53 +452,12 @@ class Cutout(object):
 
         return data
 
-    def get_data_OLD(self):
-        """
-        Retrieve the data
-
-        Return
-        ------
-        data : numpy array
-            cutout data, with any processing
-        """
-        log.info('')
-
-        #
-        # Cache the original data if not already set.
-        #
-
-        if self._original_data is None:
-            bb = self._bounding_box
-            self._original_data = self._data.get_data()[bb[0]:bb[1], bb[2]:bb[3]]
-
-        #
-        # Cache the procesed data if not already cached
-        #
-
-        if self._cached_output is None:
-            data = self._original_data
-
-            #
-            # Apply the processing
-            #
-
-            for processing in self._cutout_processing:
-                data = processing.process(data)
-
-            #
-            #  Set it as cached so we don't have to recalculate
-            #
-
-            self._cached_output = data
-
-        return self._cached_output
-
     def save(self):
         log.info('')
         return {
             'uuid': self._uuid,
             'data': self._data.save(),
-            'bounding_box': self._bounding_box,
+            'bounding_box': self._bounding_box.save(),
             'generator_parameters': self._generator_parameters,
             'base_cutout_uuid': self._base_cutout_uuid,
             'cutout_processing': [x.save() for x in self._cutout_processing]
@@ -386,7 +469,9 @@ class Cutout(object):
         self._uuid = thedict['uuid']
         self._data = Data.factory(thedict['data'])
         self._generator_parameters = thedict['generator_parameters']
-        self._bounding_box = thedict['bounding_box']
+
+        self._bounding_box = BoundingBox.load(thedict['bounding_box'])
+
         self._base_cutout_uuid = thedict['base_cutout_uuid']
         self._cutout_processing = [ImageProcessing.load(x) for x in thedict['cutout_processing']]
 
