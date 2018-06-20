@@ -103,7 +103,7 @@ class FingerprintCollection(object):
     #
     # Load and save
     #
-    
+
     def save(self):
         return {
             'fingerprint_collection': [FingerprintCollection._collection[x].save()
@@ -112,7 +112,7 @@ class FingerprintCollection(object):
 
     def load(self, thedict):
         for fingerprint_dict in thedict['fingerprint_collection']:
-            f = Fingerprint().load(fingerprint_dict)
+            f = Fingerprint.factory(fingerprint_dict)
             self.add(f)
 
 
@@ -186,8 +186,6 @@ class FingerprintFilter(object):
 
 class Fingerprint(object):
 
-    _fingerprint_collection = {}
-
     @staticmethod
     def factory(parameter):
         if parameter['uuid'] in FingerprintCollection._collection:
@@ -196,9 +194,10 @@ class Fingerprint(object):
             cutout = Cutout.factory(parameter['cutout'])
             return Fingerprint(cutout=cutout,
                                predictions=parameter['predictions'],
+                               other_predictors=parameter['other_predictors'],
                                uuid_in=parameter['uuid'])
 
-    def __init__(self, cutout_uuid=None, cutout=None, predictions=[], uuid_in=None):
+    def __init__(self, cutout_uuid=None, cutout=None, predictions=[], other_predictors=None, uuid_in=None):
         if uuid_in is not None:
             self._uuid = uuid_in
         else:
@@ -211,7 +210,12 @@ class Fingerprint(object):
             self._cutout_uuid = cutout.uuid
         self._predictions = predictions
 
-        Fingerprint._fingerprint_collection[self._uuid] = self
+        if other_predictors is not None:
+            self._other_predictors = other_predictors
+        else:
+            self._other_predictors = {}
+
+        FingerprintCollection._add(self)
 
     def __str__(self):
         return 'Fingerprint {} based on cutout {} with predictions {}'.format(
@@ -239,24 +243,43 @@ class Fingerprint(object):
 
     @property
     def predictions(self):
-        return self._predictions
 
-    @predictions.setter
-    def predictions(self, value):
-        self._predictions = value
+        return_prediction = [x for x in self._predictions]
+
+        for key, val in self._other_predictors.items():
+            return_prediction.extend(val)
+
+        return sorted(return_prediction, key=lambda x: x[2], reverse=True)
+
+#    @predictions.setter
+#    def predictions(self, value):
+#        self._predictions = value
+#
+    def add_other_predictor(self, name, values):
+
+        if not isinstance(name, str):
+            raise ValueError('first parameter must be a string')
+
+        if not isinstance(values, list):
+            raise ValueError('Second parameter must be a list of values')
+
+        self._other_predictors[name] = values
 
     def load(self, thedict, db=None):
         self._uuid = thedict['uuid']
         self._cutout = Cutout.factory(thedict['cutout'])
         self._predictions = thedict['predictions']
+        self._other_predictors = thedict['other_predictors']
 
         # Add to the fingerprint collection
         FingerprintCollection._add(self)
 
     def save(self):
+        print('saving other predictors {}'.format(self._other_predictors))
         return {
              'uuid': self._uuid,
              'cutout': self._cutout.save(),
+             'other_predictors': self._other_predictors,
              'predictions': [(x[0], x[1], float(x[2]))
                              for x in self._predictions]
         }
