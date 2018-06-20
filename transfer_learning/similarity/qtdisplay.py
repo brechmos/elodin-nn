@@ -279,8 +279,9 @@ class SimilarityPlotDock(Dock):
         self.sim_image.setImage(f.cutout.get_data())
 
         # Text Information
-        loc = os.path.basename(f.cutout.data.location)
-        self.text_widget.setText(loc + '\n\n' + '\n'.join(['{} {:0.3}'.format(p[1], p[2]) for p in f.predictions[:5]]))
+        thetext = os.path.basename(f.cutout.data.location) + '\n\n'
+        thetext += '\n'.join(['{} {:0.3}'.format(p[1], p[2]) for p in f.predictions[:10]])
+        self.text_widget.setText(thetext)
 
     def mouseClicked(self, event):
         """
