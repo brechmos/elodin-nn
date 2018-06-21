@@ -1,10 +1,9 @@
 import pickle
-import os
-import shutil
 import numpy as np
 
 from transfer_learning.fingerprint.processing import FingerprintCalculatorResnet
 from transfer_learning.fingerprint.processing import calculate as fingerprint_calculate
+from transfer_learning.fingerprint.image_processing import add_haralick
 from transfer_learning.data import Data, DataCollection
 from transfer_learning.cutout.generators import FullImageCutoutGenerator
 from transfer_learning.misc import image_processing
@@ -25,7 +24,8 @@ print('Setting up the data structure required')
 gray_scale = image_processing.GrayScale()
 data_collection = DataCollection()
 np.random.seed(12)
-for fileinfo in np.random.choice(processing_dict, 2000, replace=False):
+for fileinfo in np.random.choice(processing_dict, 200, replace=False):
+#for fileinfo in processing_dict:
     im = Data(location=fileinfo['location'], radec=fileinfo['radec'], meta=fileinfo['meta'])
     im.add_processing(gray_scale)
 
@@ -64,6 +64,9 @@ fc_save = fresnet.save()
 
 print('Calculating the fingerprints')
 fingerprints = fingerprint_calculate(cutouts, fc_save)
+
+# Add in the Zerinke moments
+add_haralick(fingerprints, normalize=255)
 
 #
 # # An example method of filtering fingerprints

@@ -19,12 +19,13 @@ config.read('config.ini')
 #
 
 print('Going to calculate the sliding window cutouts')
-sliding_window_cutouts = BasicCutoutGenerator(output_size=224, step_size=224)
+sliding_window_cutouts = BasicCutoutGenerator(output_size=224, step_size=112)
 
 print('Going to load the HST Heritage data')
 data = DataCollection()
 cutouts = CutoutCollection()
-for filename in glob.glob('../../data/heritage/*.???'):
+#for filename in glob.glob('../../data/heritage/*.???'):
+for filename in glob.glob('data/*.???'):
 
     #
     # Load the data
