@@ -1,5 +1,3 @@
-import os
-import shutil
 from configparser import ConfigParser
 import pickle
 
@@ -9,8 +7,7 @@ from transfer_learning.similarity.similarity import calculate as similarity_calc
 from transfer_learning.data import Data, DataCollection
 from transfer_learning.cutout import CutoutCollection
 from transfer_learning.fingerprint import FingerprintCollection
-from transfer_learning.cutout.generators import BasicCutoutGenerator, BlobCutoutGenerator
-from transfer_learning.database import get_database
+from transfer_learning.cutout.generators import BasicCutoutGenerator
 
 fc_save = FingerprintCalculatorResnet().save()
 
@@ -21,43 +18,50 @@ config.read('config.ini')
 # Load the data
 #
 
-# Get the data.
 print('Going to load the carina data')
 image_data = Data(location='../../data/carina.tiff', radec=(10.7502222, -59.8677778),
                   meta={}, processing=[])
 image_data.get_data()
 
+#
 # Add to the data collection
+#
+
 dc = DataCollection()
 dc.add(image_data)
 
 #
-#  Create the cutouts with a processing step applied
+#  Create the sliding window cutout generator.
 #
-print('Going to calculate the sliding window cutouts')
+
+print('Creating cutout generator')
 sliding_window_cutouts = BasicCutoutGenerator(output_size=224,
                                               step_size=100)
-cc = CutoutCollection()
 
-for cutout in sliding_window_cutouts.create_cutouts(image_data):
-    cc.add(cutout)
+#
+#  Create the cutouts using a sliding window cutout generator.
+#
+
+print('Creating cutouts')
+cutouts = sliding_window_cutouts.create_cutouts(image_data)
 
 #
 #  Compute the fingerprints for each cutout
 #
+
 print('Calculate the fingerprint for each cutout')
-fc = FingerprintCollection()
-for fingerprint in fingerprint_calculate(cc, fc_save):
-    fc.add(fingerprint)
+fingerprints = fingerprint_calculate(cutouts, fc_save)
 
 #
 #  Compute the similarity metrics
 #
+
 print('Calculating the tSNE similarity')
-similarity_tsne = similarity_calculate(fc, 'tsne')
+similarity_tsne = similarity_calculate(fingerprints, 'tsne')
+
+#
+# Save the data to a pickle file.
+#
 
 with open('similarity_tsne.pck', 'wb') as fp:
     pickle.dump(similarity_tsne.save(), fp)
-
-# print('Calculating the jaccard similarity')
-# similarity_jaccard = similarity_calculate(fingerprints, 'jaccard')
