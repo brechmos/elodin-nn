@@ -275,7 +275,6 @@ class Fingerprint(object):
         FingerprintCollection._add(self)
 
     def save(self):
-        print('saving other predictors {}'.format(self._other_predictors))
         return {
              'uuid': self._uuid,
              'cutout': self._cutout.save(),
