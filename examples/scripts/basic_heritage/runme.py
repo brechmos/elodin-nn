@@ -9,8 +9,6 @@ from transfer_learning.data import Data, DataCollection
 from transfer_learning.cutout import CutoutCollection
 from transfer_learning.cutout.generators import BasicCutoutGenerator
 
-fc_save = FingerprintCalculatorResnet().save()
-
 config = ConfigParser()
 config.read('config.ini')
 
@@ -18,34 +16,32 @@ config.read('config.ini')
 # Load the data
 #
 
+print('Going to load the HST Heritage data')
+data = DataCollection()
+for filename in glob.glob('../../data/heritage/*.???'):
+
+    print('   adding data {}'.format(filename))
+    image_data = Data(location=filename, radec=(-32, 12), meta={})
+    data.add(image_data)
+
+#
+# Create the cutout generator.
+#
+
 print('Going to calculate the sliding window cutouts')
 sliding_window_cutouts = BasicCutoutGenerator(output_size=224, step_size=112)
 
-print('Going to load the HST Heritage data')
-data = DataCollection()
-cutouts = CutoutCollection()
-#for filename in glob.glob('../../data/heritage/*.???'):
-for filename in glob.glob('data/*.???'):
-
-    #
-    # Load the data
-    #
-
-    print('   processing {}'.format(filename))
-    image_data = Data(location=filename, radec=(-32, 12), meta={})
-    image_data.get_data()
-    data.add(image_data)
-
-    #
-    #  Create the cutouts
-    #
-    imcutouts = sliding_window_cutouts.create_cutouts(image_data)
-    cutouts = cutouts + imcutouts
+#
+#  Create the cutouts
+#
+cutouts = sliding_window_cutouts.create_cutouts(data)
 
 #
 #  Compute the fingerprints for each cutout
 #
 print('Calculate the fingerprint for each cutout')
+
+fc_save = FingerprintCalculatorResnet().save()
 fingerprints = fingerprint_calculate(cutouts, fc_save)
 
 #
