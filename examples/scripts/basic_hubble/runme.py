@@ -12,15 +12,27 @@ from configparser import ConfigParser
 config = ConfigParser()
 config.read('config.ini')
 
-# Create the database
-print('Going to setup the database in {}'.format(config['database']['filename']))
+#
+# Load the data from the pickle file.
+#   This file has all the location information and meta data we will
+#   put into the data for display later on.
+#
 
-# Load the data
 print('Loading the Hubble meta data and location information')
 processing_dict = pickle.load(open('../../data/hubble_acs.pck', 'rb'))
 
-print('Setting up the data structure required')
+#
+# Setup an image processing step on the data. This will convert
+# any data that is not gray scale into gray scal.
+#
+
 gray_scale = image_processing.GrayScale()
+
+#
+#  Now create teh actual data and add to the data collection.
+#
+
+print('Setting up the data structure required')
 data_collection = DataCollection()
 np.random.seed(12)
 for fileinfo in np.random.choice(processing_dict, 200, replace=False):
@@ -31,34 +43,49 @@ for fileinfo in np.random.choice(processing_dict, 200, replace=False):
     data_collection.add(im)
 
 #
-#  Create cutouts
+#  Create cutout pre-processing steps, which for this, 
+#  is just crop and resize.
 #
 
-# Cutout processing
 cutout_crop = image_processing.Crop([15, -15, 15, -15])
 cutout_resize = image_processing.Resize([224, 224])
-#cutout_histeq = image_processing.HistogramEqualization()
 
+#
 # Cutout generator
+#  This is a full window cutout generator. So, essentially each
+#  image will be a cutout.
+#
+
 full_cutout = FullImageCutoutGenerator(output_size=(224, 224))
 
-print('Going to create the cutouts')
+#
+#  Now create the cutouts based on the generator and the data.
+#
+
 cutout_processing = [cutout_crop, cutout_resize]
-cutouts_orig = full_cutout.create_cutouts(data_collection,
-                                          cutout_processing=cutout_processing)
+cutouts = full_cutout.create_cutouts(data_collection,
+                                     cutout_processing=cutout_processing)
 
-cutouts = cutouts_orig
 
+#
 # Create the fingerprint calculator... fingerprint
+#
+
 print('Creating the info for the fingerprint calculator')
 fresnet = FingerprintCalculatorResnet()
 fc_save = fresnet.save()
+
+#
+# Calcualte the fingerprint for each of the cutouts in
+# the cutout collection.
+#
 
 print('Calculating the fingerprints')
 fingerprints = fingerprint_calculate(cutouts, fc_save)
 
 #
-# # An example method of filtering fingerprints
+# Calcualte the similarity from the fingerprints based 
+# on three differnt methods.
 #
 
 print('Calculating the tSNE similarity')
