@@ -3,7 +3,6 @@ import numpy as np
 
 from transfer_learning.fingerprint.processing import FingerprintCalculatorResnet
 from transfer_learning.fingerprint.processing import calculate as fingerprint_calculate
-from transfer_learning.fingerprint.image_processing import add_haralick
 from transfer_learning.data import Data, DataCollection
 from transfer_learning.cutout.generators import FullImageCutoutGenerator
 from transfer_learning.misc import image_processing
@@ -25,7 +24,6 @@ gray_scale = image_processing.GrayScale()
 data_collection = DataCollection()
 np.random.seed(12)
 for fileinfo in np.random.choice(processing_dict, 200, replace=False):
-#for fileinfo in processing_dict:
     im = Data(location=fileinfo['location'], radec=fileinfo['radec'], meta=fileinfo['meta'])
     im.add_processing(gray_scale)
 
@@ -49,12 +47,6 @@ cutout_processing = [cutout_crop, cutout_resize]
 cutouts_orig = full_cutout.create_cutouts(data_collection,
                                           cutout_processing=cutout_processing)
 
-#cutout_processing = [cutout_crop, cutout_resize, cutout_histeq]
-#cutouts_histeq = full_cutout.create_cutouts(data_collection,
-#                                            cutout_processing=cutout_processing)
-
-#cutouts = cutouts_orig + cutouts_histeq
-
 cutouts = cutouts_orig
 
 # Create the fingerprint calculator... fingerprint
@@ -64,9 +56,6 @@ fc_save = fresnet.save()
 
 print('Calculating the fingerprints')
 fingerprints = fingerprint_calculate(cutouts, fc_save)
-
-# Add in the Zerinke moments
-add_haralick(fingerprints, normalize=255)
 
 #
 # # An example method of filtering fingerprints
