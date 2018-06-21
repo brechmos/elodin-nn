@@ -1,25 +1,15 @@
-import os
-import shutil
 import pickle
 
 from transfer_learning.fingerprint.processing import FingerprintCalculatorResnet
 from transfer_learning.fingerprint.task import calculate_celery as calculate_fingerprints
-from transfer_learning.similarity.task import similarity_celery as calculate_similarity
-from transfer_learning.data import Data
+from transfer_learning.similarity.task import similarity_celery as similarity_calculate
+from transfer_learning.data import Data, DataCollection
+from transfer_learning.misc.image_processing import Resize
 from transfer_learning.cutout.generators import FullImageCutoutGenerator
-from transfer_learning.database import get_database
 
 from configparser import ConfigParser
 config = ConfigParser()
 config.read('config.ini')
-
-
-# Create the database
-print('Going to setup the database in {}'.format(config['database']['filename']))
-
-if os.path.isdir(config['database']['filename']):
-    shutil.rmtree(config['database']['filename'])
-db = get_database(config['database']['type'], config['database']['filename'])
 
 
 def stringify(dictionary):
@@ -30,50 +20,58 @@ fresnet = FingerprintCalculatorResnet()
 fc_save = fresnet.save()
 
 #
-# Load the data
+# Load the location and meta information of the data.
 #
+
 print('Loading the processing dict')
 processing_dict = pickle.load(open('../../data/hubble_acs.pck', 'rb'))
 
 #
+# Create the data pre-processing.
+#
+
+resize_224 = Resize(output_size=(224, 224))
+
+#
 #  Create the datasets
 #
+
 print('Creating data objects')
-data = []
+data = DataCollection()
 for fileinfo in processing_dict[:20]:
     im = Data(location=fileinfo['location'], radec=fileinfo['radec'], meta=fileinfo['meta'])
-    print('image is {}'.format(im.shape))
-    if im.shape[0] < 224 or im.shape[1] < 224:
-        continue
-    db.save('data', im)
+    im.add_processing(resize_224)
     data.append(im)
 
 #
-#  Create cutouts
+#  Create cutout generator
 #
-print('Creating the cutouts for {} images'.format(len(data)))
+
+print('Creating the cutout generator')
 full_cutout = FullImageCutoutGenerator(output_size=(224, 224))
 
-cutouts = []
-for datum in data:
-    cutout = full_cutout.create_cutouts(datum)
-    db.save('cutout', cutout)
-    cutouts.append(cutout)
+#
+#  Create the cutouts.
+#
+
+cutouts = full_cutout.create_cutouts(data)
 
 #
 #  Calculate the fingerprints
 #
 print('Calculating the fingerprints for {} cutouts'.format(len(cutouts)))
 fingerprints = calculate_fingerprints(cutouts, fc_save)
-for fingerprint in fingerprints:
-    db.save('fingerprint', fingerprint)
 
 #
-#  Compute the similarity
+#  Compute the similarity metrics
 #
-print('Calculating the similarity')
-similarity_tsne = calculate_similarity(fingerprints, 'tsne')
-db.save('similarity', similarity_tsne)
 
-similarity_jaccard = calculate_similarity(fingerprints, 'jaccard')
-db.save('similarity', similarity_jaccard)
+print('Calculating the tSNE similarity')
+similarity_tsne = similarity_calculate(fingerprints, 'tsne')
+with open('similarity_tsne.pck', 'wb') as fp:
+    pickle.dump(similarity_tsne.save(), fp)
+
+print('Calculating the Jaccard similarity')
+similarity_jaccard = similarity_calculate(fingerprints, 'jaccard')
+with open('similarity_jaccard.pck', 'wb') as fp:
+    pickle.dump(similarity_jaccard.save(), fp)
