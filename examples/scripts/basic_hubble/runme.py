@@ -43,7 +43,7 @@ for fileinfo in np.random.choice(processing_dict, 200, replace=False):
     data_collection.add(im)
 
 #
-#  Create cutout pre-processing steps, which for this, 
+#  Create cutout pre-processing steps, which for this,
 #  is just crop and resize.
 #
 
@@ -84,7 +84,7 @@ print('Calculating the fingerprints')
 fingerprints = fingerprint_calculate(cutouts, fc_save)
 
 #
-# Calcualte the similarity from the fingerprints based 
+# Calcualte the similarity from the fingerprints based
 # on three differnt methods.
 #
 
@@ -109,4 +109,3 @@ with open('similarity_jaccard.pck', 'wb') as fp:
 
 with open('similarity_distance.pck', 'wb') as fp:
     pickle.dump(similarity_distance.save(), fp)
-
