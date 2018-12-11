@@ -9,6 +9,7 @@ from sklearn.manifold import TSNE
 from scipy.sparse import csc_matrix
 from scipy.spatial.distance import pdist, squareform
 from transfer_learning.fingerprint import Fingerprint
+import umap 
 
 from ..tl_logging import get_logger
 import logging
@@ -43,6 +44,8 @@ def calculate(fingerprints, similarity_calculator, serialize_output=False):
         sim = Jaccard()
     elif similarity_calculator == 'distance':
         sim = Distance()
+    elif similarity_calculator == 'umap':
+        sim = UMAP()
 
     # Calculate the similarity
     sim.calculate(fingerprints)
@@ -1223,3 +1226,430 @@ class Distance(Similarity):
         self._metric = self._parameters['metric']
 
         self._fingerprint_filter_inds = list(range(len(self._fingerprints)))
+
+
+class UMAP(Similarity):
+
+    _similarity_type = 'umap'
+
+    def __init__(self, *args, **kwargs):
+        """
+        This function might be called locally and in that case we want to return the
+        actual similarity calculator instance.  Or it might be run rmeotely (via celery)
+        and in this case we want to reutrn the serialized version of the similarity instance.
+
+        Parameters
+        ----------
+        display_type : string
+           String representation of the display, can be 'plot', 'hexbin'.
+
+        Returns
+        -------
+        N/A
+        """
+
+        # Pull the display type out of kwargs if it is there. If not then we will
+        # use 'plot' as the default.
+        if 'display_type' in kwargs:
+            display_type = kwargs['display_type']
+            del kwargs['display_type']
+        else:
+            display_type = 'plot'
+
+        super().__init__(UMAP._similarity_type, *args, **kwargs)
+        log.info('Created {}'.format(self._similarity_type))
+
+        # Each line / element in these should correpsond
+        self._Y = None
+        self._fingerprints = []
+        self._filename_index = []
+        self._distance_measure = 'l2'
+
+        # Display types
+        self._display_type = display_type
+        self._display_types = ['plot', 'hexbin', 'mpl']
+        if self._display_type not in self._display_types:
+            raise Exception('Display type {} not one of {}'.format(
+                self._display_type, self._display_types))
+
+        # Define the distance measures.
+        self._distance_measures = {
+            'l2': lambda Y, point: np.sqrt(np.sum((Y - np.array(point))**2, axis=1)),
+            'l1': lambda Y, point: np.sum(np.abs((Y - np.array(point)), axis=1)),
+        }
+
+    @property
+    def data(self):
+        return self._Y
+
+    @property
+    def data_filtered(self):
+        return self._Y[self._fingerprint_filter_inds]
+
+    #
+    #  Calculation Methods
+    #
+
+    def calculate(self, fingerprints):
+        """
+        Calculate the UMAP based on the fingerprints.
+
+        Parameters
+        ----------
+        fingerprints : list of Fingerprint instances
+           The fingerprints we want to calculate over.
+
+        Returns
+        -------
+        N/A
+        """
+        log.info('Going to calculate tSNE from {} fingerprints'.format(len(fingerprints)))
+
+        #
+        #  Filter the fingerprints, if the filter is set.
+        #
+
+        if self._fingerprint_filter is not None:
+            fingerprints = self._fingerprint_filter(fingerprints)
+
+        #
+        # Calculate the unique labels
+        #
+
+        labels = []
+        values = {}
+        for ii, fp in enumerate(fingerprints):
+            log.debug('    fingerprint is {}'.format(fp))
+
+            #
+            # Add to unique label list
+            #
+
+            labels.extend([pred[1] for pred in fp.predictions if pred[1] not in labels])
+
+            #
+            # Store the predictions for next processing
+            #
+
+            values[ii] = fp.predictions
+
+            self._fingerprints.append(fp)
+        log.info('Unique labels {}'.format(labels))
+
+        #
+        # Set up the similarity matrix X based on the predictions
+        #
+
+        X = np.zeros((len(fingerprints), len(labels)))
+        for ii, fp in enumerate(fingerprints):
+            inds = [labels.index(prediction[1]) for prediction in values[ii]]
+            X[ii][inds] = [prediction[2] for prediction in values[ii]]
+
+        log.debug('X is {}'.format(X))
+        log.debug('Fingerprint list {}'.format(self._fingerprints))
+
+        #
+        # Compute the tSNE of the data.
+        #
+
+        log.info('Calculating the tSNE...')
+        self._Y = umap.UMAP(n_neighbors=5,
+                      min_dist=0.3,
+                      metric='correlation').fit_transform(X)
+        log.debug('self._Y is {}'.format(self._Y))
+        log.info('Done calculation')
+
+    #
+    #  Utility Methods
+    #
+
+    def save(self):
+        """
+        Save function converts the instance to a dict.
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        dict
+            Dictionary representation of this instance.
+        """
+        log.info('Returning the dictionary of information')
+        return {
+            'uuid': self._uuid,
+            'similarity_type': self._similarity_type,
+            'similarity': self._Y.tolist(),
+            'fingerprint': [fp.save() for fp in self._fingerprints],
+            'parameters': {
+                'distance_measure': self._distance_measure
+            }
+        }
+
+    def load(self, thedict, db=None):
+        """
+        Reload the internal variables from the dictionary.
+
+        Parameters
+        ----------
+        thedict : dict
+            The first parameter.
+        db : str
+            database object
+
+        Returns
+        -------
+        N/A
+        """
+        log.info('Loading the dictionary of information with database {}'.format(db))
+
+        self._uuid = thedict['uuid']
+        self._similarity_type = thedict['similarity_type']
+        self._Y = np.array(thedict['similarity'])
+        self._fingerprints = [Fingerprint.factory(x) for x in thedict['fingerprint']]
+        self._parameters = thedict['parameters']
+        self._distance_measure = self._parameters['distance_measure']
+
+        self._fingerprint_filter_inds = list(range(len(self._fingerprints)))
+
+    #
+    #  Display methods
+    #
+
+    def set_display_type(self, display_type):
+        """
+        Set the display type. Currently 'plot', 'hexbin', and 'mpl' are defined.
+
+        Parameters
+        ----------
+        display_type : string
+            Display type: 'plot', 'hexbin', and 'mpl' are defined.
+
+        Returns
+        -------
+        N/A
+        """
+        if display_type in self._display_types:
+            self._display_type = display_type
+        else:
+            raise ValueError('Display type {} not in {}'.format(display_type, self._display_types))
+
+    def select_distance_measure(self, distance_measure=None):
+        """
+        Select the distance measure.
+
+        Parameters
+        ----------
+        distance_measure : string
+            Display type: 'plot', 'hexbin', and 'mpl' are defined.
+
+        Returns
+        -------
+        N/A
+        """
+
+        if not distance_measure:
+            dm_options = self._distance_measures.keys()
+
+            selected = False
+            N = 0
+            while not selected:
+                # Show the fingerprints in order to allow for the person to select one
+                print('Select distance measure to use (q to quit:')
+                for ii, x in enumerate(dm_options):
+                    print('   {}) {}'.format(ii, x))
+                    N = ii
+
+                s = input('Select Number > ')
+
+                if s == 'q':
+                    return
+
+                try:
+                    s = int(s)
+                    if s >= 0 and s < N:
+                        self._distance_measure = self._distance_measures[s]
+                except Exception:
+                    pass
+        else:
+            if distance_measure in self._distance_measures:
+                self._distance_measure = distance_measure
+            else:
+                self._distance_measure = self._distance_measures.keys()[0]
+                log.error('ERROR: No definition for {} so using {} instead.'.format(
+                    distance_measure, self._distance_measure))
+
+    def display(self, umap_axis):
+        """
+        Display the plot into the matplotlib axis in the
+        parameter based on the plot type. This just determines
+        the plot type and then calls the internal plot function.
+
+        Parameters
+        ----------
+        umap_axis : Matplotlib.axes.axis
+            The matplotlib axis into which we want to display the plot.
+
+        Returns
+        -------
+        N/A
+        """
+        if self._display_type == 'plot':
+            self._display_plot(umap_axis)
+        elif self._display_type == 'hexbin':
+            return self._display_hexbin(umap_axis)
+#        elif self._display_type == 'mpl':
+#            self._display_mpl(umap_axis)
+        else:
+            raise ValueError('Plot type {} is not in the valid list {}'.format(
+                self._display_type, self._display_types))
+
+    def _display_plot(self, umap_axis):
+        """
+        Display the plot into the matplotlib axis as a regular scatter plot.
+
+        Parameters
+        ----------
+        umap_axis : Matplotlib.axes.axis
+            The matplotlib axis into which we want to display the plot.
+
+        Returns
+        -------
+        N/A
+        """
+        umap_axis.plot(self._Y[:, 0], self._Y[:, 1])#, '.')
+        umap_axis.grid('on')
+        umap_axis.set_title('UMAP [{}]'.format(self._distance_measure))
+
+    def _display_hexbin(self, umap_axis):
+        """
+        Display the plot into the matplotlib axis as a hexbin.
+
+        Parameters
+        ----------
+        umap_axis : Matplotlib.axes.axis
+            The matplotlib axis into which we want to display the plot.
+
+        Returns
+        -------
+        N/A
+        """
+        output = umap_axis.hexbin(self._Y[:, 0], self._Y[:, 1], cmap='hot')
+        umap_axis.grid('on')
+        umap_axis.set_title('UMAP [{}]'.format(self._distance_measure))
+
+        # Set the color limits so that it is a little brighter
+        limmax = np.percentile(output.get_array(), 99.9)
+        output.set_clim((0, limmax))
+
+        return output
+
+    def find_similar(self, point, n=9, allow_overlapping_bounding_boxes=True):
+        """
+        Find fingerprints that are close to the input point.
+
+        Parameters
+        ----------
+        point : tuple (int, int)
+            A point in the plot.
+        n : int
+            Number to return.
+
+        allow_overlapping_bounding_boxes: bool
+            Whether to allow overlapping bb or not.
+
+        Returns
+        -------
+        list
+            List of dicts that describe the closest fingerprints.
+        """
+        log.info('')
+
+        if self._fingerprint_filter_inds is None:
+            self._fingerprint_filter_inds = list(range(len(self._fingerprints)))
+
+        distances = self._distance_measures[self._distance_measure](self._Y, point)
+
+        log.debug('Filtering based, n distances {}  n filter_inds {}'.format(
+                  len(distances), len(self._fingerprint_filter_inds)))
+
+        inds = []
+        for ind in np.argsort(distances):
+
+            # First, make sure this index is one of the filtered ones.
+            if ind in self._fingerprint_filter_inds:
+
+                # Next check to see if we allow overlapping bounding boxes
+                # If not, make sure this one doesn't overlap with any in the list so far.
+                if(allow_overlapping_bounding_boxes or
+                   not any([self._fingerprints[ind].cutout.bounding_box.overlap(self._fingerprints[ii].cutout.bounding_box) for ii in inds])):
+                    inds.append(ind)
+                    if len(inds) == n:
+                        break
+
+        # Now we want to look only in the "search_inds" if that is passed in
+        return [{
+                    'umap_point': self._Y[ind],
+                    'distance': distances[ind],
+                    'fingerprint': self._fingerprints[ind]
+                } for ind in inds[:n]]
+
+    def cutout_point(self, cutout):
+        """
+        Given a cutout (and therefore a fingerprint), find the point in the
+        tSNE plot that it corresponds to.
+
+        Parameters
+        -----------
+        cutout : Cutout
+            The cutout we want to find.
+
+        Return
+        ------
+        tSNE point: tuple
+            Point in the tSNE space the cutout corresponds to
+        """
+        log.info('cutout {}'.format(cutout))
+
+        index = [fingerprint.cutout.uuid for fingerprint in self._fingerprints].index(cutout.uuid)
+        return self._Y[index]
+
+    def closest_cutout(self, data, point):
+        """
+        Given a cutout (and therefore a fingerprint), find the point in the
+        tSNE plot that it corresponds to.
+
+        Parameters
+        -----------
+        cutout : Cutout
+            The cutout we want to find.
+
+        Return
+        ------
+        tSNE point: tuple
+            Point in the tSNE space the cutout corresponds to
+        """
+        log.info('data {}  point {}'.format(data, point))
+
+        #
+        # Get the cutouts assocated with the data passed in.
+        #
+
+        cutouts = [fingerprint.cutout for fingerprint in self._fingerprints if fingerprint.cutout.data == data]
+
+        #
+        # Compute distance between cutout bounding boxes centers and the point.
+        #
+
+        distances = [c.bounding_box.distance(point) for c in cutouts]
+
+        #
+        # Find the smallest.
+        #
+
+        index = np.argsort(distances)[0]
+
+        log.debug('Closest cutout is with bb {} and dist {}'.format(cutouts[index].bounding_box, distances[index]))
+
+        return cutouts[index]
