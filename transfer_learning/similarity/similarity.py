@@ -829,7 +829,7 @@ class Jaccard(Similarity):
 
         # Top n_predictions to use in the jaccard comparison
         # TODO: This might be good to be a funciton of # of fingerprints (?)
-        self._n_predictions = 10
+        self._n_predictions = 30
 
     @property
     def data(self):
@@ -953,7 +953,7 @@ class Jaccard(Similarity):
         log.debug('length of dsistances is {}'.format(len(distances)))
 
         inds = []
-        for ind in np.argsort(distances):
+        for ind in np.argsort(distances)[::-1]:
 
             # First, make sure this index is one of the filtered ones.
             if ind in self._fingerprint_filter_inds:
@@ -1125,7 +1125,13 @@ class Distance(Similarity):
         self._X = np.zeros((len(fingerprints), len(unique_labels)))
         for ii, fp in enumerate(fingerprints):
             inds = [unique_labels.index(prediction[1]) for prediction in values[ii]]
-            self._X[ii][inds] = [prediction[2] for prediction in values[ii]]
+
+            vals =  np.array([prediction[2] for prediction in values[ii]])
+            vals = vals / sum(vals)
+
+            # self._X[ii][inds] = [prediction[2] for prediction in values[ii]]
+            self._X[ii][inds] = vals
+       
 
         self._fingerprint_adjacency = squareform(pdist(self._X, metric=self._metric))
 
