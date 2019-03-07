@@ -2,14 +2,14 @@ import os
 import json
 import numpy as np
 
-from transfer_learning.data import Data, DataCollection
-from transfer_learning.cutout import CutoutCollection
-from transfer_learning.fingerprint import FingerprintCollection
-from transfer_learning.fingerprint.processing import calculate as fingerprint_calculate
-from transfer_learning.fingerprint.processing import FingerprintCalculatorResnet
-from transfer_learning.similarity import Similarity
-from transfer_learning.similarity import calculate as similarity_calculate
-from transfer_learning.cutout.generators import BasicCutoutGenerator
+from elodin_nn.data import Data, DataCollection
+from elodin_nn.cutout import CutoutCollection
+from elodin_nn.fingerprint import FingerprintCollection
+from elodin_nn.fingerprint.processing import calculate as fingerprint_calculate
+from elodin_nn.fingerprint.processing import FingerprintCalculatorResnet
+from elodin_nn.similarity import Similarity
+from elodin_nn.similarity import calculate as similarity_calculate
+from elodin_nn.cutout.generators import BasicCutoutGenerator
 
 
 def test_carina():
