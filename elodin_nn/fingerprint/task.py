@@ -4,8 +4,8 @@ import itertools
 
 from celery import group
 
-from transfer_learning.celery import app
-from transfer_learning.fingerprint.processing import calculate as processing_calculate
+from elodin_nn.celery import app
+from elodin_nn.fingerprint.processing import calculate as processing_calculate
 
 from ..tl_logging import get_logger
 import logging

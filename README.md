@@ -1,4 +1,4 @@
-# Transfer Learning for Hubble Images
+# Unsupervised Classification of Hubble Images
 
 This code will read in a set of images, create cutouts, calculate "fingerprints" for each cutout and then do similarity data reduction.
 
@@ -61,13 +61,13 @@ db.save('similarity', similarity_tsne)
 Given a set of processed data there is a display method that will show the similarity plot and N similar images.  Each point in the tSNE plot is a cutout and one can click on the point in the tSNE plot. Then the 9 similar images (though configurable) will be displayed to the right along with their sky location if that is available. 
 
 ### Hubble ACS Thumbnail Images
-![](https://github.com/brechmos-stsci/transfer-learning/raw/master/images/hubble_thumbnails.jpeg)
+![](https://github.com/brechmos-stsci/elodin-nn/raw/master/images/hubble_thumbnails.jpeg)
 
 ### Hubble Carina Image
-![](https://github.com/brechmos-stsci/transfer-learning/raw/master/images/hubble_carina.jpeg)
+![](https://github.com/brechmos-stsci/elodin-nn/raw/master/images/hubble_carina.jpeg)
 
 ### Hubble Heritage Images
-![](https://github.com/brechmos-stsci/transfer-learning/raw/master/images/hubble_heritage.jpeg)
+![](https://github.com/brechmos-stsci/elodin-nn/raw/master/images/hubble_heritage.jpeg)
 
 
 ## Current Status

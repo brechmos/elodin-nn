@@ -29,7 +29,7 @@ from pyqtgraph.widgets.MatplotlibWidget import MatplotlibWidget
 from pyqtgraph.dockarea import Dock, DockArea
 from PyQt5.QtCore import pyqtSignal
 
-from transfer_learning.similarity import Similarity
+from elodin_nn.similarity import Similarity
 
 #
 # Setup the logging format
@@ -750,7 +750,7 @@ class SimilarityDisplay(QtGui.QApplication):
         self.area = DockArea()
         self.win.setCentralWidget(self.area)
         self.win.resize(1500, 800)
-        self.win.setWindowTitle('Hubble Transfer Learning')
+        self.win.setWindowTitle('Elodin - Unsupervised Image Classification')
 
         # Create docks, place them into the window one at a time.
         # Note that size arguments are only a suggestion; docks will still have to

@@ -8,7 +8,7 @@ import numpy as np
 from sklearn.manifold import TSNE
 from scipy.sparse import csc_matrix
 from scipy.spatial.distance import pdist, squareform
-from transfer_learning.fingerprint import Fingerprint
+from elodin_nn.fingerprint import Fingerprint
 import umap 
 
 from ..tl_logging import get_logger

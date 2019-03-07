@@ -3,7 +3,7 @@ import numpy as np
 
 import imageio
 
-from transfer_learning.fingerprint.processing import FingerprintCalculatorResnet
+from elodin_nn.fingerprint.processing import FingerprintCalculatorResnet
 
 def load_jpg(filename):
     return np.array(imageio.imread(filename))

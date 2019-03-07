@@ -7,12 +7,12 @@ c = ConfigParser()
 c.read('config.ini')
 
 
-app = Celery('transfer_learning',
+app = Celery('elodin_nn',
              broker=c['processor']['celery_broker'],
              backend=c['processor']['celery_backend'],
              include=[
-                 'transfer_learning.fingerprint.task',
-                 'transfer_learning.similarity.task',
+                 'elodin_nn.fingerprint.task',
+                 'elodin_nn.similarity.task',
                  ]
             )
 

@@ -8,9 +8,9 @@ import matplotlib.gridspec as gridspec
 from itertools import groupby
 
 from scipy.spatial import distance_matrix
-from transfer_learning.database import get_database
-from transfer_learning.fingerprint import FingerprintCollection
-from transfer_learning.cutout import CutoutCollection
+from elodin_nn.database import get_database
+from elodin_nn.fingerprint import FingerprintCollection
+from elodin_nn.cutout import CutoutCollection
 
 from astropy.coordinates import SkyCoord
 from astropy import units

@@ -1,7 +1,7 @@
 import uuid
 
 from ..tl_logging import get_logger
-from transfer_learning.cutout import Cutout
+from elodin_nn.cutout import Cutout
 log = get_logger('fingerprint')
 
 
