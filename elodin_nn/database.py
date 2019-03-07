@@ -1,9 +1,9 @@
 import os
 
-from transfer_learning.data import Data
-from transfer_learning.cutout import Cutout
-from transfer_learning.fingerprint import Fingerprint
-from transfer_learning.similarity import Similarity
+from elodin_nn.data import Data
+from elodin_nn.cutout import Cutout
+from elodin_nn.fingerprint import Fingerprint
+from elodin_nn.similarity import Similarity
 
 # Mongo
 import pymongo
