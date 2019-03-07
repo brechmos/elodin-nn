@@ -5,8 +5,8 @@ import numpy as np
 from skimage import measure
 from skimage import filters
 
-from transfer_learning.data import Data, DataCollection
-from transfer_learning.cutout import Cutout, CutoutCollection, BoundingBox
+from elodin_nn.data import Data, DataCollection
+from elodin_nn.cutout import Cutout, CutoutCollection, BoundingBox
 
 from ..tl_logging import get_logger
 log = get_logger('cutout generator')
@@ -29,7 +29,7 @@ class BasicCutoutGenerator:
         Basic cutout generator based on a sliding window technique.
 
         The idea is one creates this genrerator and then the ``create_cutouts()``
-        is called on a ``transfer_learning.data.Data`` instance.
+        is called on a ``elodin_nn.data.Data`` instance.
 
         Parameters
         -----------
@@ -55,7 +55,7 @@ class BasicCutoutGenerator:
 
         Parameters
         -----------
-        data : `transfer_learning.data.Data`
+        data : `elodin_nn.data.Data`
             The dataset.
 
         Return
@@ -83,11 +83,11 @@ class BasicCutoutGenerator:
 
         Parameters
         -----------
-        data : `transfer_learning.data.Data` or `transfer_learning.data.DataCollection`
+        data : `elodin_nn.data.Data` or `elodin_nn.data.DataCollection`
             The dataset.
 
         cutout_processing : list, optional
-            List of instances of ``transfer_learning.cutout.cutout_processing``.
+            List of instances of ``elodin_nn.cutout.cutout_processing``.
 
         Return
         ------
@@ -112,11 +112,11 @@ class BasicCutoutGenerator:
 
         Parameters
         -----------
-        data : `transfer_learning.data.Data` or `transfer_learning.data.DataCollection`
+        data : `elodin_nn.data.Data` or `elodin_nn.data.DataCollection`
             The dataset.
 
         cutout_processing : list, optional
-            List of instances of ``transfer_learning.cutout.cutout_processing``.
+            List of instances of ``elodin_nn.cutout.cutout_processing``.
 
         Return
         ------
@@ -218,7 +218,7 @@ class FullImageCutoutGenerator:
 
         Parameters
         -----------
-        data : `transfer_learning.data.Data`
+        data : `elodin_nn.data.Data`
             The dataset.
 
         """
@@ -231,11 +231,11 @@ class FullImageCutoutGenerator:
 
         Parameters
         -----------
-        data : `transfer_learning.data.Data` or `transfer_learning.data.DataCollection`
+        data : `elodin_nn.data.Data` or `elodin_nn.data.DataCollection`
             The dataset.
 
         cutout_processing : list, optional
-            List of instances of ``transfer_learning.cutout.cutout_processing``.
+            List of instances of ``elodin_nn.cutout.cutout_processing``.
 
         """
         log.info('Creating new cutout from data {}'.format(data.uuid))
@@ -330,7 +330,7 @@ class BlobCutoutGenerator:
 
         Parameters
         -----------
-        data : `transfer_learning.data.Data`
+        data : `elodin_nn.data.Data`
             The dataset.
 
         """
@@ -348,7 +348,7 @@ class BlobCutoutGenerator:
 
         Parameters
         -----------
-        data : `transfer_learning.data.Data`
+        data : `elodin_nn.data.Data`
             The dataset.
 
         """
@@ -362,11 +362,11 @@ class BlobCutoutGenerator:
 
         Parameters
         -----------
-        data : `transfer_learning.data.Data`
+        data : `elodin_nn.data.Data`
             The dataset.
 
         cutout_processing : list, optional
-            List of instances of ``transfer_learning.cutout.cutout_processing``.
+            List of instances of ``elodin_nn.cutout.cutout_processing``.
 
         Notes
         -----
