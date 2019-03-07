@@ -3,9 +3,9 @@ import time
 import numpy as np
 import weakref
 
-from transfer_learning.utils import gray2rgb
-from transfer_learning.fingerprint.fingerprint import Fingerprint, FingerprintCollection
-from transfer_learning.cutout import Cutout, CutoutCollection
+from elodin_nn.utils import gray2rgb
+from elodin_nn.fingerprint.fingerprint import Fingerprint, FingerprintCollection
+from elodin_nn.cutout import Cutout, CutoutCollection
 
 from ..tl_logging import get_logger
 import logging
