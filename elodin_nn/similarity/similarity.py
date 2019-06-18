@@ -1360,8 +1360,8 @@ class UMAP(Similarity):
 
         log.info('Calculating the tSNE...')
         self._Y = umap.UMAP(n_neighbors=5,
-                      min_dist=0.3,
-                      metric='correlation').fit_transform(X)
+                      min_dist=0.2,
+                      metric='euclidean').fit_transform(X)
         log.debug('self._Y is {}'.format(self._Y))
         log.info('Done calculation')
 
