@@ -480,7 +480,7 @@ class Image(object):
             if border is not None:
                 # row, col <-> y, x
                 outline = matplotlib.patches.Rectangle(
-                        (border[2], border[0]), border[3]-border[2], border[1]-border[0],
+                        (border.left, border.top), border.width, border.height,
                         linewidth=1, edgecolor='#ffff77', facecolor='none')
                 self._axes.add_patch(outline)
                 self._outlines.append(outline)
