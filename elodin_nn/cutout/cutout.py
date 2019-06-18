@@ -123,7 +123,8 @@ class CutoutCollection(object):
 
     def load(self, thedict):
         for cutout_dict in thedict['cutout_collection']:
-            c = Cutout().load(cutout_dict)
+            c = Cutout()
+            c.load(cutout_dict)
             self.add(c)
 
 
