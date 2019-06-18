@@ -117,11 +117,11 @@ class FingerprintCalculator:
 
             try:
                 s = int(s)
-                if s >= 0 and s < N:
+                if 0 <= s < N:
                     # create fingerprint
                     return subclasses[s]
-            except Exception:
-                pass
+            except Exception as e:
+                log.error(e)
 
     @staticmethod
     def load_parameters(parameters):
