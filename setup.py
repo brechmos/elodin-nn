@@ -5,14 +5,14 @@
 from setuptools import setup, find_packages
 
 setup(
-    name='transfer_learning',
+    name='elodin-nn',
     version='0.3.dev0',
     license='GPLV3.0',
-    description='Transfer learning info.',
-    long_description='Transfer Learning',
+    description='Unsupervised CNN image clustering.',
+    long_description='Unsupervised CNN image clustering',
     author='Craig Jones',
     author_email='craig@brechmos.org',
-    url='https://github.com/brechmos-stsci/transfer-learning',
+    url='https://github.com/brechmos-stsci/elodin-nn',
     packages=find_packages(exclude=['tests']),
     include_package_data=True,
     zip_safe=False,
