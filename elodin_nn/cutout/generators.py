@@ -335,7 +335,7 @@ class BlobCutoutGenerator:
 
         """
         gray_image = np.dot(data[:, :, :3], [0.299, 0.587, 0.114])
-        im = filters.gaussian_filter(gray_image, sigma=self._gaussian_smoothing_sigma)
+        im = filters.gaussian(gray_image, sigma=self._gaussian_smoothing_sigma)
         blobs = im > self._mean_threshold * im.mean()
         blobs_labels = measure.label(blobs, background=0)
 
