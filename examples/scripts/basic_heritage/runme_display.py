@@ -1,16 +1,13 @@
 import pickle
 
-from transfer_learning.similarity import Similarity
-from transfer_learning.similarity.qtdisplay import SimilarityDisplay
-
-from configparser import ConfigParser
-config = ConfigParser()
-config.read('config.ini')
+from elodin_nn.similarity import Similarity
+from elodin_nn.similarity.qtdisplay import SimilarityDisplay
 
 #
 # Load up the pickle file.
 #
 
+# Or change this to similarity_jaccard.pck
 with open('similarity_tsne.pck', 'rb') as fp:
     stsne = pickle.load(fp)
     similarity_tsne = Similarity.factory(stsne)

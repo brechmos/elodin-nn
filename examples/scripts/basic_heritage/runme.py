@@ -1,16 +1,11 @@
 import glob
 import pickle
-from configparser import ConfigParser
 
-from transfer_learning.fingerprint.processing import FingerprintCalculatorResnet
-from transfer_learning.fingerprint.processing import calculate as fingerprint_calculate
-from transfer_learning.similarity.similarity import calculate as similarity_calculate
-from transfer_learning.data import Data, DataCollection
-from transfer_learning.cutout import CutoutCollection
-from transfer_learning.cutout.generators import BasicCutoutGenerator
-
-config = ConfigParser()
-config.read('config.ini')
+from elodin_nn.cutout.generators import BasicCutoutGenerator
+from elodin_nn.data import Data, DataCollection
+from elodin_nn.fingerprint.processing import FingerprintCalculatorResnet
+from elodin_nn.fingerprint.processing import calculate as fingerprint_calculate
+from elodin_nn.similarity.similarity import calculate as similarity_calculate
 
 #
 # Load the data
