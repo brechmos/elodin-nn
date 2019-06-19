@@ -4,7 +4,7 @@ This code will read in a set of images, create cutouts, calculate "fingerprints"
 
 ## Processing
 
-The general idea is given a Hubble image (for example a thumbnail), create a cutout of it. Then this cutout image is passed through the Resnet50 calculator in order to determine the probability information based on ImageNet images.  Then, given all the fingerprints, use the tSNE data reduction method (or other method) in order to calculate the similarity between the fingerprints, and therefore the similarity between the cutouts.
+The general idea is given a Hubble image (for example, a full-view thumbnail), create a cutout of it. Then pass the cutout through a pre-trained neural network to create a feature vector for the cutout.  The pre-trained network used here are based on ones in Keras that are trained on the ImageNet dataset.  Then, given all the feature vectors, use the tSNE data reduction method (or similar) to reduce the dimenionsality to a 2D dataset. The similarity of the dimensionaliy reduced data is used as a surrogate for the similarity of the cutouts. 
 
 ### Simple example of the code
 
