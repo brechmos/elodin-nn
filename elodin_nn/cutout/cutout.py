@@ -384,7 +384,7 @@ class Cutout(object):
         """
         log.info('Adding processing {}'.format(cutout_processing))
 
-        self._cutout_processing = cutout_processing
+        self._cutout_processing.append(cutout_processing)
 
         #
         # Add in info about the base cutout uuid
