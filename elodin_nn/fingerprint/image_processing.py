@@ -1,9 +1,9 @@
-import numpy as np
 import mahotas
+import numpy as np
 
 from elodin_nn.fingerprint.fingerprint import Fingerprint, FingerprintCollection
-
 from ..tl_logging import get_logger
+
 log = get_logger('fingerprint processing')
 
 

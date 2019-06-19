@@ -1,15 +1,15 @@
-import uuid
 import re
+import uuid
 from io import BytesIO
 
-import numpy as np
 import imageio
+import numpy as np
 import requests
 from cachetools.func import lru_cache
 
 from ..misc.image_processing import ImageProcessing
-
 from ..tl_logging import get_logger
+
 log = get_logger('data')
 
 

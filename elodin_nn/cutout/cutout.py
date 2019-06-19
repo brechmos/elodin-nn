@@ -1,12 +1,12 @@
 import uuid
 
-from cachetools.func import lru_cache
 import numpy as np
+from cachetools.func import lru_cache
 
 from elodin_nn.data import Data
 from elodin_nn.misc.image_processing import ImageProcessing
-
 from ..tl_logging import get_logger
+
 log = get_logger('cutout')
 
 

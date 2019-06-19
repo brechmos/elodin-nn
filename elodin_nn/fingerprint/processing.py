@@ -1,14 +1,14 @@
 import uuid
-import time
-import numpy as np
 import weakref
 
-from elodin_nn.utils import gray2rgb
-from elodin_nn.fingerprint.fingerprint import Fingerprint, FingerprintCollection
-from elodin_nn.cutout import Cutout, CutoutCollection
+import numpy as np
+import time
 
+from elodin_nn.cutout import CutoutCollection
+from elodin_nn.fingerprint.fingerprint import Fingerprint, FingerprintCollection
+from elodin_nn.utils import gray2rgb
 from ..tl_logging import get_logger
-import logging
+
 log = get_logger('fingerprint processing')
 
 

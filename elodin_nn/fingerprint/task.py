@@ -1,14 +1,13 @@
-import time
 from collections import OrderedDict
-import itertools
 
+import itertools
+import time
 from celery import group
 
 from elodin_nn.celery import app
 from elodin_nn.fingerprint.processing import calculate as processing_calculate
-
 from ..tl_logging import get_logger
-import logging
+
 log = get_logger('fingerprint task')
 
 

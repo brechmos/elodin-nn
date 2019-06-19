@@ -1,12 +1,12 @@
+import logging
+
 import numpy as np
 import scipy.ndimage.interpolation
 from skimage import exposure
 from skimage.transform import resize as skimage_resize
+
 from ..tl_logging import get_logger
 
-from ..misc import image_processing
-
-import logging
 log = get_logger('image processing', level=logging.INFO)
 
 

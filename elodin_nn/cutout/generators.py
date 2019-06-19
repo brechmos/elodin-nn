@@ -1,14 +1,14 @@
 import uuid
+
 import itertools
 import numpy as np
-
-from skimage import measure
 from skimage import filters
+from skimage import measure
 
-from elodin_nn.data import Data, DataCollection
 from elodin_nn.cutout import Cutout, CutoutCollection, BoundingBox
-
+from elodin_nn.data import Data, DataCollection
 from ..tl_logging import get_logger
+
 log = get_logger('cutout generator')
 
 """
