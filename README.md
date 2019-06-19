@@ -9,50 +9,67 @@ The general idea is given a Hubble image (for example a thumbnail), create a cut
 ### Simple example of the code
 
 ```
-print('Setting up the data structure required')
-gray_scale = DataGrayScale()
-data = []
-for fileinfo in np.random.choice(processing_dict, 300, replace=False):
-    im = Data(location=fileinfo['location'], radec=fileinfo['radec'], meta=fileinfo['me
-ta'])
-    im.add_processing(gray_scale.save())
-    data.append(im)
-    db.save('data', im)
+import pickle
+
+from elodin_nn.cutout.generators import BasicCutoutGenerator
+from elodin_nn.data import Data, DataCollection
+from elodin_nn.fingerprint.processing import FingerprintCalculatorResnet
+from elodin_nn.fingerprint.processing import calculate as fingerprint_calculate
+from elodin_nn.similarity.similarity import calculate as similarity_calculate
+
+fc_save = FingerprintCalculatorResnet().save()
 
 #
-#  Create cutouts
+# Load the data
 #
-print('Creating the Full image cutout generator')
-full_cutout = FullImageCutoutGenerator(output_size=(224, 224))
 
-cutout_crop = CutoutCrop([15, -15, 15, -15])
-cutout_resize = CutoutResize([224, 224])
+print('Going to load the carina data')
+image_data = Data(location='../../data/carina.tiff', radec=(10.7502222, -59.8677778),
+                  meta={}, processing=[])
+image_data.get_data()
 
-print('Going to create the cutouts')
-cutouts = []
-for datum in data:
-    cutout = full_cutout.create_cutouts(datum)
+#
+# Add to the data collection
+#
 
-    # Add the processing
-    cutout.add_processing(cutout_crop)
-    cutout.add_processing(cutout_resize)
+dc = DataCollection()
+dc.add(image_data)
 
-    db.save('cutout', cutout)
-    cutouts.append(cutout)
+#
+#  Create the sliding window cutout generator.
+#
 
-# Create the fingerprint calculator... fingerprint
-print('Creating the info for the fingerprint calculator')
-fresnet = FingerprintCalculatorResnet()
-fc_save = fresnet.save()
+print('Creating cutout generator')
+sliding_window_cutouts = BasicCutoutGenerator(output_size=224,
+                                              step_size=100)
 
-print('Calculating the fingerprints')
+#
+#  Create the cutouts using a sliding window cutout generator.
+#
+
+print('Creating cutouts')
+cutouts = sliding_window_cutouts.create_cutouts(image_data)
+
+#
+#  Compute the fingerprints for each cutout
+#
+
+print('Calculate the fingerprint for each cutout')
 fingerprints = fingerprint_calculate(cutouts, fc_save)
-[db.save('fingerprint', x) for x in fingerprints]
+
+#
+#  Compute the similarity metrics
+#
 
 print('Calculating the tSNE similarity')
 similarity_tsne = similarity_calculate(fingerprints, 'tsne')
-db.save('similarity', similarity_tsne)
 
+#
+# Save the data to a pickle file.
+#
+
+with open('similarity_tsne.pck', 'wb') as fp:
+    pickle.dump(similarity_tsne.save(), fp)
 ```
 
 
