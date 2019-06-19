@@ -1,9 +1,4 @@
 import numpy as np
-from bson import ObjectId
-
-
-def convert_objectid(dct):
-    return {k: v if not isinstance(v, ObjectId) else str(v) for k, v in dct.items()}
 
 
 def gray2rgb(data):

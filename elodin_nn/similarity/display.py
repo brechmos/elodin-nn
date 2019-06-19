@@ -1,22 +1,19 @@
+import logging
 import os
-import traceback
 import time
-import numpy as np
-import matplotlib.pyplot as plt
-import matplotlib
-import matplotlib.gridspec as gridspec
+import traceback
 from itertools import groupby
 
-from scipy.spatial import distance_matrix
-from elodin_nn.database import get_database
-from elodin_nn.fingerprint import FingerprintCollection
-from elodin_nn.cutout import CutoutCollection
-
-from astropy.coordinates import SkyCoord
+import matplotlib
+import matplotlib.gridspec as gridspec
+import matplotlib.pyplot as plt
+import numpy as np
 from astropy import units
+from astropy.coordinates import SkyCoord
+from scipy.spatial import distance_matrix
 
 from ..tl_logging import get_logger
-import logging
+
 log = get_logger('display', '/tmp/mylog.log', level=logging.DEBUG)
 
 
@@ -674,11 +671,3 @@ class Aitoff(object):
 
         except Exception as e:
             log.error('{}'.format(e))
-
-
-if __name__ == '__main__':
-    db = get_database('blitzdb', '/tmp/basic_notebook.db')
-    similarities = db.find('similarity')
-    similarity_tsne = similarities[0]
-
-    simdisp = SimilarityDisplay(similarity_tsne, db)
